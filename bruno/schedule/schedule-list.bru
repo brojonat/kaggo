@@ -1,0 +1,15 @@
+meta {
+  name: schedule-list
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{ENDPOINT}}/schedule
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{AUTH_TOKEN}}
+}

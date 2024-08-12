@@ -1,0 +1,15 @@
+meta {
+  name: generate
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{ENDPOINT}}/internal/generate
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}

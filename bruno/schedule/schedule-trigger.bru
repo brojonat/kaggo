@@ -1,0 +1,19 @@
+meta {
+  name: schedule-trigger
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{ENDPOINT}}/schedule/trigger?schedule_id=test-schedule-id
+  body: none
+  auth: none
+}
+
+query {
+  schedule_id: test-schedule-id
+}
+
+headers {
+  Authorization: Bearer {{AUTH_TOKEN}}
+}

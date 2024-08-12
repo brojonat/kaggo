@@ -1,0 +1,20 @@
+meta {
+  name: schedule-pause
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{ENDPOINT}}/schedule/pause?schedule_id=test-schedule-id&action=pause
+  body: none
+  auth: none
+}
+
+query {
+  schedule_id: test-schedule-id
+  action: pause
+}
+
+headers {
+  Authorization: Bearer {{AUTH_TOKEN}}
+}

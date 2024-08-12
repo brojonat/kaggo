@@ -1,0 +1,22 @@
+meta {
+  name: upload-internal-metrics
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{ENDPOINT}}/internal/metrics
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "id": "internal-test-metric-id",
+    "value": 123
+  }
+}

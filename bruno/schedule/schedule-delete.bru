@@ -1,0 +1,19 @@
+meta {
+  name: schedule-delete
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{ENDPOINT}}/schedule?schedule_id=test-schedule-id
+  body: none
+  auth: none
+}
+
+query {
+  schedule_id: test-schedule-id
+}
+
+headers {
+  Authorization: Bearer {{AUTH_TOKEN}}
+}

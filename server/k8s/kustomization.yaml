@@ -1,0 +1,7 @@
+resources:
+- server.yaml
+- ingress.yaml
+secretGenerator:
+- name: kaggo-secret-server-envs
+  envs:
+  - ../.env

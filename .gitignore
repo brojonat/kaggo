@@ -1,0 +1,26 @@
+*.env.*
+*.env
+kaggo/server/.env
+*__pycache__
+.vscode
+.DS_Store
+
+tmp.txt
+todo.txt
+
+# binaries
+cli
+!cli/
+
+# data dumps
+data/
+notebooks
+test-schema.sql
+pgdump.sql
+
+# temporal tinkering stuff
+temporal-starter/
+helm/
+
+
+

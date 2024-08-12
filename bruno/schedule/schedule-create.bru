@@ -1,0 +1,22 @@
+meta {
+  name: schedule-create
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{ENDPOINT}}/schedule/generic
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "kind": "youtube.video",
+    "id": "OdxSbc0ap-s"
+  }
+}

@@ -1,0 +1,19 @@
+meta {
+  name: kaggle-notebook-metrics
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{ENDPOINT}}/kaggle/notebook?slug=foo/bar-baz
+  body: none
+  auth: none
+}
+
+query {
+  slug: foo/bar-baz
+}
+
+headers {
+  Authorization: Bearer {{AUTH_TOKEN}}
+}
