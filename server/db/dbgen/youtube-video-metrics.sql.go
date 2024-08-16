@@ -12,22 +12,22 @@ import (
 )
 
 const getYouTubeVideoMetricsByID = `-- name: GetYouTubeVideoMetricsByID :many
-SELECT id, slug, ts, views, 'youtube.video.views' AS "metric"
+SELECT id, title, ts, views, 'youtube.video.views' AS "metric"
 FROM youtube_video_views y
 WHERE y.id = $1
 UNION ALL
-SELECT id, slug, ts, views, 'youtube.video.comments' AS "metric"
+SELECT id, title, ts, views, 'youtube.video.comments' AS "metric"
 FROM youtube_video_views y
 WHERE y.id = $1
 UNION ALL
-SELECT id, slug, ts, likes, 'youtube.video.likes' AS "metric"
+SELECT id, title, ts, likes, 'youtube.video.likes' AS "metric"
 FROM youtube_video_likes y
 WHERE y.id = $1
 `
 
 type GetYouTubeVideoMetricsByIDRow struct {
 	ID     string             `json:"id"`
-	Slug   string             `json:"slug"`
+	Title  string             `json:"title"`
 	Ts     pgtype.Timestamptz `json:"ts"`
 	Views  int32              `json:"views"`
 	Metric string             `json:"metric"`
@@ -44,7 +44,7 @@ func (q *Queries) GetYouTubeVideoMetricsByID(ctx context.Context, id string) ([]
 		var i GetYouTubeVideoMetricsByIDRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.Slug,
+			&i.Title,
 			&i.Ts,
 			&i.Views,
 			&i.Metric,
@@ -59,40 +59,40 @@ func (q *Queries) GetYouTubeVideoMetricsByID(ctx context.Context, id string) ([]
 	return items, nil
 }
 
-const getYouTubeVideoMetricsBySlug = `-- name: GetYouTubeVideoMetricsBySlug :many
-SELECT id, slug, ts, views, 'youtube.video.views' AS "metric"
+const getYouTubeVideoMetricsByTitle = `-- name: GetYouTubeVideoMetricsByTitle :many
+SELECT id, title, ts, views, 'youtube.video.views' AS "metric"
 FROM youtube_video_views y
-WHERE y.slug = $1
+WHERE y.title = $1
 UNION ALL
-SELECT id, slug, ts, views, 'youtube.video.comments' AS "metric"
+SELECT id, title, ts, views, 'youtube.video.comments' AS "metric"
 FROM youtube_video_views y
-WHERE y.slug = $1
+WHERE y.title = $1
 UNION ALL
-SELECT id, slug, ts, likes, 'youtube.video.likes' AS "metric"
+SELECT id, title, ts, likes, 'youtube.video.likes' AS "metric"
 FROM youtube_video_likes y
-WHERE y.slug = $1
+WHERE y.title = $1
 `
 
-type GetYouTubeVideoMetricsBySlugRow struct {
+type GetYouTubeVideoMetricsByTitleRow struct {
 	ID     string             `json:"id"`
-	Slug   string             `json:"slug"`
+	Title  string             `json:"title"`
 	Ts     pgtype.Timestamptz `json:"ts"`
 	Views  int32              `json:"views"`
 	Metric string             `json:"metric"`
 }
 
-func (q *Queries) GetYouTubeVideoMetricsBySlug(ctx context.Context, slug string) ([]GetYouTubeVideoMetricsBySlugRow, error) {
-	rows, err := q.db.Query(ctx, getYouTubeVideoMetricsBySlug, slug)
+func (q *Queries) GetYouTubeVideoMetricsByTitle(ctx context.Context, title string) ([]GetYouTubeVideoMetricsByTitleRow, error) {
+	rows, err := q.db.Query(ctx, getYouTubeVideoMetricsByTitle, title)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetYouTubeVideoMetricsBySlugRow
+	var items []GetYouTubeVideoMetricsByTitleRow
 	for rows.Next() {
-		var i GetYouTubeVideoMetricsBySlugRow
+		var i GetYouTubeVideoMetricsByTitleRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.Slug,
+			&i.Title,
 			&i.Ts,
 			&i.Views,
 			&i.Metric,
@@ -108,49 +108,49 @@ func (q *Queries) GetYouTubeVideoMetricsBySlug(ctx context.Context, slug string)
 }
 
 const insertYouTubeVideoComments = `-- name: InsertYouTubeVideoComments :exec
-INSERT INTO youtube_video_comments (id, slug, ts, comments)
+INSERT INTO youtube_video_comments (id, title, ts, comments)
 VALUES ($1, $2, NOW()::TIMESTAMPTZ, $3)
 `
 
 type InsertYouTubeVideoCommentsParams struct {
 	ID       string `json:"id"`
-	Slug     string `json:"slug"`
+	Title    string `json:"title"`
 	Comments int32  `json:"comments"`
 }
 
 func (q *Queries) InsertYouTubeVideoComments(ctx context.Context, arg InsertYouTubeVideoCommentsParams) error {
-	_, err := q.db.Exec(ctx, insertYouTubeVideoComments, arg.ID, arg.Slug, arg.Comments)
+	_, err := q.db.Exec(ctx, insertYouTubeVideoComments, arg.ID, arg.Title, arg.Comments)
 	return err
 }
 
 const insertYouTubeVideoLikes = `-- name: InsertYouTubeVideoLikes :exec
-INSERT INTO youtube_video_likes (id, slug, ts, likes)
+INSERT INTO youtube_video_likes (id, title, ts, likes)
 VALUES ($1, $2, NOW()::TIMESTAMPTZ, $3)
 `
 
 type InsertYouTubeVideoLikesParams struct {
 	ID    string `json:"id"`
-	Slug  string `json:"slug"`
+	Title string `json:"title"`
 	Likes int32  `json:"likes"`
 }
 
 func (q *Queries) InsertYouTubeVideoLikes(ctx context.Context, arg InsertYouTubeVideoLikesParams) error {
-	_, err := q.db.Exec(ctx, insertYouTubeVideoLikes, arg.ID, arg.Slug, arg.Likes)
+	_, err := q.db.Exec(ctx, insertYouTubeVideoLikes, arg.ID, arg.Title, arg.Likes)
 	return err
 }
 
 const insertYouTubeVideoViews = `-- name: InsertYouTubeVideoViews :exec
-INSERT INTO youtube_video_views (id, slug, ts, views)
+INSERT INTO youtube_video_views (id, title, ts, views)
 VALUES ($1, $2, NOW()::TIMESTAMPTZ, $3)
 `
 
 type InsertYouTubeVideoViewsParams struct {
 	ID    string `json:"id"`
-	Slug  string `json:"slug"`
+	Title string `json:"title"`
 	Views int32  `json:"views"`
 }
 
 func (q *Queries) InsertYouTubeVideoViews(ctx context.Context, arg InsertYouTubeVideoViewsParams) error {
-	_, err := q.db.Exec(ctx, insertYouTubeVideoViews, arg.ID, arg.Slug, arg.Views)
+	_, err := q.db.Exec(ctx, insertYouTubeVideoViews, arg.ID, arg.Title, arg.Views)
 	return err
 }

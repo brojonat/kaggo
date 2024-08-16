@@ -12,11 +12,15 @@ import (
 )
 
 const getKaggleDatasetMetrics = `-- name: GetKaggleDatasetMetrics :many
-SELECT slug, ts, val, 'kdv' AS "metric"
+SELECT slug, ts, votes, 'kaggle.dataset.votes' AS "metric"
 FROM kaggle_dataset_votes kdv
 WHERE kdv.slug = $1
 UNION ALL
-SELECT slug, ts, val, 'kdd' AS "metric"
+SELECT slug, ts, views, 'kaggle.dataset.views' AS "metric"
+FROM kaggle_dataset_views kdvw
+WHERE kdvw.slug = $1
+UNION ALL
+SELECT slug, ts, downloads, 'kaggle.dataset.downloads' AS "metric"
 FROM kaggle_dataset_downloads kdd
 WHERE kdd.slug = $1
 `
@@ -24,7 +28,7 @@ WHERE kdd.slug = $1
 type GetKaggleDatasetMetricsRow struct {
 	Slug   string             `json:"slug"`
 	Ts     pgtype.Timestamptz `json:"ts"`
-	Val    int32              `json:"val"`
+	Votes  int32              `json:"votes"`
 	Metric string             `json:"metric"`
 }
 
@@ -40,7 +44,7 @@ func (q *Queries) GetKaggleDatasetMetrics(ctx context.Context, slug string) ([]G
 		if err := rows.Scan(
 			&i.Slug,
 			&i.Ts,
-			&i.Val,
+			&i.Votes,
 			&i.Metric,
 		); err != nil {
 			return nil, err
@@ -54,19 +58,15 @@ func (q *Queries) GetKaggleDatasetMetrics(ctx context.Context, slug string) ([]G
 }
 
 const getKaggleNotebookMetrics = `-- name: GetKaggleNotebookMetrics :many
-SELECT slug, ts, val, 'knv' AS "metric"
+SELECT slug, ts, votes, 'knv' AS "metric"
 FROM kaggle_notebook_votes knv
 WHERE knv.slug = $1
-UNION ALL
-SELECT slug, ts, val, 'knd' AS "metric"
-FROM kaggle_notebook_downloads knd
-WHERE knd.slug = $1
 `
 
 type GetKaggleNotebookMetricsRow struct {
 	Slug   string             `json:"slug"`
 	Ts     pgtype.Timestamptz `json:"ts"`
-	Val    int32              `json:"val"`
+	Votes  int32              `json:"votes"`
 	Metric string             `json:"metric"`
 }
 
@@ -82,7 +82,7 @@ func (q *Queries) GetKaggleNotebookMetrics(ctx context.Context, slug string) ([]
 		if err := rows.Scan(
 			&i.Slug,
 			&i.Ts,
-			&i.Val,
+			&i.Votes,
 			&i.Metric,
 		); err != nil {
 			return nil, err
@@ -96,7 +96,7 @@ func (q *Queries) GetKaggleNotebookMetrics(ctx context.Context, slug string) ([]
 }
 
 const insertKaggleDatasetDownloads = `-- name: InsertKaggleDatasetDownloads :exec
-INSERT INTO kaggle_dataset_downloads (slug, ts, val)
+INSERT INTO kaggle_dataset_downloads (slug, ts, downloads)
 VALUES ($1, NOW()::TIMESTAMPTZ, $2)
 `
 
@@ -110,8 +110,23 @@ func (q *Queries) InsertKaggleDatasetDownloads(ctx context.Context, arg InsertKa
 	return err
 }
 
+const insertKaggleDatasetViews = `-- name: InsertKaggleDatasetViews :exec
+INSERT INTO kaggle_dataset_views (slug, ts, views)
+VALUES ($1, NOW()::TIMESTAMPTZ, $2)
+`
+
+type InsertKaggleDatasetViewsParams struct {
+	Slug  string `json:"slug"`
+	Views int32  `json:"views"`
+}
+
+func (q *Queries) InsertKaggleDatasetViews(ctx context.Context, arg InsertKaggleDatasetViewsParams) error {
+	_, err := q.db.Exec(ctx, insertKaggleDatasetViews, arg.Slug, arg.Views)
+	return err
+}
+
 const insertKaggleDatasetVotes = `-- name: InsertKaggleDatasetVotes :exec
-INSERT INTO kaggle_dataset_votes (slug, ts, val)
+INSERT INTO kaggle_dataset_votes (slug, ts, votes)
 VALUES ($1, NOW()::TIMESTAMPTZ, $2)
 `
 
@@ -125,23 +140,8 @@ func (q *Queries) InsertKaggleDatasetVotes(ctx context.Context, arg InsertKaggle
 	return err
 }
 
-const insertKaggleNotebookDownloads = `-- name: InsertKaggleNotebookDownloads :exec
-INSERT INTO kaggle_notebook_downloads (slug, ts, val)
-VALUES ($1, NOW()::TIMESTAMPTZ, $2)
-`
-
-type InsertKaggleNotebookDownloadsParams struct {
-	Slug      string `json:"slug"`
-	Downloads int32  `json:"downloads"`
-}
-
-func (q *Queries) InsertKaggleNotebookDownloads(ctx context.Context, arg InsertKaggleNotebookDownloadsParams) error {
-	_, err := q.db.Exec(ctx, insertKaggleNotebookDownloads, arg.Slug, arg.Downloads)
-	return err
-}
-
 const insertKaggleNotebookVotes = `-- name: InsertKaggleNotebookVotes :exec
-INSERT INTO kaggle_notebook_votes (slug, ts, val)
+INSERT INTO kaggle_notebook_votes (slug, ts, votes)
 VALUES ($1, NOW()::TIMESTAMPTZ, $2)
 `
 

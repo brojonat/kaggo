@@ -793,6 +793,10 @@ github.com/brojonat/server-tools v0.0.0-20240812015626-e00edbbefce4 h1:7bcBSnaK+
 github.com/brojonat/server-tools v0.0.0-20240812015626-e00edbbefce4/go.mod h1:mYIWUqMgk+oCQas/Zmh0tARu7vxgFLah2Vbo78ssSJ8=
 github.com/brojonat/server-tools v0.0.0-20240812020439-966b9517a74a h1:Tf6wQzDgHJUY0oxZFfrZz7teJMmYEjQBlt1QU+cb/QU=
 github.com/brojonat/server-tools v0.0.0-20240812020439-966b9517a74a/go.mod h1:mYIWUqMgk+oCQas/Zmh0tARu7vxgFLah2Vbo78ssSJ8=
+github.com/brojonat/server-tools v0.0.0-20240812020919-17076bbeaeca h1:gcrw/CjnPqT2M7GwbNVc03ONva6QDDFFV7eWorNVGzs=
+github.com/brojonat/server-tools v0.0.0-20240812020919-17076bbeaeca/go.mod h1:mYIWUqMgk+oCQas/Zmh0tARu7vxgFLah2Vbo78ssSJ8=
+github.com/brojonat/server-tools v0.0.0-20240812021007-f5910cb00682 h1:z0ZWFJ5dJ3mUflATRbkZoaApP5OHRRpjmlzXceeU6mo=
+github.com/brojonat/server-tools v0.0.0-20240812021007-f5910cb00682/go.mod h1:mYIWUqMgk+oCQas/Zmh0tARu7vxgFLah2Vbo78ssSJ8=
 github.com/brojonat/websocket v0.0.0-20240410014128-3a433ef1c057 h1:GFnV7x+cL65RvivDWmjTU5Pkw//oetVOzSjLryltfvA=
 github.com/brojonat/websocket v0.0.0-20240410014128-3a433ef1c057/go.mod h1:lLdsdVgUzioSqH3ZtDchS5Whdei9cdpe0jmFRi51kg0=
 github.com/bsm/ginkgo/v2 v2.7.0 h1:ItPMPH90RbmZJt5GtkcNvIRuGEdwlBItdNVoyzaNQao=

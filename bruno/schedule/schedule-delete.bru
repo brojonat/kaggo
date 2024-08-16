@@ -1,17 +1,17 @@
 meta {
   name: schedule-delete
   type: http
-  seq: 3
+  seq: 8
 }
 
 delete {
-  url: {{ENDPOINT}}/schedule?schedule_id=test-schedule-id
+  url: {{ENDPOINT}}/schedule?schedule_id=internal.random  a41353d595718859ccd15ce3ca4ffcde
   body: none
   auth: none
 }
 
 query {
-  schedule_id: test-schedule-id
+  schedule_id: internal.random  a41353d595718859ccd15ce3ca4ffcde
 }
 
 headers {

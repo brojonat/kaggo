@@ -15,46 +15,72 @@ type InternalRandom struct {
 }
 
 type KaggleDatasetDownload struct {
-	Slug string             `json:"slug"`
-	Ts   pgtype.Timestamptz `json:"ts"`
-	Val  int32              `json:"val"`
+	Slug      string             `json:"slug"`
+	Ts        pgtype.Timestamptz `json:"ts"`
+	Downloads int32              `json:"downloads"`
+}
+
+type KaggleDatasetView struct {
+	Slug  string             `json:"slug"`
+	Ts    pgtype.Timestamptz `json:"ts"`
+	Views int32              `json:"views"`
 }
 
 type KaggleDatasetVote struct {
-	Slug string             `json:"slug"`
-	Ts   pgtype.Timestamptz `json:"ts"`
-	Val  int32              `json:"val"`
-}
-
-type KaggleNotebookDownload struct {
-	Slug string             `json:"slug"`
-	Ts   pgtype.Timestamptz `json:"ts"`
-	Val  int32              `json:"val"`
+	Slug  string             `json:"slug"`
+	Ts    pgtype.Timestamptz `json:"ts"`
+	Votes int32              `json:"votes"`
 }
 
 type KaggleNotebookVote struct {
-	Slug string             `json:"slug"`
-	Ts   pgtype.Timestamptz `json:"ts"`
-	Val  int32              `json:"val"`
+	Slug  string             `json:"slug"`
+	Ts    pgtype.Timestamptz `json:"ts"`
+	Votes int32              `json:"votes"`
+}
+
+type RedditCommentControversiality struct {
+	ID               string             `json:"id"`
+	Ts               pgtype.Timestamptz `json:"ts"`
+	Controversiality float32            `json:"controversiality"`
+}
+
+type RedditCommentScore struct {
+	ID    string             `json:"id"`
+	Ts    pgtype.Timestamptz `json:"ts"`
+	Score int32              `json:"score"`
+}
+
+type RedditPostRatio struct {
+	ID    string             `json:"id"`
+	Title string             `json:"title"`
+	Ts    pgtype.Timestamptz `json:"ts"`
+	Ratio float32            `json:"ratio"`
+}
+
+type RedditPostScore struct {
+	ID    string             `json:"id"`
+	Title string             `json:"title"`
+	Ts    pgtype.Timestamptz `json:"ts"`
+	Score int32              `json:"score"`
 }
 
 type YoutubeVideoComment struct {
 	ID       string             `json:"id"`
-	Slug     string             `json:"slug"`
+	Title    string             `json:"title"`
 	Ts       pgtype.Timestamptz `json:"ts"`
 	Comments int32              `json:"comments"`
 }
 
 type YoutubeVideoLike struct {
 	ID    string             `json:"id"`
-	Slug  string             `json:"slug"`
+	Title string             `json:"title"`
 	Ts    pgtype.Timestamptz `json:"ts"`
 	Likes int32              `json:"likes"`
 }
 
 type YoutubeVideoView struct {
 	ID    string             `json:"id"`
-	Slug  string             `json:"slug"`
+	Title string             `json:"title"`
 	Ts    pgtype.Timestamptz `json:"ts"`
 	Views int32              `json:"views"`
 }

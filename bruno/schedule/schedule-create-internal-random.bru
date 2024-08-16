@@ -1,0 +1,47 @@
+meta {
+  name: schedule-create-internal-random
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{ENDPOINT}}/schedule
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "request_kind": "internal.random",
+    "schedule_spec": {
+      "Calendars": [
+        {
+          "Second": [
+            {
+              "Start": 0,
+              "End": 59,
+              "Step": 15
+            }
+          ],
+          "Minute": [
+            {
+              "Start": 0,
+              "End": 59
+            }
+          ],
+          "Hour": [
+            {
+              "Start": 0,
+              "End": 23
+            }
+          ],
+          "Comment": "Every 15 seconds"
+        }
+      ]
+    }
+  }
+}

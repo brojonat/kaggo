@@ -1,0 +1,46 @@
+meta {
+  name: schedule-create-reddit-post
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{ENDPOINT}}/schedule
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "request_kind": "reddit.post",
+    "id": "1erlay8",
+    "schedule_spec": {
+      "Calendars": [
+        {
+          "Second": [
+            {
+              "Start": 0
+            }
+          ],
+          "Minute": [
+            {
+              "Start": 0,
+              "End": 59
+            }
+          ],
+          "Hour": [
+            {
+              "Start": 0,
+              "End": 23
+            }
+          ],
+          "Comment": "Every minute"
+        }
+      ]
+    }
+  }
+}

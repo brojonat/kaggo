@@ -38,6 +38,10 @@ func handleInternalMetricsGet(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc
 			writeInternalError(l, w, err)
 			return
 		}
+		if res == nil {
+			writeEmptyResultError(w)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(res)
 	}
@@ -72,7 +76,6 @@ func handleInternalMetricsPost(l *slog.Logger, q *dbgen.Queries, value *promethe
 			return
 		}
 
-		// wrap up
 		writeOK(w)
 	}
 }

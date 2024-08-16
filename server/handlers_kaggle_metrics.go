@@ -8,7 +8,6 @@ import (
 
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/dbgen"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 func handleKaggleNotebookMetricsGet(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
@@ -20,8 +19,11 @@ func handleKaggleNotebookMetricsGet(l *slog.Logger, q *dbgen.Queries) http.Handl
 		}
 		res, err := q.GetKaggleNotebookMetrics(r.Context(), slug)
 		if err != nil {
-			// FIXME: I think this needs to check for isPGError(err, noRows)
 			writeInternalError(l, w, err)
+			return
+		}
+		if res == nil {
+			writeEmptyResultError(w)
 			return
 		}
 		w.WriteHeader(http.StatusOK)
@@ -29,10 +31,10 @@ func handleKaggleNotebookMetricsGet(l *slog.Logger, q *dbgen.Queries) http.Handl
 	}
 }
 
-func handleKaggleNotebookPost(l *slog.Logger, q *dbgen.Queries, votes, downloads *prometheus.GaugeVec) http.HandlerFunc {
+func handleKaggleNotebookPost(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// parse
-		var p api.KaggleMetricPayload
+		var p api.KaggleNotebookMetricPayload
 		defer r.Body.Close()
 		err := json.NewDecoder(r.Body).Decode(&p)
 		if err != nil {
@@ -44,22 +46,6 @@ func handleKaggleNotebookPost(l *slog.Logger, q *dbgen.Queries, votes, downloads
 			return
 		}
 
-		// set vote metrics
-		c, err := votes.GetMetricWithLabelValues(p.Slug)
-		if err != nil {
-			writeBadRequestError(w, err)
-			return
-		}
-		c.Set(float64(p.Votes))
-
-		// set download metrics
-		c, err = downloads.GetMetricWithLabelValues(p.Slug)
-		if err != nil {
-			writeBadRequestError(w, err)
-			return
-		}
-		c.Set(float64(p.Downloads))
-
 		if p.SetVotes {
 			err = q.InsertKaggleNotebookVotes(r.Context(), dbgen.InsertKaggleNotebookVotesParams{Slug: p.Slug, Votes: int32(p.Votes)})
 			if err != nil {
@@ -67,15 +53,7 @@ func handleKaggleNotebookPost(l *slog.Logger, q *dbgen.Queries, votes, downloads
 				return
 			}
 		}
-		if p.SetDownloads {
-			err = q.InsertKaggleNotebookDownloads(r.Context(), dbgen.InsertKaggleNotebookDownloadsParams{Slug: p.Slug, Downloads: int32(p.Downloads)})
-			if err != nil {
-				writeInternalError(l, w, err)
-				return
-			}
-		}
 
-		// wrap up
 		writeOK(w)
 	}
 }
@@ -89,8 +67,11 @@ func handleKaggleDatasetMetricsGet(l *slog.Logger, q *dbgen.Queries) http.Handle
 		}
 		res, err := q.GetKaggleDatasetMetrics(r.Context(), slug)
 		if err != nil {
-			// FIXME: I think this needs to check for isPGError(err, noRows)
 			writeInternalError(l, w, err)
+			return
+		}
+		if res == nil {
+			writeEmptyResultError(w)
 			return
 		}
 		w.WriteHeader(http.StatusOK)
@@ -98,9 +79,9 @@ func handleKaggleDatasetMetricsGet(l *slog.Logger, q *dbgen.Queries) http.Handle
 	}
 }
 
-func handleKaggleDatasetPost(l *slog.Logger, q *dbgen.Queries, votes, downloads *prometheus.GaugeVec) http.HandlerFunc {
+func handleKaggleDatasetPost(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var p api.KaggleMetricPayload
+		var p api.KaggleDatasetMetricPayload
 		defer r.Body.Close()
 		err := json.NewDecoder(r.Body).Decode(&p)
 		if err != nil {
@@ -112,28 +93,23 @@ func handleKaggleDatasetPost(l *slog.Logger, q *dbgen.Queries, votes, downloads 
 			return
 		}
 
-		// set vote metrics
-		c, err := votes.GetMetricWithLabelValues(p.Slug)
-		if err != nil {
-			writeBadRequestError(w, err)
-			return
-		}
-		c.Set(float64(p.Votes))
-
-		// set download metrics
-		c, err = downloads.GetMetricWithLabelValues(p.Slug)
-		if err != nil {
-			writeBadRequestError(w, err)
-			return
-		}
-		c.Set(float64(p.Downloads))
-
-		// upload timeseries
 		if p.SetVotes {
 			err = q.InsertKaggleDatasetVotes(
 				r.Context(),
 				dbgen.InsertKaggleDatasetVotesParams{
 					Slug: p.Slug, Votes: int32(p.Votes),
+				})
+			if err != nil {
+				writeInternalError(l, w, err)
+				return
+			}
+		}
+
+		if p.SetViews {
+			err = q.InsertKaggleDatasetViews(
+				r.Context(),
+				dbgen.InsertKaggleDatasetViewsParams{
+					Slug: p.Slug, Views: int32(p.Views),
 				})
 			if err != nil {
 				writeInternalError(l, w, err)
@@ -152,7 +128,7 @@ func handleKaggleDatasetPost(l *slog.Logger, q *dbgen.Queries, votes, downloads 
 				return
 			}
 		}
-		// wrap up
+
 		writeOK(w)
 	}
 }

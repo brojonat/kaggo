@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kaggo-treq-worker
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: kaggo-treq-worker
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: kaggo-treq-worker
+  name: kaggo-treq-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kaggo-treq-worker
+  template:
+    metadata:
+      labels:
+        app: kaggo-treq-worker
+    spec:
+      containers:
+      - image: "{{DOCKER_REPO}}{{CLI_IMG_TAG}}"
+        imagePullPolicy: Always
+        name: kaggo-treq-worker
+        envFrom:
+        - secretRef:
+            name: kaggo-secret-worker-envs
+        command: ["./cli"]
+        args: ["run", "worker"]
+      restartPolicy: Always
+      imagePullSecrets:
+      - name: regcred

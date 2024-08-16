@@ -29,11 +29,21 @@ run-http-server:
 	$(call setup_env, server/.env)
 	./cli run http-server
 
+run-worker:
+	$(call setup_env, worker/.env)
+	./cli run worker
+
 run-http-server-local:
 	$(call setup_env, server/.env.local)
 	kubectl port-forward services/temporal-frontend 7233:7233 &
 	@$(MAKE) build-cli
 	./cli run http-server
+
+run-worker-local:
+	$(call setup_env, worker/.env.local)
+	kubectl port-forward services/temporal-frontend 7233:7233 &
+	@$(MAKE) build-cli
+	./cli run worker
 
 deploy-server:
 	$(call setup_env, server/.env)
@@ -43,3 +53,12 @@ deploy-server:
 	sed -e "s;{{CLI_IMG_TAG}};$(CLI_IMG_TAG);g" | \
 	kubectl apply -f -
 	kubectl rollout restart deployment kaggo-backend
+
+deploy-worker:
+	$(call setup_env, worker/.env)
+	@$(MAKE) build-push-cli
+	kustomize build --load-restrictor=LoadRestrictionsNone worker/k8s | \
+	sed -e "s;{{DOCKER_REPO}};$(DOCKER_REPO);g" | \
+	sed -e "s;{{CLI_IMG_TAG}};$(CLI_IMG_TAG);g" | \
+	kubectl apply -f -
+	kubectl rollout restart deployment kaggo-treq-worker

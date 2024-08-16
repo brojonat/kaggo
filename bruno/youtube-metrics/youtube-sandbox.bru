@@ -1,0 +1,21 @@
+meta {
+  name: youtube-sandbox
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://youtube.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=OdxSbc0ap-s&key=AIzaSyAYyg-sPzEq8OcuB_gUoaHeGznHnQvBBn8
+  body: none
+  auth: none
+}
+
+query {
+  part: snippet,contentDetails,statistics
+  id: OdxSbc0ap-s
+  key: AIzaSyAYyg-sPzEq8OcuB_gUoaHeGznHnQvBBn8
+}
+
+headers {
+  Authorization: Bearer
+}

@@ -22,11 +22,7 @@ import (
 // particular handlers. If the caller misconfigures the prometheus metrics
 // passed in to the root handler, it will panic (on startup, so it's fine).
 const (
-	MetricKeyInternalRandom    = "internal-random"
-	MetricKeyNotebookVotes     = "notebook-votes"
-	MetricKeyNotebookDownloads = "notebook-downloads"
-	MetricKeyDatasetVotes      = "dataset-votes"
-	MetricKeyDatasetDownloads  = "dataset-downloads"
+	MetricKeyInternalRandom = "internal-random"
 )
 
 // This is a convenience method for getting the necessary metrics. Some handlers
@@ -41,34 +37,6 @@ func GetDefaultPromMetrics() map[string]prometheus.Collector {
 				Help: "A pseudo random metric",
 			},
 			[]string{"id"},
-		),
-		MetricKeyNotebookVotes: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "kaggo_notebook_votes_total",
-				Help: "The number of votes for a kaggle notebook",
-			},
-			[]string{"slug"},
-		),
-		MetricKeyNotebookDownloads: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "kaggo_notebook_downloads_total",
-				Help: "The number of downloads for a kaggle notebook",
-			},
-			[]string{"slug"},
-		),
-		MetricKeyDatasetVotes: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "kaggo_dataset_votes_total",
-				Help: "The number of votes for a kaggle dataset",
-			},
-			[]string{"slug"},
-		),
-		MetricKeyDatasetDownloads: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "kaggo_dataset_downloads_total",
-				Help: "The number of downloads for a kaggle dataset",
-			},
-			[]string{"slug"},
 		),
 	}
 }
@@ -96,6 +64,7 @@ func RunHTTPServer(
 	q := dbgen.New(p)
 
 	tc, err := client.Dial(client.Options{
+		Logger:   l,
 		HostPort: os.Getenv("TEMPORAL_HOST"),
 	})
 	if err != nil {
@@ -150,22 +119,6 @@ func getRouter(
 	ir, ok := promMetrics[MetricKeyInternalRandom].(*prometheus.GaugeVec)
 	if !ok {
 		return nil, fmt.Errorf("could not find internal random metric")
-	}
-	dv, ok := promMetrics[MetricKeyDatasetVotes].(*prometheus.GaugeVec)
-	if !ok {
-		return nil, fmt.Errorf("could not find dataset votes metric")
-	}
-	dd, ok := promMetrics[MetricKeyDatasetDownloads].(*prometheus.GaugeVec)
-	if !ok {
-		return nil, fmt.Errorf("could not find dataset downloads metric")
-	}
-	nv, ok := promMetrics[MetricKeyNotebookVotes].(*prometheus.GaugeVec)
-	if !ok {
-		return nil, fmt.Errorf("could not find notebook votes metric")
-	}
-	nd, ok := promMetrics[MetricKeyNotebookDownloads].(*prometheus.GaugeVec)
-	if !ok {
-		return nil, fmt.Errorf("could not find notebook downloads metric")
 	}
 
 	// admin/auth handlers
@@ -236,7 +189,7 @@ func getRouter(
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
 	mux.HandleFunc("POST /kaggle/notebook", stools.AdaptHandler(
-		handleKaggleNotebookPost(l, q, nv, nd),
+		handleKaggleNotebookPost(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
@@ -247,7 +200,29 @@ func getRouter(
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
 	mux.HandleFunc("POST /kaggle/dataset", stools.AdaptHandler(
-		handleKaggleDatasetPost(l, q, dv, dd),
+		handleKaggleDatasetPost(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+	// reddit post metrics
+	mux.HandleFunc("GET /reddit/post", stools.AdaptHandler(
+		handleRedditPostMetricsGet(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+	mux.HandleFunc("POST /reddit/post", stools.AdaptHandler(
+		handleRedditPostMetricsPost(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+	// reddit comment metrics
+	mux.HandleFunc("GET /reddit/comment", stools.AdaptHandler(
+		handleRedditCommentMetricsGet(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+	mux.HandleFunc("POST /reddit/comment", stools.AdaptHandler(
+		handleRedditCommentMetricsPost(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))

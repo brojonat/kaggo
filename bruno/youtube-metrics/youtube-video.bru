@@ -1,17 +1,17 @@
 meta {
-  name: kaggle-notebook-metrics
+  name: youtube-video
   type: http
-  seq: 1
+  seq: 2
 }
 
 get {
-  url: {{ENDPOINT}}/kaggle/notebook?slug=foo/bar-bazz
+  url: {{ENDPOINT}}/youtube/video?id=OdxSbc0ap-s
   body: none
   auth: none
 }
 
 query {
-  slug: foo/bar-bazz
+  id: OdxSbc0ap-s
 }
 
 headers {

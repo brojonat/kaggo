@@ -5,6 +5,7 @@ sql:
       - "sqlc/kaggle-metrics.sql"
       - "sqlc/internal-metrics.sql"
       - "sqlc/youtube-video-metrics.sql"
+      - "sqlc/reddit-metrics.sql"
     schema: "sqlc/schema.sql"
     gen:
       go:

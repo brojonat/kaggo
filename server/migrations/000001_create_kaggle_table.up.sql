@@ -28,6 +28,15 @@ CREATE TABLE IF NOT EXISTS kaggle_dataset_votes (
 SELECT create_hypertable('kaggle_dataset_votes', 'ts', if_not_exists => TRUE);
 CREATE INDEX kaggle_dataset_votes_slug ON kaggle_dataset_votes (slug, ts);
 
+-- kaggle dataset views
+CREATE TABLE IF NOT EXISTS kaggle_dataset_views (
+    slug VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    val INTEGER NOT NULL
+);
+SELECT create_hypertable('kaggle_dataset_views', 'ts', if_not_exists => TRUE);
+CREATE INDEX kaggle_dataset_views_slug ON kaggle_dataset_views (slug, ts);
+
 -- kaggle dataset downloads
 CREATE TABLE IF NOT EXISTS kaggle_dataset_downloads (
     slug VARCHAR(255) NOT NULL,

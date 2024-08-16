@@ -28,9 +28,13 @@ func handleYouTubeMetricsGet(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc 
 			json.NewEncoder(w).Encode(res)
 			return
 		}
-		res, err := q.GetYouTubeVideoMetricsBySlug(r.Context(), slug)
+		res, err := q.GetYouTubeVideoMetricsByTitle(r.Context(), slug)
 		if err != nil {
 			writeInternalError(l, w, err)
+			return
+		}
+		if res == nil {
+			writeEmptyResultError(w)
 			return
 		}
 		w.WriteHeader(http.StatusOK)
@@ -48,19 +52,13 @@ func handleYouTubeVideoMetricsPost(l *slog.Logger, q *dbgen.Queries) http.Handle
 			writeBadRequestError(w, err)
 			return
 		}
-		if p.ID == "" || p.Slug == "" {
-			writeBadRequestError(w, fmt.Errorf("must supply id"))
-			return
-		}
-
-		// FIXME: set prometheus metrics too
 
 		// upload metrics
 		if p.SetViews {
 			err = q.InsertYouTubeVideoViews(
 				r.Context(),
 				dbgen.InsertYouTubeVideoViewsParams{
-					ID: p.ID, Slug: p.Slug, Views: int32(p.Views)})
+					ID: p.ID, Title: p.Title, Views: int32(p.Views)})
 			if err != nil {
 				writeInternalError(l, w, err)
 				return
@@ -70,7 +68,7 @@ func handleYouTubeVideoMetricsPost(l *slog.Logger, q *dbgen.Queries) http.Handle
 			err = q.InsertYouTubeVideoComments(
 				r.Context(),
 				dbgen.InsertYouTubeVideoCommentsParams{
-					ID: p.ID, Slug: p.Slug, Comments: int32(p.Comments)})
+					ID: p.ID, Title: p.Title, Comments: int32(p.Comments)})
 			if err != nil {
 				writeInternalError(l, w, err)
 				return
@@ -81,14 +79,13 @@ func handleYouTubeVideoMetricsPost(l *slog.Logger, q *dbgen.Queries) http.Handle
 			err = q.InsertYouTubeVideoLikes(
 				r.Context(),
 				dbgen.InsertYouTubeVideoLikesParams{
-					ID: p.ID, Slug: p.Slug, Likes: int32(p.Likes)})
+					ID: p.ID, Title: p.Title, Likes: int32(p.Likes)})
 			if err != nil {
 				writeInternalError(l, w, err)
 				return
 			}
 		}
 
-		// wrap up
 		writeOK(w)
 	}
 }

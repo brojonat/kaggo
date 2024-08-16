@@ -1,0 +1,24 @@
+meta {
+  name: kaggle-api-sandbox
+  type: http
+  seq: 3
+}
+
+get {
+  url: https://www.kaggle.com/api/v1/kernels/list?search=melissamonfared/rice-image-classification-pytorch
+  body: none
+  auth: basic
+}
+
+query {
+  search: melissamonfared/rice-image-classification-pytorch
+}
+
+headers {
+  User-Agent: "robot"
+}
+
+auth:basic {
+  username: brojonat
+  password: c195d790d929d1f12d8879c76d9252e2
+}

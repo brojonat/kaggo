@@ -1,18 +1,20 @@
-package main
+package worker
 
 import (
+	"context"
 	"log"
-	"os"
+	"log/slog"
 
 	kt "github.com/brojonat/kaggo/temporal/v19700101"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 )
 
-func main() {
+func RunWorker(ctx context.Context, l *slog.Logger, thp string) error {
 	// connect to temporal
 	c, err := client.Dial(client.Options{
-		HostPort: os.Getenv("TEMPORAL_HOST"),
+		Logger:   l,
+		HostPort: thp,
 	})
 	if err != nil {
 		log.Fatalf("Couldn't initialize Temporal client. Exiting.\nError: %s", err)
@@ -24,13 +26,9 @@ func main() {
 	w.RegisterWorkflow(kt.DoRequestWF)
 
 	// register activities
-	w.RegisterActivity(kt.DoRequest)
-	w.RegisterActivity(kt.UploadMetrics)
+	a := &kt.ActivityRequester{}
+	w.RegisterActivity(a)
 
 	// run indefinitely
-	err = w.Run(worker.InterruptCh())
-	if err != nil {
-		log.Fatalln("Unable to start worker", err)
-	}
-
+	return w.Run(worker.InterruptCh())
 }

@@ -12,7 +12,7 @@ type InternalMetricPayload struct {
 
 type YouTubeVideoMetricPayload struct {
 	ID          string `json:"id"`
-	Slug        string `json:"slug"`
+	Title       string `json:"title"`
 	SetViews    bool   `json:"set_views"`
 	Views       int    `json:"views"`
 	SetComments bool   `json:"set_comments"`
@@ -21,10 +21,39 @@ type YouTubeVideoMetricPayload struct {
 	Likes       int    `json:"likes"`
 }
 
-type KaggleMetricPayload struct {
+type KaggleNotebookMetricPayload struct {
 	Slug         string `json:"slug"`
+	SetViews     bool   `json:"set_views"`
+	Views        int    `json:"views"`
 	SetVotes     bool   `json:"set_votes"`
 	Votes        int    `json:"votes"`
 	SetDownloads bool   `json:"set_downloads"`
 	Downloads    int    `json:"downloads"`
+}
+
+type KaggleDatasetMetricPayload struct {
+	Slug         string `json:"slug"`
+	SetViews     bool   `json:"set_views"`
+	Views        int    `json:"views"`
+	SetVotes     bool   `json:"set_votes"`
+	Votes        int    `json:"votes"`
+	SetDownloads bool   `json:"set_downloads"`
+	Downloads    int    `json:"downloads"`
+}
+
+type RedditPostMetricPayload struct {
+	ID       string  `json:"id"`
+	Title    string  `json:"title"`
+	SetScore bool    `json:"set_score"`
+	Score    int     `json:"score"`
+	SetRatio bool    `json:"set_ratio"`
+	Ratio    float32 `json:"ratio"`
+}
+
+type RedditCommentMetricPayload struct {
+	ID                  string  `json:"id"`
+	SetScore            bool    `json:"set_score"`
+	Score               int     `json:"score"`
+	SetControversiality bool    `json:"set_controversiality"`
+	Controversiality    float32 `json:"controversiality"`
 }

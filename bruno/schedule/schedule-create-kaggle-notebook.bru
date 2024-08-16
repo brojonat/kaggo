@@ -1,0 +1,46 @@
+meta {
+  name: schedule-create-kaggle-notebook
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{ENDPOINT}}/schedule
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "kind": "kaggle.notebook",
+    "id": "melissamonfared/rice-image-classification-pytorch",
+    "schedule_spec": {
+      "Calendars": [
+        {
+          "Second": [
+            {
+              "Start": 0
+            }
+          ],
+          "Minute": [
+            {
+              "Start": 0,
+              "End": 59
+            }
+          ],
+          "Hour": [
+            {
+              "Start": 0,
+              "End": 23
+            }
+          ],
+          "Comment": "Every minute"
+        }
+      ]
+    }
+  }
+}

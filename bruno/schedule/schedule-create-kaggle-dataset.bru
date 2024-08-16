@@ -1,0 +1,46 @@
+meta {
+  name: schedule-create-kaggle-dataset
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{ENDPOINT}}/schedule
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "request_kind": "kaggle.dataset",
+    "id": "dillonmyrick/high-school-student-performance-and-demographics",
+    "schedule_spec": {
+      "Calendars": [
+        {
+          "Second": [
+            {
+              "Start": 0
+            }
+          ],
+          "Minute": [
+            {
+              "Start": 0,
+              "End": 59
+            }
+          ],
+          "Hour": [
+            {
+              "Start": 0,
+              "End": 23
+            }
+          ],
+          "Comment": "Every minute"
+        }
+      ]
+    }
+  }
+}

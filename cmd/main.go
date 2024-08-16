@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/brojonat/kaggo/server"
+	"github.com/brojonat/kaggo/worker"
 	"github.com/urfave/cli/v2"
 )
 
@@ -30,6 +31,14 @@ func getDefaultLogger(lvl slog.Level) *slog.Logger {
 func main() {
 	app := &cli.App{
 		Commands: []*cli.Command{
+			{
+				Name:  "tinker",
+				Usage: "playground",
+				Flags: []cli.Flag{},
+				Action: func(ctx *cli.Context) error {
+					return tinker(ctx)
+				},
+			},
 			{
 				Name:  "run",
 				Usage: "Commands for running various components (server, workers, etc.)",
@@ -67,6 +76,21 @@ func main() {
 							return serve_http(ctx)
 						},
 					},
+					{
+						Name:  "worker",
+						Usage: "Run the Temporal worker.",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "temporal-host",
+								Aliases: []string{"th", "t"},
+								Value:   os.Getenv("TEMPORAL_HOST"),
+								Usage:   "Temporal endpoint.",
+							},
+						},
+						Action: func(ctx *cli.Context) error {
+							return run_worker(ctx)
+						},
+					},
 				},
 			},
 		}}
@@ -87,7 +111,18 @@ func serve_http(ctx *cli.Context) error {
 		ctx.String("listen-port"),
 		logger,
 		ctx.String("database"),
-		ctx.String("temporal"),
+		ctx.String("temporal-host"),
 		metrics,
 	)
+}
+
+func run_worker(ctx *cli.Context) error {
+	logger := getDefaultLogger(slog.Level(ctx.Int("log-level")))
+	thp := ctx.String("temporal-host")
+	return worker.RunWorker(ctx.Context, logger, thp)
+}
+
+func tinker(ctx *cli.Context) error {
+	fmt.Println("hi")
+	return nil
 }

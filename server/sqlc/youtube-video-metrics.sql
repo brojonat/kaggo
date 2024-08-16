@@ -1,14 +1,14 @@
 -- name: InsertYouTubeVideoViews :exec
-INSERT INTO youtube_video_views (id, slug, ts, views)
-VALUES (@id, @slug, NOW()::TIMESTAMPTZ, @views);
+INSERT INTO youtube_video_views (id, title, ts, views)
+VALUES (@id, @title, NOW()::TIMESTAMPTZ, @views);
 
 -- name: InsertYouTubeVideoComments :exec
-INSERT INTO youtube_video_comments (id, slug, ts, comments)
-VALUES (@id, @slug, NOW()::TIMESTAMPTZ, @comments);
+INSERT INTO youtube_video_comments (id, title, ts, comments)
+VALUES (@id, @title, NOW()::TIMESTAMPTZ, @comments);
 
 -- name: InsertYouTubeVideoLikes :exec
-INSERT INTO youtube_video_likes (id, slug, ts, likes)
-VALUES (@id, @slug, NOW()::TIMESTAMPTZ, @likes);
+INSERT INTO youtube_video_likes (id, title, ts, likes)
+VALUES (@id, @title, NOW()::TIMESTAMPTZ, @likes);
 
 -- name: GetYouTubeVideoMetricsByID :many
 SELECT *, 'youtube.video.views' AS "metric"
@@ -23,15 +23,15 @@ SELECT *, 'youtube.video.likes' AS "metric"
 FROM youtube_video_likes y
 WHERE y.id = @id;
 
--- name: GetYouTubeVideoMetricsBySlug :many
+-- name: GetYouTubeVideoMetricsByTitle :many
 SELECT *, 'youtube.video.views' AS "metric"
 FROM youtube_video_views y
-WHERE y.slug = @slug
+WHERE y.title = @title
 UNION ALL
 SELECT *, 'youtube.video.comments' AS "metric"
 FROM youtube_video_views y
-WHERE y.slug = @slug
+WHERE y.title = @title
 UNION ALL
 SELECT *, 'youtube.video.likes' AS "metric"
 FROM youtube_video_likes y
-WHERE y.slug = @slug;
+WHERE y.title = @title;
