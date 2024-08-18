@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/dbgen"
@@ -12,12 +13,12 @@ import (
 
 func handleKaggleNotebookMetricsGet(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		slug := r.URL.Query().Get("slug")
-		if slug == "" {
-			writeBadRequestError(w, fmt.Errorf("must supply timeseries slug"))
+		ids := r.URL.Query()["id"]
+		if len(ids) == 0 {
+			writeBadRequestError(w, fmt.Errorf("must supply id(s)"))
 			return
 		}
-		res, err := q.GetKaggleNotebookMetrics(r.Context(), slug)
+		res, err := getKaggleNotebookTimeSeries(r.Context(), l, q, ids, time.Time{}, time.Now())
 		if err != nil {
 			writeInternalError(l, w, err)
 			return
@@ -41,13 +42,18 @@ func handleKaggleNotebookPost(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc
 			writeBadRequestError(w, err)
 			return
 		}
-		if p.Slug == "" {
-			writeBadRequestError(w, fmt.Errorf("must supply slug"))
+		if p.ID == "" {
+			writeBadRequestError(w, fmt.Errorf("must supply id"))
 			return
 		}
 
 		if p.SetVotes {
-			err = q.InsertKaggleNotebookVotes(r.Context(), dbgen.InsertKaggleNotebookVotesParams{Slug: p.Slug, Votes: int32(p.Votes)})
+			err = q.InsertKaggleNotebookVotes(
+				r.Context(),
+				dbgen.InsertKaggleNotebookVotesParams{
+					ID:    p.ID,
+					Votes: int32(p.Votes),
+				})
 			if err != nil {
 				writeInternalError(l, w, err)
 				return
@@ -60,12 +66,12 @@ func handleKaggleNotebookPost(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc
 
 func handleKaggleDatasetMetricsGet(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		slug := r.URL.Query().Get("slug")
-		if slug == "" {
+		ids := r.URL.Query()["id"]
+		if len(ids) == 0 {
 			writeBadRequestError(w, fmt.Errorf("must supply timeseries slug"))
 			return
 		}
-		res, err := q.GetKaggleDatasetMetrics(r.Context(), slug)
+		res, err := getKaggleDatasetTimeSeries(r.Context(), l, q, ids, time.Time{}, time.Now())
 		if err != nil {
 			writeInternalError(l, w, err)
 			return
@@ -88,7 +94,7 @@ func handleKaggleDatasetPost(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc 
 			writeBadRequestError(w, err)
 			return
 		}
-		if p.Slug == "" {
+		if p.ID == "" {
 			writeBadRequestError(w, fmt.Errorf("must supply slug"))
 			return
 		}
@@ -97,7 +103,7 @@ func handleKaggleDatasetPost(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc 
 			err = q.InsertKaggleDatasetVotes(
 				r.Context(),
 				dbgen.InsertKaggleDatasetVotesParams{
-					Slug: p.Slug, Votes: int32(p.Votes),
+					ID: p.ID, Votes: int32(p.Votes),
 				})
 			if err != nil {
 				writeInternalError(l, w, err)
@@ -109,7 +115,7 @@ func handleKaggleDatasetPost(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc 
 			err = q.InsertKaggleDatasetViews(
 				r.Context(),
 				dbgen.InsertKaggleDatasetViewsParams{
-					Slug: p.Slug, Views: int32(p.Views),
+					ID: p.ID, Views: int32(p.Views),
 				})
 			if err != nil {
 				writeInternalError(l, w, err)
@@ -121,7 +127,7 @@ func handleKaggleDatasetPost(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc 
 			err = q.InsertKaggleDatasetDownloads(
 				r.Context(),
 				dbgen.InsertKaggleDatasetDownloadsParams{
-					Slug: p.Slug, Downloads: int32(p.Downloads),
+					ID: p.ID, Downloads: int32(p.Downloads),
 				})
 			if err != nil {
 				writeInternalError(l, w, err)

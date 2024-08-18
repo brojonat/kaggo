@@ -10,28 +10,39 @@ VALUES (@id, @title, NOW()::TIMESTAMPTZ, @comments);
 INSERT INTO youtube_video_likes (id, title, ts, likes)
 VALUES (@id, @title, NOW()::TIMESTAMPTZ, @likes);
 
--- name: GetYouTubeVideoMetricsByID :many
-SELECT *, 'youtube.video.views' AS "metric"
-FROM youtube_video_views y
-WHERE y.id = @id
+-- name: GetYouTubeVideoMetricsByIDs :many
+SELECT
+    y.id AS "id",
+    y.title AS "title",
+    y.ts AS "ts",
+    y.views::REAL AS "value",
+    'youtube.video.views' AS "metric"
+FROM youtube_video_views AS y
+WHERE
+    y.id = ANY(@ids::VARCHAR[]) AND
+    y.ts >= @ts_start AND
+    y.ts <= @ts_end
 UNION ALL
-SELECT *, 'youtube.video.comments' AS "metric"
-FROM youtube_video_views y
-WHERE y.id = @id
+SELECT
+    y.id AS "id",
+    y.title AS "title",
+    y.ts AS "ts",
+    y.likes::REAL AS "value",
+    'youtube.video.likes' AS "metric"
+FROM youtube_video_likes AS y
+WHERE
+    y.id = ANY(@ids::VARCHAR[]) AND
+    y.ts >= @ts_start AND
+    y.ts <= @ts_end
 UNION ALL
-SELECT *, 'youtube.video.likes' AS "metric"
-FROM youtube_video_likes y
-WHERE y.id = @id;
-
--- name: GetYouTubeVideoMetricsByTitle :many
-SELECT *, 'youtube.video.views' AS "metric"
-FROM youtube_video_views y
-WHERE y.title = @title
-UNION ALL
-SELECT *, 'youtube.video.comments' AS "metric"
-FROM youtube_video_views y
-WHERE y.title = @title
-UNION ALL
-SELECT *, 'youtube.video.likes' AS "metric"
-FROM youtube_video_likes y
-WHERE y.title = @title;
+SELECT
+    y.id AS "id",
+    y.title AS "title",
+    y.ts AS "ts",
+    y.comments::REAL AS "value",
+    'youtube.video.comments' AS "metric"
+FROM youtube_video_comments AS y
+WHERE
+    y.id = ANY(@ids::VARCHAR[]) AND
+    y.ts >= @ts_start AND
+    y.ts <= @ts_end;

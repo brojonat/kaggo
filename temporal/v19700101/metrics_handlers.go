@@ -156,12 +156,12 @@ func (a *ActivityRequester) handleKaggleNotebookMetrics(l log.Logger, status int
 
 	l.Error(string(b))
 
-	// slug
+	// id
 	iface, err := jmespath.Search("[0].ref", data)
 	if err != nil {
 		return nil, fmt.Errorf("error extracting notebook slug: %w", err)
 	}
-	slug := iface.(string)
+	id := iface.(string)
 
 	// votes
 	iface, err = jmespath.Search("[0].totalVotes", data)
@@ -172,7 +172,7 @@ func (a *ActivityRequester) handleKaggleNotebookMetrics(l log.Logger, status int
 
 	// upload the metrics to the server
 	payload := api.KaggleNotebookMetricPayload{
-		Slug:     slug,
+		ID:       id,
 		SetVotes: true,
 		Votes:    int(votes),
 	}
@@ -191,12 +191,12 @@ func (a *ActivityRequester) handleKaggleDatasetMetrics(l log.Logger, status int,
 		return nil, fmt.Errorf("error deserializing dataset response: %w", err)
 	}
 
-	// slug
+	// id
 	iface, err := jmespath.Search("[0].ref", data)
 	if err != nil {
 		return nil, fmt.Errorf("error extracting dataset slug: %w", err)
 	}
-	slug := iface.(string)
+	id := iface.(string)
 
 	// views
 	iface, err = jmespath.Search("[0].viewCount", data)
@@ -221,7 +221,7 @@ func (a *ActivityRequester) handleKaggleDatasetMetrics(l log.Logger, status int,
 
 	// upload the metrics to the server
 	payload := api.KaggleDatasetMetricPayload{
-		Slug:         slug,
+		ID:           id,
 		SetViews:     true,
 		Views:        int(views),
 		SetVotes:     true,

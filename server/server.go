@@ -227,5 +227,12 @@ func getRouter(
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
 
+	// getting timeseries
+	mux.HandleFunc("GET /timeseries/raw", stools.AdaptHandler(
+		handleGetTimeSeriesByIDs(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+
 	return mux, nil
 }

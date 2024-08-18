@@ -1,34 +1,62 @@
 -- name: InsertKaggleNotebookVotes :exec
-INSERT INTO kaggle_notebook_votes (slug, ts, votes)
-VALUES (@slug, NOW()::TIMESTAMPTZ, @votes);
+INSERT INTO kaggle_notebook_votes (id, ts, votes)
+VALUES (@id, NOW()::TIMESTAMPTZ, @votes);
 
 -- name: InsertKaggleDatasetVotes :exec
-INSERT INTO kaggle_dataset_votes (slug, ts, votes)
-VALUES (@slug, NOW()::TIMESTAMPTZ, @votes);
+INSERT INTO kaggle_dataset_votes (id, ts, votes)
+VALUES (@id, NOW()::TIMESTAMPTZ, @votes);
 
 -- name: InsertKaggleDatasetViews :exec
-INSERT INTO kaggle_dataset_views (slug, ts, views)
-VALUES (@slug, NOW()::TIMESTAMPTZ, @views);
+INSERT INTO kaggle_dataset_views (id, ts, views)
+VALUES (@id, NOW()::TIMESTAMPTZ, @views);
 
 -- name: InsertKaggleDatasetDownloads :exec
-INSERT INTO kaggle_dataset_downloads (slug, ts, downloads)
-VALUES (@slug, NOW()::TIMESTAMPTZ, @downloads);
+INSERT INTO kaggle_dataset_downloads (id, ts, downloads)
+VALUES (@id, NOW()::TIMESTAMPTZ, @downloads);
 
 -- name: GetKaggleNotebookMetrics :many
-SELECT *, 'knv' AS "metric"
-FROM kaggle_notebook_votes knv
-WHERE knv.slug = @slug;
+SELECT
+    k.id AS "id",
+    k.ts AS "ts",
+    k.votes::REAL AS "value",
+    'kaggle.notebook.votes' AS "metric"
+FROM kaggle_notebook_votes k
+WHERE
+    k.id = ANY(@ids::VARCHAR[]) AND
+    k.ts >= @ts_start AND
+    k.ts <= @ts_end;
 
 -- name: GetKaggleDatasetMetrics :many
-SELECT *, 'kaggle.dataset.votes' AS "metric"
-FROM kaggle_dataset_votes kdv
-WHERE kdv.slug = @slug
+SELECT
+    id AS "id",
+    ts AS "ts",
+    votes::REAL AS "value",
+    'kaggle.dataset.votes' AS "metric"
+FROM kaggle_dataset_votes AS k
+WHERE
+    k.id = ANY(@ids::VARCHAR[]) AND
+    k.ts >= @ts_start AND
+    k.ts <= @ts_end
 UNION ALL
-SELECT *, 'kaggle.dataset.views' AS "metric"
-FROM kaggle_dataset_views kdvw
-WHERE kdvw.slug = @slug
+SELECT
+    id AS "id",
+    ts AS "ts",
+    views::REAL AS "value",
+    'kaggle.dataset.views' AS "metric"
+FROM kaggle_dataset_views AS k
+WHERE
+    k.id = ANY(@ids::VARCHAR[]) AND
+    k.ts >= @ts_start AND
+    k.ts <= @ts_end
 UNION ALL
-SELECT *, 'kaggle.dataset.downloads' AS "metric"
-FROM kaggle_dataset_downloads kdd
-WHERE kdd.slug = @slug;
+SELECT
+    id AS "id",
+    ts AS "ts",
+    downloads::REAL AS "value",
+    'kaggle.dataset.downloads' AS "metric"
+FROM kaggle_dataset_downloads AS k
+WHERE
+    k.id = ANY(@ids::VARCHAR[]) AND
+    k.ts >= @ts_start AND
+    k.ts <= @ts_end;
 

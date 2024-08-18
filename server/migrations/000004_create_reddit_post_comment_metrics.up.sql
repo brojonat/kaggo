@@ -25,23 +25,19 @@ CREATE INDEX IF NOT EXISTS reddit_post_ratio_title ON reddit_post_ratio (title, 
 -- reddit comment score
 CREATE TABLE IF NOT EXISTS reddit_comment_score (
     id VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) NOT NULL,
     ts TIMESTAMPTZ NOT NULL,
     score INTEGER NOT NULL
 );
 SELECT create_hypertable('reddit_comment_score', 'ts', if_not_exists => TRUE);
 CREATE INDEX IF NOT EXISTS reddit_comment_score_id ON reddit_comment_score (id, ts);
-CREATE INDEX IF NOT EXISTS reddit_comment_score_slug ON reddit_comment_score (slug, ts);
 
 -- reddit comment controversiality
 CREATE TABLE IF NOT EXISTS reddit_comment_controversiality (
     id VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) NOT NULL,
     ts TIMESTAMPTZ NOT NULL,
     controversiality REAL NOT NULL
 );
 SELECT create_hypertable('reddit_comment_controversiality', 'ts', if_not_exists => TRUE);
 CREATE INDEX IF NOT EXISTS reddit_comment_controversiality_id ON reddit_comment_controversiality (id, ts);
-CREATE INDEX IF NOT EXISTS reddit_comment_controversiality_slug ON reddit_comment_controversiality (slug, ts);
 
 COMMIT;

@@ -33,28 +33,28 @@ CREATE TABLE IF NOT EXISTS youtube_video_comments (
 
 -- kaggle notebook votes
 CREATE TABLE IF NOT EXISTS kaggle_notebook_votes (
-    slug VARCHAR(255) NOT NULL,
+    id VARCHAR(255) NOT NULL,
     ts TIMESTAMPTZ NOT NULL,
     votes INTEGER NOT NULL
 );
 
 -- kaggle dataset votes
 CREATE TABLE IF NOT EXISTS kaggle_dataset_votes (
-    slug VARCHAR(255) NOT NULL,
+    id VARCHAR(255) NOT NULL,
     ts TIMESTAMPTZ NOT NULL,
     votes INTEGER NOT NULL
 );
 
 -- kaggle dataset views
 CREATE TABLE IF NOT EXISTS kaggle_dataset_views (
-    slug VARCHAR(255) NOT NULL,
+    id VARCHAR(255) NOT NULL,
     ts TIMESTAMPTZ NOT NULL,
     views INTEGER NOT NULL
 );
 
 -- kaggle dataset downloads
 CREATE TABLE IF NOT EXISTS kaggle_dataset_downloads (
-    slug VARCHAR(255) NOT NULL,
+    id VARCHAR(255) NOT NULL,
     ts TIMESTAMPTZ NOT NULL,
     downloads INTEGER NOT NULL
 );

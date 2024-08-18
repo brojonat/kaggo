@@ -62,3 +62,16 @@ deploy-worker:
 	sed -e "s;{{CLI_IMG_TAG}};$(CLI_IMG_TAG);g" | \
 	kubectl apply -f -
 	kubectl rollout restart deployment kaggo-treq-worker
+
+deploy-all:
+	# server
+	@$(MAKE) deploy-server
+	# worker
+	$(call setup_env, worker/.env)
+	kustomize build --load-restrictor=LoadRestrictionsNone worker/k8s | \
+	sed -e "s;{{DOCKER_REPO}};$(DOCKER_REPO);g" | \
+	sed -e "s;{{CLI_IMG_TAG}};$(CLI_IMG_TAG);g" | \
+	kubectl apply -f -
+	kubectl rollout restart deployment kaggo-treq-worker
+
+

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/dbgen"
@@ -12,27 +13,17 @@ import (
 
 func handleYouTubeMetricsGet(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := r.URL.Query().Get("id")
-		slug := r.URL.Query().Get("slug")
-		if id == "" && slug == "" {
-			writeBadRequestError(w, fmt.Errorf("must supply id or slug"))
+		ids := r.URL.Query()["id"]
+		if len(ids) == 0 {
+			writeBadRequestError(w, fmt.Errorf("must supply id(s)"))
 			return
 		}
-		if id != "" {
-			res, err := q.GetYouTubeVideoMetricsByID(r.Context(), id)
-			if err != nil {
-				writeInternalError(l, w, err)
-				return
-			}
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(res)
-			return
-		}
-		res, err := q.GetYouTubeVideoMetricsByTitle(r.Context(), slug)
+		res, err := getYouTubeVideoTimeSeries(r.Context(), l, q, ids, time.Time{}, time.Now())
 		if err != nil {
 			writeInternalError(l, w, err)
 			return
 		}
+
 		if res == nil {
 			writeEmptyResultError(w)
 			return
@@ -58,7 +49,10 @@ func handleYouTubeVideoMetricsPost(l *slog.Logger, q *dbgen.Queries) http.Handle
 			err = q.InsertYouTubeVideoViews(
 				r.Context(),
 				dbgen.InsertYouTubeVideoViewsParams{
-					ID: p.ID, Title: p.Title, Views: int32(p.Views)})
+					ID:    p.ID,
+					Title: p.Title,
+					Views: int32(p.Views),
+				})
 			if err != nil {
 				writeInternalError(l, w, err)
 				return
@@ -68,7 +62,10 @@ func handleYouTubeVideoMetricsPost(l *slog.Logger, q *dbgen.Queries) http.Handle
 			err = q.InsertYouTubeVideoComments(
 				r.Context(),
 				dbgen.InsertYouTubeVideoCommentsParams{
-					ID: p.ID, Title: p.Title, Comments: int32(p.Comments)})
+					ID:       p.ID,
+					Title:    p.Title,
+					Comments: int32(p.Comments),
+				})
 			if err != nil {
 				writeInternalError(l, w, err)
 				return
@@ -79,7 +76,10 @@ func handleYouTubeVideoMetricsPost(l *slog.Logger, q *dbgen.Queries) http.Handle
 			err = q.InsertYouTubeVideoLikes(
 				r.Context(),
 				dbgen.InsertYouTubeVideoLikesParams{
-					ID: p.ID, Title: p.Title, Likes: int32(p.Likes)})
+					ID:    p.ID,
+					Title: p.Title,
+					Likes: int32(p.Likes),
+				})
 			if err != nil {
 				writeInternalError(l, w, err)
 				return

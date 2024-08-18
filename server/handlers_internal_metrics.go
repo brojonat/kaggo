@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"math/rand"
 	"net/http"
+	"time"
 
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/dbgen"
@@ -28,12 +29,12 @@ func handleInternalMetricsGenerate(l *slog.Logger) http.HandlerFunc {
 
 func handleInternalMetricsGet(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := r.URL.Query().Get("id")
-		if id == "" {
+		ids := r.URL.Query()["id"]
+		if len(ids) == 0 {
 			writeBadRequestError(w, fmt.Errorf("must supply timeseries id"))
 			return
 		}
-		res, err := q.GetInternalMetrics(r.Context(), id)
+		res, err := getInternalRandomTimeSeries(r.Context(), l, q, ids, time.Time{}, time.Now())
 		if err != nil {
 			writeInternalError(l, w, err)
 			return
@@ -70,7 +71,12 @@ func handleInternalMetricsPost(l *slog.Logger, q *dbgen.Queries, value *promethe
 		}
 		c.Set(float64(p.Value))
 
-		err = q.InsertInternalRandom(r.Context(), dbgen.InsertInternalRandomParams{ID: p.ID, Value: int32(p.Value)})
+		err = q.InsertInternalRandom(
+			r.Context(),
+			dbgen.InsertInternalRandomParams{
+				ID:    p.ID,
+				Value: int32(p.Value),
+			})
 		if err != nil {
 			writeInternalError(l, w, err)
 			return

@@ -14,20 +14,51 @@ VALUES (@id, NOW()::TIMESTAMPTZ, @score);
 INSERT INTO reddit_comment_controversiality (id, ts, controversiality)
 VALUES (@id, NOW()::TIMESTAMPTZ, @controversiality);
 
--- name: GetRedditPostMetricsByID :many
-SELECT *, 'reddit.post.score' AS "metric"
-FROM reddit_post_score rps
-WHERE rps.id = @id
+-- name: GetRedditPostMetricsByIDs :many
+SELECT
+    id AS "id",
+    title AS "title",
+    ts AS "ts",
+    score::REAL AS "value",
+    'reddit.post.score' AS "metric"
+FROM reddit_post_score AS r
+WHERE
+    r.id = ANY(@ids::VARCHAR[]) AND
+    r.ts >= @ts_start AND
+    r.ts <= @ts_end
 UNION ALL
-SELECT *, 'reddit.post.ratio' AS "metric"
-FROM reddit_post_ratio rpr
-WHERE rpr.id = @id;
+SELECT
+    id AS "id",
+    title AS "title",
+    ts AS "ts",
+    ratio::REAL AS "value",
+    'reddit.post.ratio' AS "metric"
+FROM reddit_post_ratio AS r
+WHERE
+    r.id = ANY(@ids::VARCHAR[]) AND
+    r.ts >= @ts_start AND
+    r.ts <= @ts_end;
 
--- name: GetRedditCommentMetricsByID :many
-SELECT *, 'reddit.comment.score' AS "metric"
-FROM reddit_comment_score rcs
-WHERE rcs.id = @id
+-- name: GetRedditCommentMetricsByIDs :many
+SELECT
+    r.id AS "id",
+    r.ts AS "ts",
+    r.score::REAL AS "value",
+    'reddit.comment.score' AS "metric"
+FROM reddit_comment_score AS r
+WHERE
+    r.id = ANY(@ids::VARCHAR[]) AND
+    r.ts >= @ts_start AND
+    r.ts <= @ts_end
 UNION ALL
-SELECT *, 'reddit.comment.controversiality' AS "metric"
-FROM reddit_comment_controversiality rcc
-WHERE rcc.id = @id;
+SELECT
+    r.id AS "id",
+    r.ts AS "ts",
+    r.controversiality::REAL AS "controversiality",
+    'reddit.comment.controversiality' AS "metric"
+FROM reddit_comment_controversiality AS r
+WHERE
+    r.id = ANY(@ids::VARCHAR[]) AND
+    r.ts >= @ts_start AND
+    r.ts <= @ts_end;
+

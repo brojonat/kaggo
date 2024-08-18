@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/dbgen"
@@ -12,12 +13,12 @@ import (
 
 func handleRedditPostMetricsGet(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := r.URL.Query().Get("id")
-		if id == "" {
+		ids := r.URL.Query()["id"]
+		if len(ids) == 0 {
 			writeBadRequestError(w, fmt.Errorf("must supply id"))
 			return
 		}
-		res, err := q.GetRedditPostMetricsByID(r.Context(), id)
+		res, err := getRedditPostTimeSeries(r.Context(), l, q, ids, time.Time{}, time.Now())
 		if err != nil {
 			writeInternalError(l, w, err)
 			return
@@ -70,12 +71,12 @@ func handleRedditPostMetricsPost(l *slog.Logger, q *dbgen.Queries) http.HandlerF
 
 func handleRedditCommentMetricsGet(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := r.URL.Query().Get("id")
-		if id == "" {
+		ids := r.URL.Query()["id"]
+		if len(ids) == 0 {
 			writeBadRequestError(w, fmt.Errorf("must supply id"))
 			return
 		}
-		res, err := q.GetRedditCommentMetricsByID(r.Context(), id)
+		res, err := getRedditCommentTimeSeries(r.Context(), l, q, ids, time.Time{}, time.Now())
 		if err != nil {
 			writeInternalError(l, w, err)
 			return

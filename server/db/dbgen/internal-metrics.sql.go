@@ -11,32 +11,45 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const getInternalMetrics = `-- name: GetInternalMetrics :many
-SELECT id, ts, val, 'internal_random' AS "metric"
-FROM internal_random ir
-WHERE ir.id = $1
+const getInternalMetricsByIDs = `-- name: GetInternalMetricsByIDs :many
+SELECT
+    id AS "id",
+    ts AS "ts",
+    val AS "value",
+    'internal.random' AS "metric"
+FROM internal_random AS i
+WHERE
+    i.id = ANY($1::VARCHAR[]) AND
+    i.ts >= $2 AND
+    i.ts <= $3
 `
 
-type GetInternalMetricsRow struct {
+type GetInternalMetricsByIDsParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetInternalMetricsByIDsRow struct {
 	ID     string             `json:"id"`
 	Ts     pgtype.Timestamptz `json:"ts"`
-	Val    int32              `json:"val"`
+	Value  int32              `json:"value"`
 	Metric string             `json:"metric"`
 }
 
-func (q *Queries) GetInternalMetrics(ctx context.Context, id string) ([]GetInternalMetricsRow, error) {
-	rows, err := q.db.Query(ctx, getInternalMetrics, id)
+func (q *Queries) GetInternalMetricsByIDs(ctx context.Context, arg GetInternalMetricsByIDsParams) ([]GetInternalMetricsByIDsRow, error) {
+	rows, err := q.db.Query(ctx, getInternalMetricsByIDs, arg.Ids, arg.TsStart, arg.TsEnd)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetInternalMetricsRow
+	var items []GetInternalMetricsByIDsRow
 	for rows.Next() {
-		var i GetInternalMetricsRow
+		var i GetInternalMetricsByIDsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Ts,
-			&i.Val,
+			&i.Value,
 			&i.Metric,
 		); err != nil {
 			return nil, err

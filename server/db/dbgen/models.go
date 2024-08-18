@@ -15,25 +15,25 @@ type InternalRandom struct {
 }
 
 type KaggleDatasetDownload struct {
-	Slug      string             `json:"slug"`
+	ID        string             `json:"id"`
 	Ts        pgtype.Timestamptz `json:"ts"`
 	Downloads int32              `json:"downloads"`
 }
 
 type KaggleDatasetView struct {
-	Slug  string             `json:"slug"`
+	ID    string             `json:"id"`
 	Ts    pgtype.Timestamptz `json:"ts"`
 	Views int32              `json:"views"`
 }
 
 type KaggleDatasetVote struct {
-	Slug  string             `json:"slug"`
+	ID    string             `json:"id"`
 	Ts    pgtype.Timestamptz `json:"ts"`
 	Votes int32              `json:"votes"`
 }
 
 type KaggleNotebookVote struct {
-	Slug  string             `json:"slug"`
+	ID    string             `json:"id"`
 	Ts    pgtype.Timestamptz `json:"ts"`
 	Votes int32              `json:"votes"`
 }

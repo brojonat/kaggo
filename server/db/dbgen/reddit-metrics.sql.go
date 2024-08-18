@@ -11,36 +11,56 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const getRedditCommentMetricsByID = `-- name: GetRedditCommentMetricsByID :many
-SELECT id, ts, score, 'reddit.comment.score' AS "metric"
-FROM reddit_comment_score rcs
-WHERE rcs.id = $1
+const getRedditCommentMetricsByIDs = `-- name: GetRedditCommentMetricsByIDs :many
+SELECT
+    r.id AS "id",
+    r.ts AS "ts",
+    r.score::REAL AS "value",
+    'reddit.comment.score' AS "metric"
+FROM reddit_comment_score AS r
+WHERE
+    r.id = ANY($1::VARCHAR[]) AND
+    r.ts >= $2 AND
+    r.ts <= $3
 UNION ALL
-SELECT id, ts, controversiality, 'reddit.comment.controversiality' AS "metric"
-FROM reddit_comment_controversiality rcc
-WHERE rcc.id = $1
+SELECT
+    r.id AS "id",
+    r.ts AS "ts",
+    r.controversiality::REAL AS "controversiality",
+    'reddit.comment.controversiality' AS "metric"
+FROM reddit_comment_controversiality AS r
+WHERE
+    r.id = ANY($1::VARCHAR[]) AND
+    r.ts >= $2 AND
+    r.ts <= $3
 `
 
-type GetRedditCommentMetricsByIDRow struct {
+type GetRedditCommentMetricsByIDsParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditCommentMetricsByIDsRow struct {
 	ID     string             `json:"id"`
 	Ts     pgtype.Timestamptz `json:"ts"`
-	Score  int32              `json:"score"`
+	Value  float32            `json:"value"`
 	Metric string             `json:"metric"`
 }
 
-func (q *Queries) GetRedditCommentMetricsByID(ctx context.Context, id string) ([]GetRedditCommentMetricsByIDRow, error) {
-	rows, err := q.db.Query(ctx, getRedditCommentMetricsByID, id)
+func (q *Queries) GetRedditCommentMetricsByIDs(ctx context.Context, arg GetRedditCommentMetricsByIDsParams) ([]GetRedditCommentMetricsByIDsRow, error) {
+	rows, err := q.db.Query(ctx, getRedditCommentMetricsByIDs, arg.Ids, arg.TsStart, arg.TsEnd)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetRedditCommentMetricsByIDRow
+	var items []GetRedditCommentMetricsByIDsRow
 	for rows.Next() {
-		var i GetRedditCommentMetricsByIDRow
+		var i GetRedditCommentMetricsByIDsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Ts,
-			&i.Score,
+			&i.Value,
 			&i.Metric,
 		); err != nil {
 			return nil, err
@@ -53,38 +73,60 @@ func (q *Queries) GetRedditCommentMetricsByID(ctx context.Context, id string) ([
 	return items, nil
 }
 
-const getRedditPostMetricsByID = `-- name: GetRedditPostMetricsByID :many
-SELECT id, title, ts, score, 'reddit.post.score' AS "metric"
-FROM reddit_post_score rps
-WHERE rps.id = $1
+const getRedditPostMetricsByIDs = `-- name: GetRedditPostMetricsByIDs :many
+SELECT
+    id AS "id",
+    title AS "title",
+    ts AS "ts",
+    score::REAL AS "value",
+    'reddit.post.score' AS "metric"
+FROM reddit_post_score AS r
+WHERE
+    r.id = ANY($1::VARCHAR[]) AND
+    r.ts >= $2 AND
+    r.ts <= $3
 UNION ALL
-SELECT id, title, ts, ratio, 'reddit.post.ratio' AS "metric"
-FROM reddit_post_ratio rpr
-WHERE rpr.id = $1
+SELECT
+    id AS "id",
+    title AS "title",
+    ts AS "ts",
+    ratio::REAL AS "value",
+    'reddit.post.ratio' AS "metric"
+FROM reddit_post_ratio AS r
+WHERE
+    r.id = ANY($1::VARCHAR[]) AND
+    r.ts >= $2 AND
+    r.ts <= $3
 `
 
-type GetRedditPostMetricsByIDRow struct {
+type GetRedditPostMetricsByIDsParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditPostMetricsByIDsRow struct {
 	ID     string             `json:"id"`
 	Title  string             `json:"title"`
 	Ts     pgtype.Timestamptz `json:"ts"`
-	Score  int32              `json:"score"`
+	Value  float32            `json:"value"`
 	Metric string             `json:"metric"`
 }
 
-func (q *Queries) GetRedditPostMetricsByID(ctx context.Context, id string) ([]GetRedditPostMetricsByIDRow, error) {
-	rows, err := q.db.Query(ctx, getRedditPostMetricsByID, id)
+func (q *Queries) GetRedditPostMetricsByIDs(ctx context.Context, arg GetRedditPostMetricsByIDsParams) ([]GetRedditPostMetricsByIDsRow, error) {
+	rows, err := q.db.Query(ctx, getRedditPostMetricsByIDs, arg.Ids, arg.TsStart, arg.TsEnd)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetRedditPostMetricsByIDRow
+	var items []GetRedditPostMetricsByIDsRow
 	for rows.Next() {
-		var i GetRedditPostMetricsByIDRow
+		var i GetRedditPostMetricsByIDsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
 			&i.Ts,
-			&i.Score,
+			&i.Value,
 			&i.Metric,
 		); err != nil {
 			return nil, err

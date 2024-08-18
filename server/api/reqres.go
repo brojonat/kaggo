@@ -22,7 +22,7 @@ type YouTubeVideoMetricPayload struct {
 }
 
 type KaggleNotebookMetricPayload struct {
-	Slug         string `json:"slug"`
+	ID           string `json:"id"`
 	SetViews     bool   `json:"set_views"`
 	Views        int    `json:"views"`
 	SetVotes     bool   `json:"set_votes"`
@@ -32,7 +32,7 @@ type KaggleNotebookMetricPayload struct {
 }
 
 type KaggleDatasetMetricPayload struct {
-	Slug         string `json:"slug"`
+	ID           string `json:"id"`
 	SetViews     bool   `json:"set_views"`
 	Views        int    `json:"views"`
 	SetVotes     bool   `json:"set_votes"`
