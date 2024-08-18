@@ -13,6 +13,40 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+func handleGetTimeSeriesByIDsBucketed(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		bs := r.URL.Query().Get("bucket_size")
+		if bs == "" {
+			bs = "15 min"
+		}
+		ids := r.URL.Query()["id"]
+		if len(ids) == 0 {
+			writeBadRequestError(w, fmt.Errorf("must supply id(s)"))
+			return
+		}
+		// FIXME: validate!
+		res, err := q.GetYouTubeVideoMetricsByIDsBucketed(
+			r.Context(),
+			dbgen.GetYouTubeVideoMetricsByIDsBucketedParams{
+				Ids:     ids,
+				TsStart: pgtype.Timestamptz{Time: time.Time{}, Valid: true},
+				TsEnd:   pgtype.Timestamptz{Time: time.Now(), Valid: true},
+			},
+		)
+
+		if err != nil {
+			writeInternalError(l, w, err)
+			return
+		}
+		if res == nil {
+			writeEmptyResultError(w)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(res)
+	}
+}
+
 // Return all timeseries metrics under the supplied (kind, id). The return type
 // is a list of objects. The objects may not all have the same fields/types,
 // since they will have different metrics (views, ratings, etc). It is the

@@ -233,6 +233,23 @@ func getRouter(
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
+	mux.HandleFunc("GET /timeseries/binned", stools.AdaptHandler(
+		handleGetTimeSeriesByIDsBucketed(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+
+	// metadata
+	mux.HandleFunc("GET /metadata", stools.AdaptHandler(
+		handleGetMetricMetadata(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+	mux.HandleFunc("POST /metadata", stools.AdaptHandler(
+		handlePostMetricMetadata(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
 
 	return mux, nil
 }

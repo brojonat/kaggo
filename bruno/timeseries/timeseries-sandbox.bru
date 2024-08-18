@@ -1,0 +1,19 @@
+meta {
+  name: timeseries-sandbox
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{ENDPOINT}}/timeseries/binned?id=OdxSbc0ap-s
+  body: none
+  auth: none
+}
+
+query {
+  id: OdxSbc0ap-s
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}

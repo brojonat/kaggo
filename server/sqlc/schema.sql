@@ -1,5 +1,11 @@
 -- schema.sql for sqlc generation, DO NOT use with atlas; use golang-migrate instead.
 
+CREATE TABLE metadata (
+    id VARCHAR(255) PRIMARY KEY NOT NULL,
+    metric_kind VARCHAR(255) NOT NULL,
+    data JSONB NOT NULL DEFAULT '{}'::JSONB
+);
+
 -- internal metric for testing
 CREATE TABLE IF NOT EXISTS internal_random (
     id VARCHAR(255) NOT NULL,

@@ -1,0 +1,19 @@
+meta {
+  name: get-metadata
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{ENDPOINT}}/metadata?id=foo
+  body: none
+  auth: none
+}
+
+query {
+  id: foo
+}
+
+headers {
+  Authorization: Bearer {{AUTH_TOKEN}}
+}

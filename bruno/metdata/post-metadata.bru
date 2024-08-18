@@ -1,0 +1,27 @@
+meta {
+  name: post-metadata
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{ENDPOINT}}/metadata
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "id": "foo/bar-baz",
+    "metric_kind": "youtube.video",
+    "data": {
+      "id": "foo/bar-baz",
+      "link": "https://foo.bar.com",
+      "title": "How to write Go code!"
+    }
+  }
+}

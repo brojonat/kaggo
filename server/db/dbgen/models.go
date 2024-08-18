@@ -5,6 +5,7 @@
 package dbgen
 
 import (
+	jsonb "github.com/brojonat/kaggo/server/db/jsonb"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -36,6 +37,12 @@ type KaggleNotebookVote struct {
 	ID    string             `json:"id"`
 	Ts    pgtype.Timestamptz `json:"ts"`
 	Votes int32              `json:"votes"`
+}
+
+type Metadatum struct {
+	ID         string             `json:"id"`
+	MetricKind string             `json:"metric_kind"`
+	Data       jsonb.MetadataJSON `json:"data"`
 }
 
 type RedditCommentControversiality struct {

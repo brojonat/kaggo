@@ -46,3 +46,17 @@ WHERE
     y.id = ANY(@ids::VARCHAR[]) AND
     y.ts >= @ts_start AND
     y.ts <= @ts_end;
+
+-- name: GetYouTubeVideoMetricsByIDsBucketed :many
+SELECT
+    y.id AS "id",
+    FIRST(y.title, y.ts) AS "title",
+    time_bucket(INTERVAL '60 min', y.ts) AS "ts",
+    MAX(y.views::REAL) AS "value",
+    'youtube.video.views' AS "metric"
+FROM youtube_video_views AS y
+GROUP BY y.id, y.ts
+HAVING
+    y.id = ANY(@ids::VARCHAR[]) AND
+    y.ts >= @ts_start AND
+    y.ts <= @ts_end;

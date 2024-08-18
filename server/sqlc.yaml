@@ -2,6 +2,7 @@ version: "2"
 sql:
   - engine: "postgresql"
     queries:
+      - "sqlc/metadata.sql"
       - "sqlc/kaggle-metrics.sql"
       - "sqlc/internal-metrics.sql"
       - "sqlc/youtube-video-metrics.sql"
@@ -13,3 +14,9 @@ sql:
         out: "db/dbgen"
         sql_package: "pgx/v5"
         emit_json_tags: true
+        overrides:
+          - column: "metadata.data"
+            go_type:
+              import: "github.com/brojonat/kaggo/server/db/jsonb"
+              package: "jsonb"
+              type: "MetadataJSON"
