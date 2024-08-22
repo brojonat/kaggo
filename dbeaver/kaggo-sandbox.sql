@@ -33,4 +33,19 @@ UNION ALL
 SELECT *, 'reddit.comment.controversiality' AS "metric" FROM reddit_comment_controversiality rcr
 ORDER BY ts ASC;
 
+SELECT id,
+	first(title, ts) AS "Title",
+   time_bucket(INTERVAL '15 min', ts) AS bucket,
+   MAX(views) AS value,
+   'foo' AS "foo"
+FROM youtube_video_views yvv 
+GROUP BY id, bucket;
+
+SELECT * FROM metadata m ;
+
+INSERT INTO metadata (id, request_kind, data)
+VALUES ('foo/bar-baz', 'youtube.video', '{}'::JSONB)
+ON CONFLICT ON CONSTRAINT metadata_pkey DO UPDATE
+SET DATA = EXCLUDED.data;
+
 

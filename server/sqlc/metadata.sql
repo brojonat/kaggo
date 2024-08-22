@@ -1,8 +1,10 @@
 -- name: InsertMetadata :exec
-INSERT INTO metadata (id, metric_kind, data)
-VALUES (@id, @metric_kind, @data);
+INSERT INTO metadata (id, request_kind, data)
+VALUES (@id, @request_kind, @data)
+ON CONFLICT ON CONSTRAINT metadata_pkey DO UPDATE
+SET DATA = EXCLUDED.data;
 
 -- name: GetMetadataByIDs :many
-SELECT id, metric_kind, data
+SELECT id, request_kind, data
 FROM metadata
 WHERE id = ANY(@ids::VARCHAR[]);

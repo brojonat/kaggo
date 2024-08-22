@@ -1,19 +1,18 @@
 -- name: InsertYouTubeVideoViews :exec
-INSERT INTO youtube_video_views (id, title, ts, views)
-VALUES (@id, @title, NOW()::TIMESTAMPTZ, @views);
+INSERT INTO youtube_video_views (id, ts, views)
+VALUES (@id, NOW()::TIMESTAMPTZ, @views);
 
 -- name: InsertYouTubeVideoComments :exec
-INSERT INTO youtube_video_comments (id, title, ts, comments)
-VALUES (@id, @title, NOW()::TIMESTAMPTZ, @comments);
+INSERT INTO youtube_video_comments (id, ts, comments)
+VALUES (@id, NOW()::TIMESTAMPTZ, @comments);
 
 -- name: InsertYouTubeVideoLikes :exec
-INSERT INTO youtube_video_likes (id, title, ts, likes)
-VALUES (@id, @title, NOW()::TIMESTAMPTZ, @likes);
+INSERT INTO youtube_video_likes (id, ts, likes)
+VALUES (@id, NOW()::TIMESTAMPTZ, @likes);
 
 -- name: GetYouTubeVideoMetricsByIDs :many
 SELECT
     y.id AS "id",
-    y.title AS "title",
     y.ts AS "ts",
     y.views::REAL AS "value",
     'youtube.video.views' AS "metric"
@@ -25,7 +24,6 @@ WHERE
 UNION ALL
 SELECT
     y.id AS "id",
-    y.title AS "title",
     y.ts AS "ts",
     y.likes::REAL AS "value",
     'youtube.video.likes' AS "metric"
@@ -37,7 +35,6 @@ WHERE
 UNION ALL
 SELECT
     y.id AS "id",
-    y.title AS "title",
     y.ts AS "ts",
     y.comments::REAL AS "value",
     'youtube.video.comments' AS "metric"

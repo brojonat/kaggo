@@ -23,7 +23,8 @@ func RunWorker(ctx context.Context, l *slog.Logger, thp string) error {
 
 	// register workflows
 	w := worker.New(c, "kaggo", worker.Options{})
-	w.RegisterWorkflow(kt.DoRequestWF)
+	w.RegisterWorkflow(kt.DoPollingRequestWF)
+	w.RegisterWorkflow(kt.DoMetadataRequestWF)
 
 	// register activities
 	a := &kt.ActivityRequester{}

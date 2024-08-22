@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
+	"os"
 	"time"
 
 	"github.com/brojonat/kaggo/server/api"
@@ -24,30 +24,16 @@ const (
 	RequestKindRedditComment  = "reddit.comment"
 )
 
-type DoRequestParam struct {
-	RequestKind string `json:"request_kind"`
-	Serial      []byte `json:"serial"`
-}
-type DoRequestResult struct {
-	RequestKind string `json:"request_kind"`
-	StatusCode  int    `json:"status_code"`
-	Body        []byte `json:"body"`
-}
-
-type UploadResponseParam struct {
-	ResponseKind string `json:"response_kind"`
-	Serial       []byte `json:"serial"`
-}
-
 type ActivityRequester struct {
 	RedditAuthToken    string
 	RedditAuthTokenExp time.Time
 }
 
-// Parses the supplied request and perform any finishing touches (for example,
-// requests to Reddit need to have a short lived access token set in the
-// Authorization header).
-func (a *ActivityRequester) prepareRequest(drp DoRequestParam) (*http.Request, error) {
+// This is a hook to update requests without updating the originally scheduled
+// http.Request. This parses the supplied request and perform any finishing
+// touches like setting auth tokens and whatnot. For example, requests to Reddit
+// need to have a short lived access token set in the Authorization header.
+func (a *ActivityRequester) prepareRequest(drp DoRequestActRequest) (*http.Request, error) {
 	buf := bufio.NewReader(bytes.NewReader(drp.Serial))
 	r, err := http.ReadRequest(buf)
 	if err != nil {
@@ -63,10 +49,23 @@ func (a *ActivityRequester) prepareRequest(drp DoRequestParam) (*http.Request, e
 	r.URL = u
 	r.RequestURI = ""
 
-	// reddit requests get the auth token
-	if strings.HasPrefix(drp.RequestKind, "reddit") {
-		// this will refresh the reddit auth token if the deadline is near,
-		// otherwise it will just no-op
+	switch drp.RequestKind {
+	case RequestKindInternalRandom:
+		// nothing to do
+	case RequestKindYouTubeVideo:
+		// re-set the api key
+		q := r.URL.Query()
+		q.Del("key")
+		q.Set("key", os.Getenv("YOUTUBE_API_KEY"))
+		r.URL.RawQuery = q.Encode()
+	case RequestKindKaggleNotebook:
+		// nothing to do
+	case RequestKindKaggleDataset:
+		// nothing to do
+	case RequestKindRedditPost:
+		a.ensureValidRedditToken(time.Duration(60 * time.Second))
+		r.Header.Add("Authorization", "Bearer "+a.RedditAuthToken)
+	case RequestKindRedditComment:
 		a.ensureValidRedditToken(time.Duration(60 * time.Second))
 		r.Header.Add("Authorization", "Bearer "+a.RedditAuthToken)
 	}
@@ -74,7 +73,7 @@ func (a *ActivityRequester) prepareRequest(drp DoRequestParam) (*http.Request, e
 	return r, nil
 }
 
-func (a *ActivityRequester) DoRequest(ctx context.Context, drp DoRequestParam) (*DoRequestResult, error) {
+func (a *ActivityRequester) DoRequest(ctx context.Context, drp DoRequestActRequest) (*DoRequestActResult, error) {
 	r, err := a.prepareRequest(drp)
 	if err != nil {
 		return nil, err
@@ -88,7 +87,7 @@ func (a *ActivityRequester) DoRequest(ctx context.Context, drp DoRequestParam) (
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
-	res := DoRequestResult{
+	res := DoRequestActResult{
 		RequestKind: drp.RequestKind,
 		StatusCode:  resp.StatusCode,
 		Body:        b,
@@ -96,8 +95,8 @@ func (a *ActivityRequester) DoRequest(ctx context.Context, drp DoRequestParam) (
 	return &res, nil
 }
 
-// UploadMetrics will handle the response from a get metrics
-func (a *ActivityRequester) UploadMetrics(ctx context.Context, drr DoRequestResult) (*api.DefaultJSONResponse, error) {
+// UploadMetrics will handle the response from a get metrics request
+func (a *ActivityRequester) UploadMetrics(ctx context.Context, drr UploadMetricsActRequest) (*api.DefaultJSONResponse, error) {
 	l := activity.GetLogger(ctx)
 	switch drr.RequestKind {
 	case RequestKindInternalRandom:
@@ -112,6 +111,27 @@ func (a *ActivityRequester) UploadMetrics(ctx context.Context, drr DoRequestResu
 		return a.handleRedditPostMetrics(l, drr.StatusCode, drr.Body)
 	case RequestKindRedditComment:
 		return a.handleRedditCommentMetrics(l, drr.StatusCode, drr.Body)
+	default:
+		return nil, fmt.Errorf("unrecognized RequestKind: %s", drr.RequestKind)
+	}
+}
+
+// UploadMetrics will handle the response from a get metrics
+func (a *ActivityRequester) UploadMetadata(ctx context.Context, drr UploadMetadataActRequest) (*api.DefaultJSONResponse, error) {
+	l := activity.GetLogger(ctx)
+	switch drr.RequestKind {
+	case RequestKindInternalRandom:
+		return a.handleInternalRandomMetadata(l, drr.StatusCode, drr.Body)
+	case RequestKindYouTubeVideo:
+		return a.handleYouTubeVideoMetadata(l, drr.StatusCode, drr.Body)
+	case RequestKindKaggleNotebook:
+		return a.handleKaggleNotebookMetadata(l, drr.StatusCode, drr.Body)
+	case RequestKindKaggleDataset:
+		return a.handleKaggleDatasetMetadata(l, drr.StatusCode, drr.Body)
+	case RequestKindRedditPost:
+		return a.handleRedditPostMetadata(l, drr.StatusCode, drr.Body)
+	case RequestKindRedditComment:
+		return a.handleRedditCommentMetadata(l, drr.StatusCode, drr.Body)
 	default:
 		return nil, fmt.Errorf("unrecognized RequestKind: %s", drr.RequestKind)
 	}

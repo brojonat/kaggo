@@ -1,9 +1,10 @@
 -- schema.sql for sqlc generation, DO NOT use with atlas; use golang-migrate instead.
 
 CREATE TABLE metadata (
-    id VARCHAR(255) PRIMARY KEY NOT NULL,
-    metric_kind VARCHAR(255) NOT NULL,
-    data JSONB NOT NULL DEFAULT '{}'::JSONB
+    id VARCHAR(255) NOT NULL,
+    request_kind VARCHAR(255) NOT NULL,
+    data JSONB NOT NULL DEFAULT '{}'::JSONB,
+    PRIMARY KEY (id, request_kind)
 );
 
 -- internal metric for testing
@@ -16,7 +17,6 @@ CREATE TABLE IF NOT EXISTS internal_random (
 -- youtube video views
 CREATE TABLE IF NOT EXISTS youtube_video_views (
     id VARCHAR(255) NOT NULL,
-    title VARCHAR(255) NOT NULL,
     ts TIMESTAMPTZ NOT NULL,
     views INTEGER NOT NULL
 );
@@ -24,7 +24,6 @@ CREATE TABLE IF NOT EXISTS youtube_video_views (
 -- youtube video likes
 CREATE TABLE IF NOT EXISTS youtube_video_likes (
     id VARCHAR(255) NOT NULL,
-    title VARCHAR(255) NOT NULL,
     ts TIMESTAMPTZ NOT NULL,
     likes INTEGER NOT NULL
 );
@@ -32,7 +31,6 @@ CREATE TABLE IF NOT EXISTS youtube_video_likes (
 -- youtube video comments
 CREATE TABLE IF NOT EXISTS youtube_video_comments (
     id VARCHAR(255) NOT NULL,
-    title VARCHAR(255) NOT NULL,
     ts TIMESTAMPTZ NOT NULL,
     comments INTEGER NOT NULL
 );
@@ -68,7 +66,6 @@ CREATE TABLE IF NOT EXISTS kaggle_dataset_downloads (
 -- reddit post score
 CREATE TABLE IF NOT EXISTS reddit_post_score (
     id VARCHAR(255) NOT NULL,
-    title VARCHAR(255) NOT NULL,
     ts TIMESTAMPTZ NOT NULL,
     score INTEGER NOT NULL
 );
@@ -76,7 +73,6 @@ CREATE TABLE IF NOT EXISTS reddit_post_score (
 -- reddit post ratio
 CREATE TABLE IF NOT EXISTS reddit_post_ratio (
     id VARCHAR(255) NOT NULL,
-    title VARCHAR(255) NOT NULL,
     ts TIMESTAMPTZ NOT NULL,
     ratio REAL NOT NULL
 );

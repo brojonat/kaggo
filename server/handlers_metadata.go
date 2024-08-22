@@ -6,16 +6,10 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/dbgen"
-	"github.com/brojonat/kaggo/server/db/jsonb"
 	"github.com/brojonat/server-tools/stools"
 )
-
-type MetricMetadataBody struct {
-	ID         string             `json:"id"`
-	MetricKind string             `json:"metric_kind"`
-	Data       jsonb.MetadataJSON `json:"data"`
-}
 
 func handleGetMetricMetadata(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -40,7 +34,7 @@ func handleGetMetricMetadata(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc 
 
 func handlePostMetricMetadata(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var data MetricMetadataBody
+		var data api.MetricMetadataPayload
 		err := stools.DecodeJSONBody(r, &data)
 		if err != nil {
 			writeBadRequestError(w, err)
@@ -49,9 +43,9 @@ func handlePostMetricMetadata(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc
 		err = q.InsertMetadata(
 			r.Context(),
 			dbgen.InsertMetadataParams{
-				ID:         data.ID,
-				MetricKind: data.MetricKind,
-				Data:       data.Data,
+				ID:          data.ID,
+				RequestKind: data.RequestKind,
+				Data:        data.Data,
 			})
 		if err != nil {
 			writeInternalError(l, w, err)

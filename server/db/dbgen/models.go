@@ -40,9 +40,9 @@ type KaggleNotebookVote struct {
 }
 
 type Metadatum struct {
-	ID         string             `json:"id"`
-	MetricKind string             `json:"metric_kind"`
-	Data       jsonb.MetadataJSON `json:"data"`
+	ID          string             `json:"id"`
+	RequestKind string             `json:"request_kind"`
+	Data        jsonb.MetadataJSON `json:"data"`
 }
 
 type RedditCommentControversiality struct {
@@ -59,35 +59,30 @@ type RedditCommentScore struct {
 
 type RedditPostRatio struct {
 	ID    string             `json:"id"`
-	Title string             `json:"title"`
 	Ts    pgtype.Timestamptz `json:"ts"`
 	Ratio float32            `json:"ratio"`
 }
 
 type RedditPostScore struct {
 	ID    string             `json:"id"`
-	Title string             `json:"title"`
 	Ts    pgtype.Timestamptz `json:"ts"`
 	Score int32              `json:"score"`
 }
 
 type YoutubeVideoComment struct {
 	ID       string             `json:"id"`
-	Title    string             `json:"title"`
 	Ts       pgtype.Timestamptz `json:"ts"`
 	Comments int32              `json:"comments"`
 }
 
 type YoutubeVideoLike struct {
 	ID    string             `json:"id"`
-	Title string             `json:"title"`
 	Ts    pgtype.Timestamptz `json:"ts"`
 	Likes int32              `json:"likes"`
 }
 
 type YoutubeVideoView struct {
 	ID    string             `json:"id"`
-	Title string             `json:"title"`
 	Ts    pgtype.Timestamptz `json:"ts"`
 	Views int32              `json:"views"`
 }

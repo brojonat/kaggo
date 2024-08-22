@@ -1,10 +1,10 @@
 -- name: InsertRedditPostScore :exec
-INSERT INTO reddit_post_score (id, title, ts, score)
-VALUES (@id, @title, NOW()::TIMESTAMPTZ, @score);
+INSERT INTO reddit_post_score (id, ts, score)
+VALUES (@id, NOW()::TIMESTAMPTZ, @score);
 
 -- name: InsertRedditPostRatio :exec
-INSERT INTO reddit_post_ratio (id, title, ts, ratio)
-VALUES (@id, @title, NOW()::TIMESTAMPTZ, @ratio);
+INSERT INTO reddit_post_ratio (id, ts, ratio)
+VALUES (@id, NOW()::TIMESTAMPTZ, @ratio);
 
 -- name: InsertRedditCommentScore :exec
 INSERT INTO reddit_comment_score (id, ts, score)
@@ -17,7 +17,6 @@ VALUES (@id, NOW()::TIMESTAMPTZ, @controversiality);
 -- name: GetRedditPostMetricsByIDs :many
 SELECT
     id AS "id",
-    title AS "title",
     ts AS "ts",
     score::REAL AS "value",
     'reddit.post.score' AS "metric"
@@ -29,7 +28,6 @@ WHERE
 UNION ALL
 SELECT
     id AS "id",
-    title AS "title",
     ts AS "ts",
     ratio::REAL AS "value",
     'reddit.post.ratio' AS "metric"

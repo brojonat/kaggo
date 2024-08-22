@@ -76,7 +76,6 @@ func (q *Queries) GetRedditCommentMetricsByIDs(ctx context.Context, arg GetReddi
 const getRedditPostMetricsByIDs = `-- name: GetRedditPostMetricsByIDs :many
 SELECT
     id AS "id",
-    title AS "title",
     ts AS "ts",
     score::REAL AS "value",
     'reddit.post.score' AS "metric"
@@ -88,7 +87,6 @@ WHERE
 UNION ALL
 SELECT
     id AS "id",
-    title AS "title",
     ts AS "ts",
     ratio::REAL AS "value",
     'reddit.post.ratio' AS "metric"
@@ -107,7 +105,6 @@ type GetRedditPostMetricsByIDsParams struct {
 
 type GetRedditPostMetricsByIDsRow struct {
 	ID     string             `json:"id"`
-	Title  string             `json:"title"`
 	Ts     pgtype.Timestamptz `json:"ts"`
 	Value  float32            `json:"value"`
 	Metric string             `json:"metric"`
@@ -124,7 +121,6 @@ func (q *Queries) GetRedditPostMetricsByIDs(ctx context.Context, arg GetRedditPo
 		var i GetRedditPostMetricsByIDsRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.Title,
 			&i.Ts,
 			&i.Value,
 			&i.Metric,
@@ -170,33 +166,31 @@ func (q *Queries) InsertRedditCommentScore(ctx context.Context, arg InsertReddit
 }
 
 const insertRedditPostRatio = `-- name: InsertRedditPostRatio :exec
-INSERT INTO reddit_post_ratio (id, title, ts, ratio)
-VALUES ($1, $2, NOW()::TIMESTAMPTZ, $3)
+INSERT INTO reddit_post_ratio (id, ts, ratio)
+VALUES ($1, NOW()::TIMESTAMPTZ, $2)
 `
 
 type InsertRedditPostRatioParams struct {
 	ID    string  `json:"id"`
-	Title string  `json:"title"`
 	Ratio float32 `json:"ratio"`
 }
 
 func (q *Queries) InsertRedditPostRatio(ctx context.Context, arg InsertRedditPostRatioParams) error {
-	_, err := q.db.Exec(ctx, insertRedditPostRatio, arg.ID, arg.Title, arg.Ratio)
+	_, err := q.db.Exec(ctx, insertRedditPostRatio, arg.ID, arg.Ratio)
 	return err
 }
 
 const insertRedditPostScore = `-- name: InsertRedditPostScore :exec
-INSERT INTO reddit_post_score (id, title, ts, score)
-VALUES ($1, $2, NOW()::TIMESTAMPTZ, $3)
+INSERT INTO reddit_post_score (id, ts, score)
+VALUES ($1, NOW()::TIMESTAMPTZ, $2)
 `
 
 type InsertRedditPostScoreParams struct {
 	ID    string `json:"id"`
-	Title string `json:"title"`
 	Score int32  `json:"score"`
 }
 
 func (q *Queries) InsertRedditPostScore(ctx context.Context, arg InsertRedditPostScoreParams) error {
-	_, err := q.db.Exec(ctx, insertRedditPostScore, arg.ID, arg.Title, arg.Score)
+	_, err := q.db.Exec(ctx, insertRedditPostScore, arg.ID, arg.Score)
 	return err
 }

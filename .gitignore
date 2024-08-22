@@ -21,6 +21,7 @@ pgdump.sql
 # temporal tinkering stuff
 temporal-starter/
 helm/
+fun.py
 
 
 

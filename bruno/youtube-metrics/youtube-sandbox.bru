@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: https://youtube.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=OdxSbc0ap-s&key=AIzaSyAYyg-sPzEq8OcuB_gUoaHeGznHnQvBBn8
+  url: https://youtube.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=OdxSbc0ap-s&key={{YOUTUBE_KEY}}
   body: none
   auth: none
 }
@@ -13,7 +13,7 @@ get {
 query {
   part: snippet,contentDetails,statistics
   id: OdxSbc0ap-s
-  key: AIzaSyAYyg-sPzEq8OcuB_gUoaHeGznHnQvBBn8
+  key: {{YOUTUBE_KEY}}
 }
 
 headers {

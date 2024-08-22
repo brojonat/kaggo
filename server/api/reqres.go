@@ -1,8 +1,18 @@
 package api
 
+import (
+	"github.com/brojonat/kaggo/server/db/jsonb"
+)
+
 type DefaultJSONResponse struct {
 	Message string `json:"message,omitempty"`
 	Error   string `json:"error,omitempty"`
+}
+
+type MetricMetadataPayload struct {
+	ID          string             `json:"id"`
+	RequestKind string             `json:"request_kind"`
+	Data        jsonb.MetadataJSON `json:"data"`
 }
 
 type InternalMetricPayload struct {
@@ -12,7 +22,6 @@ type InternalMetricPayload struct {
 
 type YouTubeVideoMetricPayload struct {
 	ID          string `json:"id"`
-	Title       string `json:"title"`
 	SetViews    bool   `json:"set_views"`
 	Views       int    `json:"views"`
 	SetComments bool   `json:"set_comments"`
@@ -43,7 +52,6 @@ type KaggleDatasetMetricPayload struct {
 
 type RedditPostMetricPayload struct {
 	ID       string  `json:"id"`
-	Title    string  `json:"title"`
 	SetScore bool    `json:"set_score"`
 	Score    int     `json:"score"`
 	SetRatio bool    `json:"set_ratio"`

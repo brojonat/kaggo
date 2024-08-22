@@ -50,7 +50,6 @@ func handleYouTubeVideoMetricsPost(l *slog.Logger, q *dbgen.Queries) http.Handle
 				r.Context(),
 				dbgen.InsertYouTubeVideoViewsParams{
 					ID:    p.ID,
-					Title: p.Title,
 					Views: int32(p.Views),
 				})
 			if err != nil {
@@ -63,7 +62,6 @@ func handleYouTubeVideoMetricsPost(l *slog.Logger, q *dbgen.Queries) http.Handle
 				r.Context(),
 				dbgen.InsertYouTubeVideoCommentsParams{
 					ID:       p.ID,
-					Title:    p.Title,
 					Comments: int32(p.Comments),
 				})
 			if err != nil {
@@ -77,7 +75,6 @@ func handleYouTubeVideoMetricsPost(l *slog.Logger, q *dbgen.Queries) http.Handle
 				r.Context(),
 				dbgen.InsertYouTubeVideoLikesParams{
 					ID:    p.ID,
-					Title: p.Title,
 					Likes: int32(p.Likes),
 				})
 			if err != nil {

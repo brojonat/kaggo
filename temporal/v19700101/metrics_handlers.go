@@ -16,7 +16,7 @@ import (
 
 // Helper to upload metrics to the kaggo backend
 func uploadMetrics(l log.Logger, path string, b []byte) (*api.DefaultJSONResponse, error) {
-	endpoint := os.Getenv("METRICS_ENDPOINT") + path
+	endpoint := os.Getenv("KAGGO_ENDPOINT") + path
 	r, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewReader(b))
 	if err != nil {
 		return nil, fmt.Errorf("error making request to upload metrics: %w", err)
@@ -56,12 +56,18 @@ func (a *ActivityRequester) handleInternalRandomMetrics(l log.Logger, status int
 	if err != nil {
 		return nil, fmt.Errorf("error extracting internal id: %w", err)
 	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting internal id; id is nil")
+	}
 	id := iface.(string)
 
 	// value
 	iface, err = jmespath.Search("value", data)
 	if err != nil {
 		return nil, fmt.Errorf("error extracting internal value: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting internal value; value is nil")
 	}
 	value := iface.(float64)
 
@@ -88,19 +94,18 @@ func (a *ActivityRequester) handleYouTubeVideoMetrics(l log.Logger, status int, 
 	if err != nil {
 		return nil, fmt.Errorf("error extracting id: %w", err)
 	}
-	id := iface.(string)
-
-	// slug
-	iface, err = jmespath.Search("items[0].snippet.title", data)
-	if err != nil {
-		return nil, fmt.Errorf("error extracting title: %w", err)
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting video id; id is nil")
 	}
-	title := iface.(string)
+	id := iface.(string)
 
 	// views
 	iface, err = jmespath.Search("items[0].statistics.viewCount", data)
 	if err != nil {
 		return nil, fmt.Errorf("error extracting views: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting video views; views is nil")
 	}
 	viewsStr := iface.(string)
 	views, err := strconv.Atoi(viewsStr)
@@ -111,7 +116,10 @@ func (a *ActivityRequester) handleYouTubeVideoMetrics(l log.Logger, status int, 
 	// comments
 	iface, err = jmespath.Search("items[0].statistics.commentCount", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting comments: %w", err)
+		return nil, fmt.Errorf("error extracting commentCount: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting video commentCount; commentCount is nil")
 	}
 	commentsStr := iface.(string)
 	comments, err := strconv.Atoi(commentsStr)
@@ -122,7 +130,10 @@ func (a *ActivityRequester) handleYouTubeVideoMetrics(l log.Logger, status int, 
 	// likes
 	iface, err = jmespath.Search("items[0].statistics.likeCount", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting likes: %w", err)
+		return nil, fmt.Errorf("error extracting likeCount: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting video likeCount; likeCount is nil")
 	}
 	likesStr := iface.(string)
 	likes, err := strconv.Atoi(likesStr)
@@ -132,7 +143,6 @@ func (a *ActivityRequester) handleYouTubeVideoMetrics(l log.Logger, status int, 
 
 	payload := api.YouTubeVideoMetricPayload{
 		ID:          id,
-		Title:       title,
 		SetViews:    true,
 		Views:       int(views),
 		SetComments: true,
@@ -154,12 +164,13 @@ func (a *ActivityRequester) handleKaggleNotebookMetrics(l log.Logger, status int
 		return nil, fmt.Errorf("error deserializing notebook response: %w", err)
 	}
 
-	l.Error(string(b))
-
 	// id
 	iface, err := jmespath.Search("[0].ref", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting notebook slug: %w", err)
+		return nil, fmt.Errorf("error extracting notebook ref: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting notebook ref; ref is nil")
 	}
 	id := iface.(string)
 
@@ -167,6 +178,9 @@ func (a *ActivityRequester) handleKaggleNotebookMetrics(l log.Logger, status int
 	iface, err = jmespath.Search("[0].totalVotes", data)
 	if err != nil {
 		return nil, fmt.Errorf("error extracting notebook votes: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting notebook totalVotes; totalVotes is nil")
 	}
 	votes := iface.(float64)
 
@@ -194,14 +208,20 @@ func (a *ActivityRequester) handleKaggleDatasetMetrics(l log.Logger, status int,
 	// id
 	iface, err := jmespath.Search("[0].ref", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting dataset slug: %w", err)
+		return nil, fmt.Errorf("error extracting dataset ref: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting dataset ref; ref is nil")
 	}
 	id := iface.(string)
 
 	// views
 	iface, err = jmespath.Search("[0].viewCount", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting dataset views: %w", err)
+		return nil, fmt.Errorf("error extracting dataset viewCount: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting dataset viewCount; viewCount is nil")
 	}
 	views := iface.(float64)
 
@@ -210,12 +230,18 @@ func (a *ActivityRequester) handleKaggleDatasetMetrics(l log.Logger, status int,
 	if err != nil {
 		return nil, fmt.Errorf("error extracting dataset votes: %w", err)
 	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting dataset voteCount; voteCount is nil")
+	}
 	votes := iface.(float64)
 
 	// downloads
 	iface, err = jmespath.Search("[0].downloadCount", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting dataset downloads: %w", err)
+		return nil, fmt.Errorf("error extracting dataset downloadCount: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting dataset downloadCount; downloadCount is nil")
 	}
 	downloads := iface.(float64)
 
@@ -250,33 +276,34 @@ func (a *ActivityRequester) handleRedditPostMetrics(l log.Logger, status int, b 
 	if err != nil {
 		return nil, fmt.Errorf("error extracting post id: %w", err)
 	}
-	id := iface.(string)
-
-	// title
-	iface, err = jmespath.Search("data.children[0].data.title", data)
-	if err != nil {
-		return nil, fmt.Errorf("error extracting post title: %w", err)
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting post id; id is nil")
 	}
-	title := iface.(string)
+	id := iface.(string)
 
 	// score
 	iface, err = jmespath.Search("data.children[0].data.score", data)
 	if err != nil {
 		return nil, fmt.Errorf("error extracting post score: %w", err)
 	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting post score; score is nil")
+	}
 	score := iface.(float64)
 
 	// ratio
 	iface, err = jmespath.Search("data.children[0].data.upvote_ratio", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting post ratio: %w", err)
+		return nil, fmt.Errorf("error extracting post upvote_ratio: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting post upvote_ratio; upvote_ratio is nil")
 	}
 	ratio := iface.(float64)
 
 	// upload the metrics to the server
 	payload := api.RedditPostMetricPayload{
 		ID:       id,
-		Title:    title,
 		SetScore: true,
 		Score:    int(score),
 		SetRatio: true,
@@ -303,6 +330,9 @@ func (a *ActivityRequester) handleRedditCommentMetrics(l log.Logger, status int,
 	if err != nil {
 		return nil, fmt.Errorf("error extracting comment id: %w", err)
 	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting comment id; id is nil")
+	}
 	id := iface.(string)
 
 	// score
@@ -310,12 +340,18 @@ func (a *ActivityRequester) handleRedditCommentMetrics(l log.Logger, status int,
 	if err != nil {
 		return nil, fmt.Errorf("error extracting comment score: %w", err)
 	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting comment score; score is nil")
+	}
 	score := iface.(float64)
 
 	// controversiality
 	iface, err = jmespath.Search("data.children[0].data.controversiality", data)
 	if err != nil {
 		return nil, fmt.Errorf("error extracting comment id: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting comment controversiality; controversiality is nil")
 	}
 	cont := iface.(float64)
 

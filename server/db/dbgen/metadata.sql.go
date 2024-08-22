@@ -12,7 +12,7 @@ import (
 )
 
 const getMetadataByIDs = `-- name: GetMetadataByIDs :many
-SELECT id, metric_kind, data
+SELECT id, request_kind, data
 FROM metadata
 WHERE id = ANY($1::VARCHAR[])
 `
@@ -26,7 +26,7 @@ func (q *Queries) GetMetadataByIDs(ctx context.Context, ids []string) ([]Metadat
 	var items []Metadatum
 	for rows.Next() {
 		var i Metadatum
-		if err := rows.Scan(&i.ID, &i.MetricKind, &i.Data); err != nil {
+		if err := rows.Scan(&i.ID, &i.RequestKind, &i.Data); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -38,17 +38,19 @@ func (q *Queries) GetMetadataByIDs(ctx context.Context, ids []string) ([]Metadat
 }
 
 const insertMetadata = `-- name: InsertMetadata :exec
-INSERT INTO metadata (id, metric_kind, data)
+INSERT INTO metadata (id, request_kind, data)
 VALUES ($1, $2, $3)
+ON CONFLICT ON CONSTRAINT metadata_pkey DO UPDATE
+SET DATA = EXCLUDED.data
 `
 
 type InsertMetadataParams struct {
-	ID         string             `json:"id"`
-	MetricKind string             `json:"metric_kind"`
-	Data       jsonb.MetadataJSON `json:"data"`
+	ID          string             `json:"id"`
+	RequestKind string             `json:"request_kind"`
+	Data        jsonb.MetadataJSON `json:"data"`
 }
 
 func (q *Queries) InsertMetadata(ctx context.Context, arg InsertMetadataParams) error {
-	_, err := q.db.Exec(ctx, insertMetadata, arg.ID, arg.MetricKind, arg.Data)
+	_, err := q.db.Exec(ctx, insertMetadata, arg.ID, arg.RequestKind, arg.Data)
 	return err
 }

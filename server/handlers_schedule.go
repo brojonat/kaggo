@@ -9,7 +9,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"os"
 
 	"github.com/brojonat/kaggo/server/api"
 	kt "github.com/brojonat/kaggo/temporal/v19700101"
@@ -74,80 +73,46 @@ func handleCreateSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 		var rwf *http.Request
 		switch body.RequestKind {
 		case kt.RequestKindInternalRandom:
-			rwf, err = http.NewRequest(http.MethodGet, "https://api.kaggo.brojonat.com/internal/generate", nil)
+			rwf, err = makeExternalRequestInternalRandom()
 			if err != nil {
 				writeInternalError(l, w, err)
 				return
 			}
-			rwf.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("AUTH_TOKEN")))
-			rwf.Header.Add("Accept", "application/json")
 
 		case kt.RequestKindYouTubeVideo:
-			rwf, err = http.NewRequest(http.MethodGet, "https://youtube.googleapis.com/youtube/v3/videos", nil)
+			rwf, err = makeExternalRequestYouTubeVideo(body.ID)
 			if err != nil {
 				writeInternalError(l, w, err)
 				return
 			}
-			q := rwf.URL.Query()
-			q.Set("part", "snippet,contentDetails,statistics")
-			q.Set("key", os.Getenv("YOUTUBE_API_KEY"))
-			q.Set("id", body.ID)
-			rwf.URL.RawQuery = q.Encode()
-			rwf.Header.Add("Accept", "application/json")
 
 		case kt.RequestKindKaggleNotebook:
-			// https://github.com/Kaggle/kaggle-api/blob/48d0433575cac8dd20cf7557c5d749987f5c14a2/kaggle/api/kaggle_api.py#L3052
-			rwf, err = http.NewRequest(http.MethodGet, "https://www.kaggle.com/api/v1/kernels/list", nil)
+			rwf, err = makeExternalRequestKaggleNotebook(body.ID)
 			if err != nil {
 				writeInternalError(l, w, err)
 				return
 			}
-			// filter to notebooks only and search using the supplied ref
-			q := rwf.URL.Query()
-			q.Set("search", body.ID)
-			rwf.URL.RawQuery = q.Encode()
-			// basic auth
-			rwf.Header.Add("Accept", "application/json")
-			rwf.SetBasicAuth(os.Getenv("KAGGLE_USERNAME"), os.Getenv("KAGGLE_API_KEY"))
 
 		case kt.RequestKindKaggleDataset:
-			// https: //github.com/Kaggle/kaggle-api/blob/48d0433575cac8dd20cf7557c5d749987f5c14a2/kaggle/api/kaggle_api.py#L1731
-			rwf, err = http.NewRequest(http.MethodGet, "https://www.kaggle.com/api/v1/datasets/list", nil)
+			rwf, err = makeExternalRequestKaggleDataset(body.ID)
 			if err != nil {
 				writeInternalError(l, w, err)
 				return
 			}
-			// search using the supplied ref
-			q := rwf.URL.Query()
-			q.Set("search", body.ID)
-			rwf.URL.RawQuery = q.Encode()
-			// basic auth
-			rwf.Header.Add("Accept", "application/json")
-			rwf.SetBasicAuth(os.Getenv("KAGGLE_USERNAME"), os.Getenv("KAGGLE_API_KEY"))
 
 		case kt.RequestKindRedditPost:
-			rwf, err = http.NewRequest(http.MethodGet, "https://reddit.com/api/info.json", nil)
+			rwf, err = makeExternalRequestRedditPost(body.ID)
 			if err != nil {
 				writeInternalError(l, w, err)
 				return
 			}
-			q := rwf.URL.Query()
-			q.Set("id", fmt.Sprintf("t3_%s", body.ID))
-			rwf.URL.RawQuery = q.Encode()
-			rwf.Header.Add("Accept", "application/json")
-			rwf.Header.Add("User-Agent", "Debian:github.com/brojonat/kaggo/worker:v0.0.1 (by /u/GreaerG)")
 
 		case kt.RequestKindRedditComment:
-			rwf, err = http.NewRequest(http.MethodGet, "https://reddit.com/api/info.json", nil)
+			rwf, err = makeExternalRequestRedditComment(body.ID)
 			if err != nil {
 				writeInternalError(l, w, err)
 				return
 			}
-			q := rwf.URL.Query()
-			q.Set("id", fmt.Sprintf("t1_%s", body.ID))
-			rwf.URL.RawQuery = q.Encode()
-			rwf.Header.Add("Accept", "application/json")
-			rwf.Header.Add("User-Agent", "Debian:github.com/brojonat/kaggo/worker:v0.0.1 (by /u/GreaerG)")
 
 		default:
 			writeBadRequestError(w, fmt.Errorf("unsupported RequestKind: %s", body.RequestKind))
@@ -169,8 +134,31 @@ func handleCreateSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 			return
 		}
 
-		// identifiers are the request kind, identifier, and hash of the request
+		// identifier is the request kind, identifier, and hash of the request
 		id := fmt.Sprintf("%s %s %x", body.RequestKind, body.ID, h.Sum(nil))
+
+		// execute a workflow that will fetch the metadata and post it back to the server.
+		// this will be a good litmus test for whether or not the client submitted a "good"
+		// entity that we can query before the "scheduled" workflow starts running.
+		workflowOptions := client.StartWorkflowOptions{
+			ID:          id,
+			TaskQueue:   "kaggo",
+			RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 3},
+		}
+
+		we, err := tc.ExecuteWorkflow(
+			r.Context(),
+			workflowOptions,
+			kt.DoMetadataRequestWF,
+			kt.DoMetadataRequestWFRequest{RequestKind: body.RequestKind, Serial: serialReq},
+		)
+		// block until this is done; this isn't strictly necessary tbh, once this code
+		// is vetted, we can unblock this.
+		err = we.Get(r.Context(), &err)
+		if err != nil {
+			writeInternalError(l, w, fmt.Errorf("error running metadata workflow: %w", err))
+			return
+		}
 
 		// Create the schedule.
 		_, err = tc.ScheduleClient().Create(
@@ -181,8 +169,8 @@ func handleCreateSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 				Action: &client.ScheduleWorkflowAction{
 					ID:        id,
 					TaskQueue: "kaggo",
-					Workflow:  kt.DoRequestWF,
-					Args: []interface{}{kt.DoRequestWFRequest{
+					Workflow:  kt.DoPollingRequestWF,
+					Args: []interface{}{kt.DoPollingRequestWFRequest{
 						RequestKind: body.RequestKind, Serial: serialReq}},
 					RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 1},
 				},

@@ -14,7 +14,6 @@ import (
 const getYouTubeVideoMetricsByIDs = `-- name: GetYouTubeVideoMetricsByIDs :many
 SELECT
     y.id AS "id",
-    y.title AS "title",
     y.ts AS "ts",
     y.views::REAL AS "value",
     'youtube.video.views' AS "metric"
@@ -26,7 +25,6 @@ WHERE
 UNION ALL
 SELECT
     y.id AS "id",
-    y.title AS "title",
     y.ts AS "ts",
     y.likes::REAL AS "value",
     'youtube.video.likes' AS "metric"
@@ -38,7 +36,6 @@ WHERE
 UNION ALL
 SELECT
     y.id AS "id",
-    y.title AS "title",
     y.ts AS "ts",
     y.comments::REAL AS "value",
     'youtube.video.comments' AS "metric"
@@ -57,7 +54,6 @@ type GetYouTubeVideoMetricsByIDsParams struct {
 
 type GetYouTubeVideoMetricsByIDsRow struct {
 	ID     string             `json:"id"`
-	Title  string             `json:"title"`
 	Ts     pgtype.Timestamptz `json:"ts"`
 	Value  float32            `json:"value"`
 	Metric string             `json:"metric"`
@@ -74,7 +70,6 @@ func (q *Queries) GetYouTubeVideoMetricsByIDs(ctx context.Context, arg GetYouTub
 		var i GetYouTubeVideoMetricsByIDsRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.Title,
 			&i.Ts,
 			&i.Value,
 			&i.Metric,
@@ -145,49 +140,46 @@ func (q *Queries) GetYouTubeVideoMetricsByIDsBucketed(ctx context.Context, arg G
 }
 
 const insertYouTubeVideoComments = `-- name: InsertYouTubeVideoComments :exec
-INSERT INTO youtube_video_comments (id, title, ts, comments)
-VALUES ($1, $2, NOW()::TIMESTAMPTZ, $3)
+INSERT INTO youtube_video_comments (id, ts, comments)
+VALUES ($1, NOW()::TIMESTAMPTZ, $2)
 `
 
 type InsertYouTubeVideoCommentsParams struct {
 	ID       string `json:"id"`
-	Title    string `json:"title"`
 	Comments int32  `json:"comments"`
 }
 
 func (q *Queries) InsertYouTubeVideoComments(ctx context.Context, arg InsertYouTubeVideoCommentsParams) error {
-	_, err := q.db.Exec(ctx, insertYouTubeVideoComments, arg.ID, arg.Title, arg.Comments)
+	_, err := q.db.Exec(ctx, insertYouTubeVideoComments, arg.ID, arg.Comments)
 	return err
 }
 
 const insertYouTubeVideoLikes = `-- name: InsertYouTubeVideoLikes :exec
-INSERT INTO youtube_video_likes (id, title, ts, likes)
-VALUES ($1, $2, NOW()::TIMESTAMPTZ, $3)
+INSERT INTO youtube_video_likes (id, ts, likes)
+VALUES ($1, NOW()::TIMESTAMPTZ, $2)
 `
 
 type InsertYouTubeVideoLikesParams struct {
 	ID    string `json:"id"`
-	Title string `json:"title"`
 	Likes int32  `json:"likes"`
 }
 
 func (q *Queries) InsertYouTubeVideoLikes(ctx context.Context, arg InsertYouTubeVideoLikesParams) error {
-	_, err := q.db.Exec(ctx, insertYouTubeVideoLikes, arg.ID, arg.Title, arg.Likes)
+	_, err := q.db.Exec(ctx, insertYouTubeVideoLikes, arg.ID, arg.Likes)
 	return err
 }
 
 const insertYouTubeVideoViews = `-- name: InsertYouTubeVideoViews :exec
-INSERT INTO youtube_video_views (id, title, ts, views)
-VALUES ($1, $2, NOW()::TIMESTAMPTZ, $3)
+INSERT INTO youtube_video_views (id, ts, views)
+VALUES ($1, NOW()::TIMESTAMPTZ, $2)
 `
 
 type InsertYouTubeVideoViewsParams struct {
 	ID    string `json:"id"`
-	Title string `json:"title"`
 	Views int32  `json:"views"`
 }
 
 func (q *Queries) InsertYouTubeVideoViews(ctx context.Context, arg InsertYouTubeVideoViewsParams) error {
-	_, err := q.db.Exec(ctx, insertYouTubeVideoViews, arg.ID, arg.Title, arg.Views)
+	_, err := q.db.Exec(ctx, insertYouTubeVideoViews, arg.ID, arg.Views)
 	return err
 }

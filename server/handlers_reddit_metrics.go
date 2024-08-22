@@ -48,7 +48,7 @@ func handleRedditPostMetricsPost(l *slog.Logger, q *dbgen.Queries) http.HandlerF
 			err = q.InsertRedditPostScore(
 				r.Context(),
 				dbgen.InsertRedditPostScoreParams{
-					ID: p.ID, Title: p.Title, Score: int32(p.Score)})
+					ID: p.ID, Score: int32(p.Score)})
 			if err != nil {
 				writeInternalError(l, w, err)
 				return
@@ -58,7 +58,7 @@ func handleRedditPostMetricsPost(l *slog.Logger, q *dbgen.Queries) http.HandlerF
 			err = q.InsertRedditPostRatio(
 				r.Context(),
 				dbgen.InsertRedditPostRatioParams{
-					ID: p.ID, Title: p.Title, Ratio: p.Ratio})
+					ID: p.ID, Ratio: p.Ratio})
 			if err != nil {
 				writeInternalError(l, w, err)
 				return
