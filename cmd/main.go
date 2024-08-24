@@ -202,6 +202,7 @@ func main() {
 func serve_http(ctx *cli.Context) error {
 	// internal init
 	logger := getDefaultLogger(slog.Level(ctx.Int("log-level")))
+	metrics := server.GetDefaultPromMetrics()
 
 	return server.RunHTTPServer(
 		ctx.Context,
@@ -209,6 +210,7 @@ func serve_http(ctx *cli.Context) error {
 		logger,
 		ctx.String("database"),
 		ctx.String("temporal-host"),
+		metrics,
 	)
 }
 
@@ -219,7 +221,7 @@ func run_worker(ctx *cli.Context) error {
 }
 
 func run_metadata_wf(ctx *cli.Context) error {
-	p := api.GenericRequestPayload{
+	p := api.GenericScheduleRequestPayload{
 		RequestKind: ctx.String("request-kind"),
 		ID:          ctx.String("id"),
 	}
@@ -363,7 +365,7 @@ func load_schedules(ctx *cli.Context) error {
 	}
 	for i, sched := range body {
 		parts := strings.Split(sched.ID, " ")
-		payload := api.GenericRequestPayload{
+		payload := api.GenericScheduleRequestPayload{
 			RequestKind: parts[0],
 			ID:          parts[1],
 			Schedule:    sched.Spec,

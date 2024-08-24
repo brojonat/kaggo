@@ -10,11 +10,10 @@ type DefaultJSONResponse struct {
 	Error   string `json:"error,omitempty"`
 }
 
-type MetricMetadataPayload struct {
-	ID           string                  `json:"id"`
-	RequestKind  string                  `json:"request_kind"`
-	Data         jsonb.MetadataJSON      `json:"data"`
-	InternalData MetricQueryInternalData `json:"internal_data"`
+type GenericScheduleRequestPayload struct {
+	RequestKind string              `json:"request_kind"`
+	ID          string              `json:"id"`
+	Schedule    client.ScheduleSpec `json:"schedule_spec,omitempty"`
 }
 
 // Contains arbitrary data that metric (or metadata) handlers want to pass back to the server.
@@ -24,10 +23,11 @@ type MetricQueryInternalData struct {
 	XRatelimitReset     string `json:"x_ratelimit_reset"`
 }
 
-type GenericRequestPayload struct {
-	RequestKind string              `json:"request_kind"`
-	ID          string              `json:"id"`
-	Schedule    client.ScheduleSpec `json:"schedule_spec,omitempty"`
+type MetricMetadataPayload struct {
+	ID           string                  `json:"id"`
+	RequestKind  string                  `json:"request_kind"`
+	Data         jsonb.MetadataJSON      `json:"data"`
+	InternalData MetricQueryInternalData `json:"internal_data"`
 }
 
 type InternalMetricPayload struct {

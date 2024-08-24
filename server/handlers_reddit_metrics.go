@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/dbgen"
+	kt "github.com/brojonat/kaggo/temporal/v19700101"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 func handleRedditPostMetricsGet(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
@@ -32,7 +35,57 @@ func handleRedditPostMetricsGet(l *slog.Logger, q *dbgen.Queries) http.HandlerFu
 	}
 }
 
-func handleRedditPostMetricsPost(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
+func setRedditPromMetrics(l *slog.Logger, data api.MetricQueryInternalData, labels prometheus.Labels, pms map[string]prometheus.Collector) {
+
+	// Set Prometheus metrics. The ones we're interested in for Reddit are
+	// the X-Requestlimit-* header values. Range over metrics and set them.
+	mnames := []string{
+		PromMetricXRatelimitUsed,
+		PromMetricXRatelimitRemaining,
+		PromMetricXRatelimitReset,
+	}
+	for _, mk := range mnames {
+		gv, ok := pms[mk].(*prometheus.GaugeVec)
+		if !ok {
+			l.Error(fmt.Sprintf("failed to locate prom metric %s, skipping", mk))
+			continue
+		}
+
+		c, err := gv.GetMetricWith(labels)
+		if err != nil {
+			// GetMetricWith is a get-or-create operation, this should never happen
+			l.Error(fmt.Sprintf("failed to get prom metric %s with labels: %s", mk, labels))
+			continue
+		}
+
+		var val float64
+
+		switch mk {
+		case PromMetricXRatelimitUsed:
+			val, err = strconv.ParseFloat(data.XRatelimitUsed, 64)
+			if err != nil {
+				l.Error(fmt.Sprintf("failed to parse %s float from %s", mk, data.XRatelimitUsed))
+				continue
+			}
+		case PromMetricXRatelimitRemaining:
+			val, err = strconv.ParseFloat(data.XRatelimitRemaining, 64)
+			if err != nil {
+				l.Error(fmt.Sprintf("failed to parse %s float from %s", mk, data.XRatelimitRemaining))
+				continue
+			}
+		case PromMetricXRatelimitReset:
+			val, err = strconv.ParseFloat(data.XRatelimitReset, 64)
+			if err != nil {
+				l.Error(fmt.Sprintf("failed to parse %s float from %s", mk, data.XRatelimitReset))
+				continue
+			}
+		}
+
+		c.Set(val)
+	}
+}
+
+func handleRedditPostMetricsPost(l *slog.Logger, q *dbgen.Queries, pms map[string]prometheus.Collector) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// parse
 		var p api.RedditPostMetricPayload
@@ -42,6 +95,10 @@ func handleRedditPostMetricsPost(l *slog.Logger, q *dbgen.Queries) http.HandlerF
 			writeBadRequestError(w, err)
 			return
 		}
+
+		// prometheus
+		labels := prometheus.Labels{"id": p.ID, "request_kind": kt.RequestKindRedditPost}
+		setRedditPromMetrics(l, p.InternalData, labels, pms)
 
 		// upload metrics
 		if p.SetScore {
@@ -90,7 +147,7 @@ func handleRedditCommentMetricsGet(l *slog.Logger, q *dbgen.Queries) http.Handle
 	}
 }
 
-func handleRedditCommentMetricsPost(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
+func handleRedditCommentMetricsPost(l *slog.Logger, q *dbgen.Queries, pms map[string]prometheus.Collector) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// parse
 		var p api.RedditCommentMetricPayload
@@ -100,6 +157,10 @@ func handleRedditCommentMetricsPost(l *slog.Logger, q *dbgen.Queries) http.Handl
 			writeBadRequestError(w, err)
 			return
 		}
+
+		// prometheus
+		labels := prometheus.Labels{"id": p.ID, "request_kind": kt.RequestKindRedditComment}
+		setRedditPromMetrics(l, p.InternalData, labels, pms)
 
 		// upload metrics
 		if p.SetScore {
@@ -148,7 +209,7 @@ func handleRedditSubredditMetricsGet(l *slog.Logger, q *dbgen.Queries) http.Hand
 	}
 }
 
-func handleRedditSubredditMetricsPost(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
+func handleRedditSubredditMetricsPost(l *slog.Logger, q *dbgen.Queries, pms map[string]prometheus.Collector) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// parse
 		var p api.RedditSubredditMetricPayload
@@ -158,6 +219,10 @@ func handleRedditSubredditMetricsPost(l *slog.Logger, q *dbgen.Queries) http.Han
 			writeBadRequestError(w, err)
 			return
 		}
+
+		// prometheus
+		labels := prometheus.Labels{"id": p.ID, "request_kind": kt.RequestKindRedditComment}
+		setRedditPromMetrics(l, p.InternalData, labels, pms)
 
 		// upload metrics
 		if p.SetSubscribers {

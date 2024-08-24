@@ -50,7 +50,7 @@ func handleCreateSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 			return
 		}
 		defer r.Body.Close()
-		var body api.GenericRequestPayload
+		var body api.GenericScheduleRequestPayload
 		err = json.Unmarshal(b, &body)
 		if err != nil {
 			writeBadRequestError(w, fmt.Errorf("could not parse request body: %w", err))
