@@ -216,3 +216,18 @@ func getRedditCommentTimeSeries(
 		TsEnd:   pgtype.Timestamptz{Time: ts_end, Valid: true},
 	})
 }
+
+func getRedditSubredditTimeSeries(
+	ctx context.Context,
+	l *slog.Logger,
+	q *dbgen.Queries,
+	ids []string,
+	ts_start time.Time,
+	ts_end time.Time,
+) (interface{}, error) {
+	return q.GetRedditSubredditMetricsByIDs(ctx, dbgen.GetRedditSubredditMetricsByIDsParams{
+		Ids:     ids,
+		TsStart: pgtype.Timestamptz{Time: ts_start, Valid: true},
+		TsEnd:   pgtype.Timestamptz{Time: ts_end, Valid: true},
+	})
+}

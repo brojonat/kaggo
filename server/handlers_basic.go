@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"runtime"
@@ -52,21 +53,14 @@ func handlePing(l *slog.Logger, p *pgxpool.Pool) http.HandlerFunc {
 }
 
 // handleGetToken returns a token
-func handleIssueToken(l *slog.Logger) http.HandlerFunc {
+func handleIssueToken() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		t := r.Header.Get("Authorization")
-		if t == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(api.DefaultJSONResponse{Error: "must supply authorization header"})
+		email, pwd, ok := r.BasicAuth()
+		if !ok {
+			writeBadRequestError(w, fmt.Errorf("bad credentials"))
 			return
 		}
-		email := r.URL.Query().Get("email")
-		if email == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(api.DefaultJSONResponse{Error: "must supply email"})
-			return
-		}
-		if t != getSecretKey() {
+		if pwd != getSecretKey() {
 			w.WriteHeader(http.StatusUnauthorized)
 			json.NewEncoder(w).Encode(api.DefaultJSONResponse{Error: "not authorized"})
 			return
@@ -79,7 +73,6 @@ func handleIssueToken(l *slog.Logger) http.HandlerFunc {
 			Email:          email,
 		}
 		token, _ := generateAccessToken(c)
-		l.Warn("issuing sudo token", "token", token)
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(api.DefaultJSONResponse{Message: token})
 	}

@@ -90,3 +90,17 @@ CREATE TABLE IF NOT EXISTS reddit_comment_controversiality (
     ts TIMESTAMPTZ NOT NULL,
     controversiality REAL NOT NULL
 );
+
+-- reddit subreddit subscribers
+CREATE TABLE IF NOT EXISTS reddit_subreddit_subscribers (
+    id VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    subscribers INTEGER NOT NULL
+);
+
+-- reddit subreddit active user counts
+CREATE TABLE IF NOT EXISTS reddit_subreddit_active_user_count (
+    id VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    active_user_count INTEGER NOT NULL
+);

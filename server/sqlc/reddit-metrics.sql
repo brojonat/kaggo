@@ -14,6 +14,14 @@ VALUES (@id, NOW()::TIMESTAMPTZ, @score);
 INSERT INTO reddit_comment_controversiality (id, ts, controversiality)
 VALUES (@id, NOW()::TIMESTAMPTZ, @controversiality);
 
+-- name: InsertRedditSubredditSubscribers :exec
+INSERT INTO reddit_subreddit_subscribers (id, ts, subscribers)
+VALUES (@id, NOW()::TIMESTAMPTZ, @subscribers);
+
+-- name: InsertRedditSubredditActiveUserCount :exec
+INSERT INTO reddit_subreddit_active_user_count (id, ts, active_user_count)
+VALUES (@id, NOW()::TIMESTAMPTZ, @active_user_count);
+
 -- name: GetRedditPostMetricsByIDs :many
 SELECT
     id AS "id",
@@ -52,9 +60,32 @@ UNION ALL
 SELECT
     r.id AS "id",
     r.ts AS "ts",
-    r.controversiality::REAL AS "controversiality",
+    r.controversiality::REAL AS "value",
     'reddit.comment.controversiality' AS "metric"
 FROM reddit_comment_controversiality AS r
+WHERE
+    r.id = ANY(@ids::VARCHAR[]) AND
+    r.ts >= @ts_start AND
+    r.ts <= @ts_end;
+
+-- name: GetRedditSubredditMetricsByIDs :many
+SELECT
+    r.id AS "id",
+    r.ts AS "ts",
+    r.subscribers::REAL AS "value",
+    'reddit.subreddit.subscribers' AS "metric"
+FROM reddit_subreddit_subscribers AS r
+WHERE
+    r.id = ANY(@ids::VARCHAR[]) AND
+    r.ts >= @ts_start AND
+    r.ts <= @ts_end
+UNION ALL
+SELECT
+    r.id AS "id",
+    r.ts AS "ts",
+    r.active_user_count::REAL AS "value",
+    'reddit.subreddit.active_user_count' AS "metric"
+FROM reddit_subreddit_active_user_count AS r
 WHERE
     r.id = ANY(@ids::VARCHAR[]) AND
     r.ts >= @ts_start AND

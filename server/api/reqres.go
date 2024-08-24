@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/brojonat/kaggo/server/db/jsonb"
+	"go.temporal.io/sdk/client"
 )
 
 type DefaultJSONResponse struct {
@@ -13,6 +14,12 @@ type MetricMetadataPayload struct {
 	ID          string             `json:"id"`
 	RequestKind string             `json:"request_kind"`
 	Data        jsonb.MetadataJSON `json:"data"`
+}
+
+type GenericRequestPayload struct {
+	RequestKind string              `json:"request_kind"`
+	ID          string              `json:"id"`
+	Schedule    client.ScheduleSpec `json:"schedule_spec,omitempty"`
 }
 
 type InternalMetricPayload struct {
@@ -64,4 +71,12 @@ type RedditCommentMetricPayload struct {
 	Score               int     `json:"score"`
 	SetControversiality bool    `json:"set_controversiality"`
 	Controversiality    float32 `json:"controversiality"`
+}
+
+type RedditSubredditMetricPayload struct {
+	ID                 string `json:"id"`
+	SetSubscribers     bool   `json:"set_subscribers"`
+	Subscribers        int    `json:"subscribers"`
+	SetActiveUserCount bool   `json:"set_active_user_count"`
+	ActiveUserCount    int    `json:"active_user_count"`
 }

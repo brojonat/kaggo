@@ -370,3 +370,54 @@ func (a *ActivityRequester) handleRedditCommentMetrics(l log.Logger, status int,
 	}
 	return uploadMetrics(l, "/reddit/comment", b)
 }
+
+// Handle RequestKindRedditSubreddit requests
+func (a *ActivityRequester) handleRedditSubredditMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
+	var data interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		return nil, fmt.Errorf("error deserializing subreddit response: %w", err)
+	}
+	// id
+	iface, err := jmespath.Search("data.display_name", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting subreddit id: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting subreddit id; id is nil")
+	}
+	id := iface.(string)
+
+	// subscribers
+	iface, err = jmespath.Search("data.subscribers", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting subreddit subscribers: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting subreddit subscribers; subscribers is nil")
+	}
+	subscribers := iface.(float64)
+
+	// active user count
+	iface, err = jmespath.Search("data.active_user_count", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting subreddit active_user_count: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting subreddit active_user_count; active_user_count is nil")
+	}
+	active_user_count := iface.(float64)
+
+	// upload the metrics to the server
+	payload := api.RedditSubredditMetricPayload{
+		ID:                 id,
+		SetSubscribers:     true,
+		Subscribers:        int(subscribers),
+		SetActiveUserCount: true,
+		ActiveUserCount:    int(active_user_count),
+	}
+	b, err = json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
+	}
+	return uploadMetrics(l, "/reddit/subreddit", b)
+}

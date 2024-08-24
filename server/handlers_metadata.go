@@ -2,14 +2,68 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/dbgen"
+	kt "github.com/brojonat/kaggo/temporal/v19700101"
 	"github.com/brojonat/server-tools/stools"
+	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/temporal"
 )
+
+func handleRunMetadataWF(l *slog.Logger, tc client.Client) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// parse body
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			writeBadRequestError(w, fmt.Errorf("could not read request body: %w", err))
+			return
+		}
+		defer r.Body.Close()
+		var body api.GenericRequestPayload
+		err = json.Unmarshal(b, &body)
+		if err != nil {
+			writeBadRequestError(w, fmt.Errorf("could not parse request body: %w", err))
+			return
+		}
+
+		// prepare the request to pass to the workflow
+		_, serialReq, id, err := makeExternalRequest(body.RequestKind, body.ID)
+		if err != nil {
+			if errors.Is(err, errUnsupportedRequestKind) {
+				writeBadRequestError(w, fmt.Errorf("%w: %s", err, body.RequestKind))
+				return
+			}
+			writeInternalError(l, w, err)
+			return
+		}
+		// execute a workflow that will fetch the metadata and post it back to the server.
+		// this will be a good litmus test for whether or not the client submitted a "good"
+		// entity that we can query before the "scheduled" workflow starts running.
+		workflowOptions := client.StartWorkflowOptions{
+			ID:          id,
+			TaskQueue:   "kaggo",
+			RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 3},
+		}
+
+		_, err = tc.ExecuteWorkflow(
+			r.Context(),
+			workflowOptions,
+			kt.DoMetadataRequestWF,
+			kt.DoMetadataRequestWFRequest{RequestKind: body.RequestKind, Serial: serialReq},
+		)
+		if err != nil {
+			writeInternalError(l, w, err)
+			return
+		}
+		writeOK(w)
+	}
+}
 
 func handleGetMetricMetadata(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

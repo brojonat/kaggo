@@ -69,6 +69,18 @@ type RedditPostScore struct {
 	Score int32              `json:"score"`
 }
 
+type RedditSubredditActiveUserCount struct {
+	ID              string             `json:"id"`
+	Ts              pgtype.Timestamptz `json:"ts"`
+	ActiveUserCount int32              `json:"active_user_count"`
+}
+
+type RedditSubredditSubscriber struct {
+	ID          string             `json:"id"`
+	Ts          pgtype.Timestamptz `json:"ts"`
+	Subscribers int32              `json:"subscribers"`
+}
+
 type YoutubeVideoComment struct {
 	ID       string             `json:"id"`
 	Ts       pgtype.Timestamptz `json:"ts"`
