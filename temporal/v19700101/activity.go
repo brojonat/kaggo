@@ -65,8 +65,13 @@ func (a *ActivityRequester) prepareRequest(drp DoRequestActRequest) (*http.Reque
 	case RequestKindKaggleDataset:
 		// nothing to do
 	case RequestKindRedditPost, RequestKindRedditComment, RequestKindRedditSubreddit:
-		a.ensureValidRedditToken(time.Duration(60 * time.Second))
-		r.Header.Add("Authorization", "Bearer "+a.RedditAuthToken)
+		// refresh key and set bearer
+		err = a.ensureValidRedditToken(time.Duration(60 * time.Second))
+		if err != nil {
+			return nil, err
+		}
+		r.Header.Add("Authorization", "bearer "+a.RedditAuthToken)
+		r.Header.Add("Accept", "application/json")
 	default:
 		return nil, fmt.Errorf("unsupported RequestKind %s", drp.RequestKind)
 	}
@@ -78,6 +83,7 @@ func (a *ActivityRequester) DoRequest(ctx context.Context, drp DoRequestActReque
 	if err != nil {
 		return nil, err
 	}
+
 	resp, err := http.DefaultClient.Do(r)
 	if err != nil {
 		return nil, fmt.Errorf("error doing request: %w", err)

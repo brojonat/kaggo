@@ -5,7 +5,13 @@ meta {
 }
 
 get {
-  url: https://reddit.com/api
+  url: https://oauth.reddit.com/r/golang/about.json
   body: none
   auth: none
+}
+
+headers {
+  Authorization: bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IlNIQTI1NjpzS3dsMnlsV0VtMjVmcXhwTU40cWY4MXE2OWFFdWFyMnpLMUdhVGxjdWNZIiwidHlwIjoiSldUIn0.eyJzdWIiOiJ1c2VyIiwiZXhwIjoxNzI0NjE1MTAxLjU0MTc1NSwiaWF0IjoxNzI0NTI4NzAxLjU0MTc1NSwianRpIjoid2pEZkF4S24zSEI2dkFROEd0bW9tQlN2RnpKbFJ3IiwiY2lkIjoiVDNuYUlOeFB6QS1OcGxMSDhZQW9ZdyIsImxpZCI6InQyXzJ6aGt3amN1IiwiYWlkIjoidDJfMnpoa3dqY3UiLCJsY2EiOjE1NDczNjI5Mjg4MDEsInNjcCI6ImVKeUtWdEpTaWdVRUFBRF9fd056QVNjIiwiZmxvIjo5fQ.JAPMX4j2lLUwqRGdJbDRZOmhnCPuA-t38_2k7vyyZg-sm-hCqHUxTwZhnwOHNqpjFFzwHDZ7JSOCG86GBYPFeSA6AEUDEmPjkb2X8Kt2vrBRx-Extlfc1Y26CYszoatE4df8JZ7sMwqL_iRtkRRCcBmmDAh6qhB5-hpI-nK2mpBc3KejhS1SCFVRSU43FMoUbs4Dt9qNOddaGym3ruzRqR6m3b3kk0GQGrPtKVPLYPGPUCGCV-diAbyeLW6kwNE_OcQdNnMzVh1KWLMVr1X1Br6uP4asNiTeTzAEY0-fkxDpGJKWEPv3-0GD4KNIwfhEVeJGGOJQqQtfZjYWbUKnog
+  User-Agent: Debian:github.com/brojonat/kaggo/worker:v0.0.1 (by /u/GraearG)
+  Accept: application/json
 }

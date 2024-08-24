@@ -2,6 +2,7 @@ package temporal
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -13,7 +14,7 @@ import (
 func (a *ActivityRequester) ensureValidRedditToken(minDur time.Duration) error {
 	// reddit@reddit-VirtualBox:~$ curl -X POST -d 'grant_type=password&username=reddit_bot&password=snoo' --user 'p-jcoLKBynTLew:gko_LXELoV07ZBNUXrvWZfzE3aI' https://www.reddit.com/api/v1/access_token
 	// {
-	// 	"access_token": "J1qK1c18UUGJFAzz9xnH56584l4",
+	// 	"access_token": "some.jwt.thing",
 	// 	"expires_in": 3600,
 	// 	"scope": "*",
 	// 	"token_type": "bearer"
@@ -36,6 +37,7 @@ func (a *ActivityRequester) ensureValidRedditToken(minDur time.Duration) error {
 	}
 	r.SetBasicAuth(os.Getenv("REDDIT_CLIENT_ID"), os.Getenv("REDDIT_CLIENT_SECRET"))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r.Header.Add("User-Agent", "Debian:github.com/brojonat/kaggo/worker:v0.0.1 (by /u/GraearG)")
 	resp, err := http.DefaultClient.Do(r)
 	if err != nil {
 		return err
@@ -50,6 +52,9 @@ func (a *ActivityRequester) ensureValidRedditToken(minDur time.Duration) error {
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
+	}
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("bad response %d code for getting reddit auth token: %s", resp.StatusCode, string(b))
 	}
 	err = json.Unmarshal(b, &body)
 	if err != nil {

@@ -288,17 +288,6 @@ func getRouter(
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
-	// reddit subreddit metrics
-	mux.HandleFunc("GET /reddit/subreddit", stools.AdaptHandler(
-		handleRedditSubredditMetricsGet(l, q),
-		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
-	))
-	mux.HandleFunc("POST /reddit/subreddit", stools.AdaptHandler(
-		handleRedditSubredditMetricsPost(l, q, pms),
-		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
-	))
 
 	// getting timeseries
 	mux.HandleFunc("GET /timeseries/raw", stools.AdaptHandler(
