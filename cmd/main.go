@@ -202,7 +202,7 @@ func main() {
 func serve_http(ctx *cli.Context) error {
 	// internal init
 	logger := getDefaultLogger(slog.Level(ctx.Int("log-level")))
-	metrics := server.GetDefaultPromMetrics()
+	pms := server.GetDefaultPromMetrics()
 
 	return server.RunHTTPServer(
 		ctx.Context,
@@ -210,7 +210,7 @@ func serve_http(ctx *cli.Context) error {
 		logger,
 		ctx.String("database"),
 		ctx.String("temporal-host"),
-		metrics,
+		pms,
 	)
 }
 
@@ -395,7 +395,6 @@ func load_schedules(ctx *cli.Context) error {
 		q := r.URL.Query()
 		q.Add("skip-metadata", "true")
 		r.URL.RawQuery = q.Encode()
-
 		res, err := http.DefaultClient.Do(r)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error uploading schedule %d (%s): %s\n", i, sched.ID, err.Error())

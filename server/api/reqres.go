@@ -30,6 +30,12 @@ type MetricMetadataPayload struct {
 	InternalData MetricQueryInternalData `json:"internal_data"`
 }
 
+type GenericRequestPayload struct {
+	RequestKind string              `json:"request_kind"`
+	ID          string              `json:"id"`
+	Schedule    client.ScheduleSpec `json:"schedule_spec,omitempty"`
+}
+
 type InternalMetricPayload struct {
 	ID           string                  `json:"id"`
 	Value        int                     `json:"value"`
@@ -105,4 +111,12 @@ type RedditSubredditMetricPayload struct {
 	SetActiveUserCount bool                    `json:"set_active_user_count"`
 	ActiveUserCount    int                     `json:"active_user_count"`
 	InternalData       MetricQueryInternalData `json:"internal_data"`
+}
+
+type RedditSubredditMetricPayload struct {
+	ID                 string `json:"id"`
+	SetSubscribers     bool   `json:"set_subscribers"`
+	Subscribers        int    `json:"subscribers"`
+	SetActiveUserCount bool   `json:"set_active_user_count"`
+	ActiveUserCount    int    `json:"active_user_count"`
 }
