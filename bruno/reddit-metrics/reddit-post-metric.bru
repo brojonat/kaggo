@@ -6,6 +6,19 @@ meta {
 
 post {
   url: {{ENDPOINT}}/reddit/post
-  body: none
+  body: json
   auth: none
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "id": "testme-123",
+    "internal_data": {
+      "x_ratelimit_used": "42"
+    }
+  }
 }
