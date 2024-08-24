@@ -112,11 +112,3 @@ type RedditSubredditMetricPayload struct {
 	ActiveUserCount    int                     `json:"active_user_count"`
 	InternalData       MetricQueryInternalData `json:"internal_data"`
 }
-
-type RedditSubredditMetricPayload struct {
-	ID                 string `json:"id"`
-	SetSubscribers     bool   `json:"set_subscribers"`
-	Subscribers        int    `json:"subscribers"`
-	SetActiveUserCount bool   `json:"set_active_user_count"`
-	ActiveUserCount    int    `json:"active_user_count"`
-}

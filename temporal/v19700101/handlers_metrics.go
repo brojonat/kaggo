@@ -72,8 +72,9 @@ func (a *ActivityRequester) handleInternalRandomMetrics(l log.Logger, status int
 	value := iface.(float64)
 
 	payload := api.InternalMetricPayload{
-		ID:    id,
-		Value: int(value),
+		ID:           id,
+		Value:        int(value),
+		InternalData: internalData,
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
@@ -142,13 +143,14 @@ func (a *ActivityRequester) handleYouTubeVideoMetrics(l log.Logger, status int, 
 	}
 
 	payload := api.YouTubeVideoMetricPayload{
-		ID:          id,
-		SetViews:    true,
-		Views:       int(views),
-		SetComments: true,
-		Comments:    int(comments),
-		SetLikes:    true,
-		Likes:       int(likes),
+		ID:           id,
+		SetViews:     true,
+		Views:        int(views),
+		SetComments:  true,
+		Comments:     int(comments),
+		SetLikes:     true,
+		Likes:        int(likes),
+		InternalData: internalData,
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
@@ -224,6 +226,7 @@ func (a *ActivityRequester) handleYouTubeChannelMetrics(l log.Logger, status int
 		Subscribers:    int(subscribers),
 		SetVideos:      true,
 		Videos:         int(videos),
+		InternalData:   internalData,
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
@@ -261,9 +264,10 @@ func (a *ActivityRequester) handleKaggleNotebookMetrics(l log.Logger, status int
 
 	// upload the metrics to the server
 	payload := api.KaggleNotebookMetricPayload{
-		ID:       id,
-		SetVotes: true,
-		Votes:    int(votes),
+		ID:           id,
+		SetVotes:     true,
+		Votes:        int(votes),
+		InternalData: internalData,
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
@@ -329,6 +333,7 @@ func (a *ActivityRequester) handleKaggleDatasetMetrics(l log.Logger, status int,
 		Votes:        int(votes),
 		SetDownloads: true,
 		Downloads:    int(downloads),
+		InternalData: internalData,
 	}
 
 	b, err = json.Marshal(payload)
@@ -378,11 +383,12 @@ func (a *ActivityRequester) handleRedditPostMetrics(l log.Logger, status int, b 
 
 	// upload the metrics to the server
 	payload := api.RedditPostMetricPayload{
-		ID:       id,
-		SetScore: true,
-		Score:    int(score),
-		SetRatio: true,
-		Ratio:    float32(ratio),
+		ID:           id,
+		SetScore:     true,
+		Score:        int(score),
+		SetRatio:     true,
+		Ratio:        float32(ratio),
+		InternalData: internalData,
 	}
 
 	b, err = json.Marshal(payload)
@@ -437,6 +443,7 @@ func (a *ActivityRequester) handleRedditCommentMetrics(l log.Logger, status int,
 		Score:               int(score),
 		SetControversiality: true,
 		Controversiality:    float32(cont),
+		InternalData:        internalData,
 	}
 
 	b, err = json.Marshal(payload)
@@ -489,6 +496,7 @@ func (a *ActivityRequester) handleRedditSubredditMetrics(l log.Logger, status in
 		Subscribers:        int(subscribers),
 		SetActiveUserCount: true,
 		ActiveUserCount:    int(active_user_count),
+		InternalData:       internalData,
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
