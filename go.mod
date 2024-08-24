@@ -1,6 +1,6 @@
 module github.com/brojonat/kaggo
 
-go 1.22.3
+go 1.23.0
 
 require (
 	github.com/brojonat/server-tools v0.0.0-20240812021007-f5910cb00682

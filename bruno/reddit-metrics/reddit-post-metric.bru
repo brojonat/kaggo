@@ -1,0 +1,24 @@
+meta {
+  name: reddit-post-metric
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{ENDPOINT}}/reddit/post
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "id": "testme-123",
+    "internal_data": {
+      "x_ratelimit_used": "42"
+    }
+  }
+}

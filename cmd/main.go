@@ -202,6 +202,7 @@ func main() {
 func serve_http(ctx *cli.Context) error {
 	// internal init
 	logger := getDefaultLogger(slog.Level(ctx.Int("log-level")))
+	pms := server.GetDefaultPromMetrics()
 
 	return server.RunHTTPServer(
 		ctx.Context,
@@ -209,6 +210,7 @@ func serve_http(ctx *cli.Context) error {
 		logger,
 		ctx.String("database"),
 		ctx.String("temporal-host"),
+		pms,
 	)
 }
 
@@ -382,7 +384,17 @@ func load_schedules(ctx *cli.Context) error {
 			fmt.Fprintf(os.Stderr, "error making request to schedule %d (%s): %s\n", i, sched.ID, err.Error())
 			continue
 		}
+
 		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("AUTH_TOKEN")))
+
+		// NOTE: don't block for the metadata operation. We don't want that to
+		// impact the schedule creation here because this is typically used to
+		// bulk (re)create schedules. If you want to bulk create schedules that
+		// need their metadata fetched, then you'll need to thread that update
+		// the CLI to accept that as an additional flag and pass it here.
+		q := r.URL.Query()
+		q.Add("skip-metadata", "true")
+		r.URL.RawQuery = q.Encode()
 		res, err := http.DefaultClient.Do(r)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error uploading schedule %d (%s): %s\n", i, sched.ID, err.Error())

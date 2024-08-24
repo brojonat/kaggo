@@ -1,5 +1,7 @@
 package temporal
 
+import "github.com/brojonat/kaggo/server/api"
+
 // workflows
 
 type DoMetadataRequestWFRequest struct {
@@ -19,19 +21,22 @@ type DoRequestActRequest struct {
 	Serial      []byte `json:"serial"`
 }
 type DoRequestActResult struct {
-	RequestKind string `json:"request_kind"`
-	StatusCode  int    `json:"status_code"`
-	Body        []byte `json:"body"`
+	RequestKind  string                      `json:"request_kind"`
+	StatusCode   int                         `json:"status_code"`
+	Body         []byte                      `json:"body"`
+	InternalData api.MetricQueryInternalData `json:"internal_data"`
 }
 
 type UploadMetadataActRequest struct {
-	RequestKind string `json:"request_kind"`
-	StatusCode  int    `json:"status_code"`
-	Body        []byte `json:"body"`
+	RequestKind  string                      `json:"request_kind"`
+	StatusCode   int                         `json:"status_code"`
+	Body         []byte                      `json:"body"`
+	InternalData api.MetricQueryInternalData `json:"internal_data"`
 }
 
 type UploadMetricsActRequest struct {
-	RequestKind string `json:"request_kind"`
-	StatusCode  int    `json:"status_code"`
-	Body        []byte `json:"body"`
+	RequestKind  string                      `json:"request_kind"`
+	StatusCode   int                         `json:"status_code"`
+	Body         []byte                      `json:"body"`
+	InternalData api.MetricQueryInternalData `json:"internal_data"`
 }

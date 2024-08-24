@@ -35,6 +35,27 @@ CREATE TABLE IF NOT EXISTS youtube_video_comments (
     comments INTEGER NOT NULL
 );
 
+-- youtube channel views
+CREATE TABLE IF NOT EXISTS youtube_channel_views (
+    id VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    views INTEGER NOT NULL
+);
+
+-- youtube channel subscribers
+CREATE TABLE IF NOT EXISTS youtube_channel_subscribers (
+    id VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    subscribers INTEGER NOT NULL
+);
+
+-- youtube channel videos
+CREATE TABLE IF NOT EXISTS youtube_channel_videos (
+    id VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    videos INTEGER NOT NULL
+);
+
 -- kaggle notebook votes
 CREATE TABLE IF NOT EXISTS kaggle_notebook_votes (
     id VARCHAR(255) NOT NULL,

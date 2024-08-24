@@ -18,6 +18,7 @@ import (
 const (
 	RequestKindInternalRandom  = "internal.random"
 	RequestKindYouTubeVideo    = "youtube.video"
+	RequestKindYouTubeChannel  = "youtube.channel"
 	RequestKindKaggleNotebook  = "kaggle.notebook"
 	RequestKindKaggleDataset   = "kaggle.dataset"
 	RequestKindRedditPost      = "reddit.post"
@@ -53,7 +54,7 @@ func (a *ActivityRequester) prepareRequest(drp DoRequestActRequest) (*http.Reque
 	switch drp.RequestKind {
 	case RequestKindInternalRandom:
 		// nothing to do
-	case RequestKindYouTubeVideo:
+	case RequestKindYouTubeVideo, RequestKindYouTubeChannel:
 		// re-set the api key
 		q := r.URL.Query()
 		q.Del("key")
@@ -63,13 +64,7 @@ func (a *ActivityRequester) prepareRequest(drp DoRequestActRequest) (*http.Reque
 		// nothing to do
 	case RequestKindKaggleDataset:
 		// nothing to do
-	case RequestKindRedditPost:
-		a.ensureValidRedditToken(time.Duration(60 * time.Second))
-		r.Header.Add("Authorization", "Bearer "+a.RedditAuthToken)
-	case RequestKindRedditComment:
-		a.ensureValidRedditToken(time.Duration(60 * time.Second))
-		r.Header.Add("Authorization", "Bearer "+a.RedditAuthToken)
-	case RequestKindRedditSubreddit:
+	case RequestKindRedditPost, RequestKindRedditComment, RequestKindRedditSubreddit:
 		a.ensureValidRedditToken(time.Duration(60 * time.Second))
 		r.Header.Add("Authorization", "Bearer "+a.RedditAuthToken)
 	default:
@@ -96,6 +91,11 @@ func (a *ActivityRequester) DoRequest(ctx context.Context, drp DoRequestActReque
 		RequestKind: drp.RequestKind,
 		StatusCode:  resp.StatusCode,
 		Body:        b,
+		InternalData: api.MetricQueryInternalData{
+			XRatelimitUsed:      resp.Header.Get("X-Ratelimit-Used"),
+			XRatelimitRemaining: resp.Header.Get("X-Ratelimit-Remaining"),
+			XRatelimitReset:     resp.Header.Get("X-Ratelimit-Reset"),
+		},
 	}
 	return &res, nil
 }
@@ -105,19 +105,21 @@ func (a *ActivityRequester) UploadMetadata(ctx context.Context, drr UploadMetada
 	l := activity.GetLogger(ctx)
 	switch drr.RequestKind {
 	case RequestKindInternalRandom:
-		return a.handleInternalRandomMetadata(l, drr.StatusCode, drr.Body)
+		return a.handleInternalRandomMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindYouTubeVideo:
-		return a.handleYouTubeVideoMetadata(l, drr.StatusCode, drr.Body)
+		return a.handleYouTubeVideoMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+	case RequestKindYouTubeChannel:
+		return a.handleYouTubeChannelMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindKaggleNotebook:
-		return a.handleKaggleNotebookMetadata(l, drr.StatusCode, drr.Body)
+		return a.handleKaggleNotebookMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindKaggleDataset:
-		return a.handleKaggleDatasetMetadata(l, drr.StatusCode, drr.Body)
+		return a.handleKaggleDatasetMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindRedditPost:
-		return a.handleRedditPostMetadata(l, drr.StatusCode, drr.Body)
+		return a.handleRedditPostMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindRedditComment:
-		return a.handleRedditCommentMetadata(l, drr.StatusCode, drr.Body)
+		return a.handleRedditCommentMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindRedditSubreddit:
-		return a.handleRedditSubredditMetadata(l, drr.StatusCode, drr.Body)
+		return a.handleRedditSubredditMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
 	default:
 		return nil, fmt.Errorf("unrecognized RequestKind: %s", drr.RequestKind)
 	}
@@ -128,19 +130,21 @@ func (a *ActivityRequester) UploadMetrics(ctx context.Context, drr UploadMetrics
 	l := activity.GetLogger(ctx)
 	switch drr.RequestKind {
 	case RequestKindInternalRandom:
-		return a.handleInternalRandomMetrics(l, drr.StatusCode, drr.Body)
+		return a.handleInternalRandomMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindYouTubeVideo:
-		return a.handleYouTubeVideoMetrics(l, drr.StatusCode, drr.Body)
+		return a.handleYouTubeVideoMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+	case RequestKindYouTubeChannel:
+		return a.handleYouTubeChannelMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindKaggleNotebook:
-		return a.handleKaggleNotebookMetrics(l, drr.StatusCode, drr.Body)
+		return a.handleKaggleNotebookMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindKaggleDataset:
-		return a.handleKaggleDatasetMetrics(l, drr.StatusCode, drr.Body)
+		return a.handleKaggleDatasetMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindRedditPost:
-		return a.handleRedditPostMetrics(l, drr.StatusCode, drr.Body)
+		return a.handleRedditPostMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindRedditComment:
-		return a.handleRedditCommentMetrics(l, drr.StatusCode, drr.Body)
+		return a.handleRedditCommentMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindRedditSubreddit:
-		return a.handleRedditSubredditMetrics(l, drr.StatusCode, drr.Body)
+		return a.handleRedditSubredditMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
 	default:
 		return nil, fmt.Errorf("unrecognized RequestKind: %s", drr.RequestKind)
 	}

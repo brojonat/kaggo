@@ -4,24 +4,86 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/brojonat/kaggo/server/db/dbgen"
 	"github.com/brojonat/server-tools/stools"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.temporal.io/sdk/client"
 )
 
+// These are prometheus metric keys; handlers may depend on the existence of
+// these keys, so any collection, so as a general rule, if you're supplying your
+// own prometheus metrics other than the defaults, you should make sure all of
+// the following keys are specified.
+const (
+	PromMetricInternalRandom      = "pm-internal-random"
+	PromMetricXRatelimitUsed      = "pm-x-ratelimit-used"
+	PromMetricXRatelimitRemaining = "pm-x-ratelimit-remaining"
+	PromMetricXRatelimitReset     = "pm-x-ratelimit-reset"
+)
+
+// This is a convenience method for getting the necessary metrics. Some handlers
+// (e.g., the internal dummy handler, as well as the reddit handlers) assume
+// that particular metrics are passed in as particular types. The handlers will
+// log an error and no-op in the event of misconfigured Prometheus metrics, but
+// nevertheless you should still probably use the default values provided here
+// unless you really know what you're doing.
+func GetDefaultPromMetrics() map[string]prometheus.Collector {
+	return map[string]prometheus.Collector{
+		PromMetricInternalRandom: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "internal_random",
+				Help: "A pseudo random metric",
+			},
+			[]string{"id"},
+		),
+		PromMetricXRatelimitUsed: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "x_ratelimit_used",
+				Help: "The X-Ratelimit-Used header from an external server.",
+			},
+			[]string{"id", "request_kind"},
+		),
+		PromMetricXRatelimitRemaining: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "x_ratelimit_remaining",
+				Help: "The X-Ratelimit-Remaining header from an external server.",
+			},
+			[]string{"id", "request_kind"},
+		),
+		PromMetricXRatelimitReset: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "x_ratelimit_reset",
+				Help: "The X-Ratelimit-Reset header from an external server.",
+			},
+			[]string{"id", "request_kind"},
+		),
+	}
+}
+
+// Run the HTTP server.
+//
+// A note on Prometheus metrics: some handlers expect certain Prometheus metrics to be
+// passed in. In the event that you forget, the server will log an error and
+// simply no-op on setting the metric, but as a general rule, if you're
+// supplying your own prometheus metrics other than those returned by
+// GetDefaultPromMetrics, you should make sure all of the PromMetric* keys
+// listed above have a corresponding metric passed in.
 func RunHTTPServer(
 	ctx context.Context,
 	port string,
 	l *slog.Logger,
 	dbHost string,
 	tcHost string,
+	promMetrics map[string]prometheus.Collector,
 ) error {
 
 	p, err := stools.GetConnPool(
@@ -42,7 +104,8 @@ func RunHTTPServer(
 	}
 	defer tc.Close()
 
-	router, err := getRouter(l, p, q, tc)
+	prometheus.MustRegister(slices.Collect(maps.Values(promMetrics))...)
+	router, err := getRouter(l, p, q, tc, promMetrics)
 	if err != nil {
 		return err
 	}
@@ -57,6 +120,7 @@ func getRouter(
 	p *pgxpool.Pool,
 	q *dbgen.Queries,
 	tc client.Client,
+	pms map[string]prometheus.Collector,
 ) (http.Handler, error) {
 	// new router
 	mux := http.NewServeMux()
@@ -140,19 +204,31 @@ func getRouter(
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
 	mux.HandleFunc("POST /internal/metrics", stools.AdaptHandler(
-		handleInternalMetricsPost(l, q),
+		handleInternalMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
 
 	// youtube video metrics
 	mux.HandleFunc("GET /youtube/video", stools.AdaptHandler(
-		handleYouTubeMetricsGet(l, q),
+		handleYouTubeVideoMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		// FIXME: unauthed for now
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
 	mux.HandleFunc("POST /youtube/video", stools.AdaptHandler(
 		handleYouTubeVideoMetricsPost(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+
+	// youtube channel metrics
+	mux.HandleFunc("GET /youtube/channel", stools.AdaptHandler(
+		handleYouTubeChannelMetricsGet(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+	mux.HandleFunc("POST /youtube/channel", stools.AdaptHandler(
+		handleYouTubeChannelMetricsPost(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
@@ -186,7 +262,7 @@ func getRouter(
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
 	mux.HandleFunc("POST /reddit/post", stools.AdaptHandler(
-		handleRedditPostMetricsPost(l, q),
+		handleRedditPostMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
@@ -197,7 +273,7 @@ func getRouter(
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
 	mux.HandleFunc("POST /reddit/comment", stools.AdaptHandler(
-		handleRedditCommentMetricsPost(l, q),
+		handleRedditCommentMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
@@ -208,7 +284,18 @@ func getRouter(
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
 	mux.HandleFunc("POST /reddit/subreddit", stools.AdaptHandler(
-		handleRedditSubredditMetricsPost(l, q),
+		handleRedditSubredditMetricsPost(l, q, pms),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+	// reddit subreddit metrics
+	mux.HandleFunc("GET /reddit/subreddit", stools.AdaptHandler(
+		handleRedditSubredditMetricsGet(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+	mux.HandleFunc("POST /reddit/subreddit", stools.AdaptHandler(
+		handleRedditSubredditMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
