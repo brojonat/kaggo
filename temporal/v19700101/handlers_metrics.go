@@ -45,7 +45,7 @@ func uploadMetrics(l log.Logger, path string, b []byte) (*api.DefaultJSONRespons
 }
 
 // Handle RequestKindInternalRandom requests
-func (a *ActivityRequester) handleInternalRandomMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleInternalRandomMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
 		return nil, fmt.Errorf("error deserializing internal response: %w", err)
@@ -83,7 +83,7 @@ func (a *ActivityRequester) handleInternalRandomMetrics(l log.Logger, status int
 }
 
 // Handle RequestKindYouTubeVideo requests
-func (a *ActivityRequester) handleYouTubeVideoMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleYouTubeVideoMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
 		return nil, fmt.Errorf("error deserializing response: %w", err)
@@ -158,7 +158,7 @@ func (a *ActivityRequester) handleYouTubeVideoMetrics(l log.Logger, status int, 
 }
 
 // Handle RequestKindYouTubeChannel requests
-func (a *ActivityRequester) handleYouTubeChannelMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleYouTubeChannelMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
 		return nil, fmt.Errorf("error deserializing internal response: %w", err)
@@ -233,7 +233,7 @@ func (a *ActivityRequester) handleYouTubeChannelMetrics(l log.Logger, status int
 }
 
 // Handle RequestKindKaggleNotebook requests
-func (a *ActivityRequester) handleKaggleNotebookMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleKaggleNotebookMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
 		return nil, fmt.Errorf("error deserializing response: %w", err)
@@ -273,7 +273,7 @@ func (a *ActivityRequester) handleKaggleNotebookMetrics(l log.Logger, status int
 }
 
 // Handle RequestKindKaggleDataset requests
-func (a *ActivityRequester) handleKaggleDatasetMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleKaggleDatasetMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
 
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
@@ -339,7 +339,7 @@ func (a *ActivityRequester) handleKaggleDatasetMetrics(l log.Logger, status int,
 }
 
 // Handle RequestKindRedditPost requests
-func (a *ActivityRequester) handleRedditPostMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleRedditPostMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
 
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
@@ -393,7 +393,7 @@ func (a *ActivityRequester) handleRedditPostMetrics(l log.Logger, status int, b 
 }
 
 // Handle RequestKindRedditComment requests
-func (a *ActivityRequester) handleRedditCommentMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleRedditCommentMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
 
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
@@ -447,7 +447,7 @@ func (a *ActivityRequester) handleRedditCommentMetrics(l log.Logger, status int,
 }
 
 // Handle RequestKindRedditSubreddit requests
-func (a *ActivityRequester) handleRedditSubredditMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleRedditSubredditMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
 		return nil, fmt.Errorf("error deserializing response: %w", err)
