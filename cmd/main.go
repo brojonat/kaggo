@@ -219,7 +219,7 @@ func run_worker(ctx *cli.Context) error {
 }
 
 func run_metadata_wf(ctx *cli.Context) error {
-	p := api.GenericRequestPayload{
+	p := api.GenericScheduleRequestPayload{
 		RequestKind: ctx.String("request-kind"),
 		ID:          ctx.String("id"),
 	}
@@ -363,7 +363,7 @@ func load_schedules(ctx *cli.Context) error {
 	}
 	for i, sched := range body {
 		parts := strings.Split(sched.ID, " ")
-		payload := api.GenericRequestPayload{
+		payload := api.GenericScheduleRequestPayload{
 			RequestKind: parts[0],
 			ID:          parts[1],
 			Schedule:    sched.Spec,
