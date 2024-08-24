@@ -81,6 +81,24 @@ type RedditSubredditSubscriber struct {
 	Subscribers int32              `json:"subscribers"`
 }
 
+type YoutubeChannelSubscriber struct {
+	ID          string             `json:"id"`
+	Ts          pgtype.Timestamptz `json:"ts"`
+	Subscribers int32              `json:"subscribers"`
+}
+
+type YoutubeChannelVideo struct {
+	ID     string             `json:"id"`
+	Ts     pgtype.Timestamptz `json:"ts"`
+	Videos int32              `json:"videos"`
+}
+
+type YoutubeChannelView struct {
+	ID    string             `json:"id"`
+	Ts    pgtype.Timestamptz `json:"ts"`
+	Views int32              `json:"views"`
+}
+
 type YoutubeVideoComment struct {
 	ID       string             `json:"id"`
 	Ts       pgtype.Timestamptz `json:"ts"`

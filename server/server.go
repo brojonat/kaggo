@@ -147,12 +147,24 @@ func getRouter(
 
 	// youtube video metrics
 	mux.HandleFunc("GET /youtube/video", stools.AdaptHandler(
-		handleYouTubeMetricsGet(l, q),
+		handleYouTubeVideoMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		// FIXME: unauthed for now
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
 	mux.HandleFunc("POST /youtube/video", stools.AdaptHandler(
 		handleYouTubeVideoMetricsPost(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+
+	// youtube channel metrics
+	mux.HandleFunc("GET /youtube/channel", stools.AdaptHandler(
+		handleYouTubeChannelMetricsGet(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+	mux.HandleFunc("POST /youtube/channel", stools.AdaptHandler(
+		handleYouTubeChannelMetricsPost(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))

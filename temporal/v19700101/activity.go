@@ -18,6 +18,7 @@ import (
 const (
 	RequestKindInternalRandom  = "internal.random"
 	RequestKindYouTubeVideo    = "youtube.video"
+	RequestKindYouTubeChannel  = "youtube.channel"
 	RequestKindKaggleNotebook  = "kaggle.notebook"
 	RequestKindKaggleDataset   = "kaggle.dataset"
 	RequestKindRedditPost      = "reddit.post"
@@ -53,7 +54,7 @@ func (a *ActivityRequester) prepareRequest(drp DoRequestActRequest) (*http.Reque
 	switch drp.RequestKind {
 	case RequestKindInternalRandom:
 		// nothing to do
-	case RequestKindYouTubeVideo:
+	case RequestKindYouTubeVideo, RequestKindYouTubeChannel:
 		// re-set the api key
 		q := r.URL.Query()
 		q.Del("key")
@@ -63,13 +64,7 @@ func (a *ActivityRequester) prepareRequest(drp DoRequestActRequest) (*http.Reque
 		// nothing to do
 	case RequestKindKaggleDataset:
 		// nothing to do
-	case RequestKindRedditPost:
-		a.ensureValidRedditToken(time.Duration(60 * time.Second))
-		r.Header.Add("Authorization", "Bearer "+a.RedditAuthToken)
-	case RequestKindRedditComment:
-		a.ensureValidRedditToken(time.Duration(60 * time.Second))
-		r.Header.Add("Authorization", "Bearer "+a.RedditAuthToken)
-	case RequestKindRedditSubreddit:
+	case RequestKindRedditPost, RequestKindRedditComment, RequestKindRedditSubreddit:
 		a.ensureValidRedditToken(time.Duration(60 * time.Second))
 		r.Header.Add("Authorization", "Bearer "+a.RedditAuthToken)
 	default:
@@ -108,6 +103,8 @@ func (a *ActivityRequester) UploadMetadata(ctx context.Context, drr UploadMetada
 		return a.handleInternalRandomMetadata(l, drr.StatusCode, drr.Body)
 	case RequestKindYouTubeVideo:
 		return a.handleYouTubeVideoMetadata(l, drr.StatusCode, drr.Body)
+	case RequestKindYouTubeChannel:
+		return a.handleYouTubeChannelMetadata(l, drr.StatusCode, drr.Body)
 	case RequestKindKaggleNotebook:
 		return a.handleKaggleNotebookMetadata(l, drr.StatusCode, drr.Body)
 	case RequestKindKaggleDataset:
@@ -131,6 +128,8 @@ func (a *ActivityRequester) UploadMetrics(ctx context.Context, drr UploadMetrics
 		return a.handleInternalRandomMetrics(l, drr.StatusCode, drr.Body)
 	case RequestKindYouTubeVideo:
 		return a.handleYouTubeVideoMetrics(l, drr.StatusCode, drr.Body)
+	case RequestKindYouTubeChannel:
+		return a.handleYouTubeChannelMetrics(l, drr.StatusCode, drr.Body)
 	case RequestKindKaggleNotebook:
 		return a.handleKaggleNotebookMetrics(l, drr.StatusCode, drr.Body)
 	case RequestKindKaggleDataset:

@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/brojonat/kaggo/server/api"
 	kt "github.com/brojonat/kaggo/temporal/v19700101"
@@ -67,7 +68,7 @@ func handleCreateSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 			return
 		}
 
-		// execute a workflow that will fetch the metadata and post it back to the server.
+		// Execute a workflow that will fetch the metadata and post it back to the server.
 		// this will be a good litmus test for whether or not the client submitted a "good"
 		// entity that we can query before the "scheduled" workflow starts running.
 		workflowOptions := client.StartWorkflowOptions{
@@ -76,18 +77,31 @@ func handleCreateSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 			RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 3},
 		}
 
-		we, err := tc.ExecuteWorkflow(
-			r.Context(),
-			workflowOptions,
-			kt.DoMetadataRequestWF,
-			kt.DoMetadataRequestWFRequest{RequestKind: body.RequestKind, Serial: serialReq},
-		)
-		// block until this is done; this isn't strictly necessary tbh, once this code
-		// is vetted, we can unblock this.
-		err = we.Get(r.Context(), &err)
-		if err != nil {
-			writeInternalError(l, w, fmt.Errorf("error running metadata workflow: %w", err))
-			return
+		// Optionally skip the metadata query. Some clients don't need to run
+		// the metadata workflow (e.g., if they're (re)uploading schedules that
+		// were deleted). By default, the metadata operation will run and block.
+		skip_metadata := false
+		smb, err := strconv.ParseBool((r.URL.Query().Get("skip-metadata")))
+		// throws error by default on empty string input
+		if err == nil {
+			skip_metadata = smb
+		}
+		if !skip_metadata {
+			we, err := tc.ExecuteWorkflow(
+				r.Context(),
+				workflowOptions,
+				kt.DoMetadataRequestWF,
+				kt.DoMetadataRequestWFRequest{RequestKind: body.RequestKind, Serial: serialReq},
+			)
+			if err != nil {
+				writeInternalError(l, w, err)
+				return
+			}
+			err = we.Get(r.Context(), &err)
+			if err != nil {
+				writeInternalError(l, w, fmt.Errorf("error running metadata workflow: %w", err))
+				return
+			}
 		}
 
 		// probably should validate this...but we're the only ones authed for this API and

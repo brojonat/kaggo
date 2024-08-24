@@ -37,6 +37,16 @@ type YouTubeVideoMetricPayload struct {
 	Likes       int    `json:"likes"`
 }
 
+type YouTubeChannelMetricPayload struct {
+	ID             string `json:"id"`
+	SetViews       bool   `json:"set_views"`
+	Views          int    `json:"views"`
+	SetSubscribers bool   `json:"set_subscribers"`
+	Subscribers    int    `json:"subscribers"`
+	SetVideos      bool   `json:"set_videos"`
+	Videos         int    `json:"videos"`
+}
+
 type KaggleNotebookMetricPayload struct {
 	ID           string `json:"id"`
 	SetViews     bool   `json:"set_views"`

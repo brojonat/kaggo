@@ -32,6 +32,12 @@ func makeExternalRequest(rk, id string) (*http.Request, []byte, string, error) {
 			return nil, nil, "", err
 		}
 
+	case kt.RequestKindYouTubeChannel:
+		rwf, err = makeExternalRequestYouTubeChannel(id)
+		if err != nil {
+			return nil, nil, "", err
+		}
+
 	case kt.RequestKindKaggleNotebook:
 		rwf, err = makeExternalRequestKaggleNotebook(id)
 		if err != nil {
@@ -97,6 +103,20 @@ func makeExternalRequestInternalRandom() (*http.Request, error) {
 
 func makeExternalRequestYouTubeVideo(id string) (*http.Request, error) {
 	r, err := http.NewRequest(http.MethodGet, "https://youtube.googleapis.com/youtube/v3/videos", nil)
+	if err != nil {
+		return nil, err
+	}
+	q := r.URL.Query()
+	q.Set("part", "snippet,contentDetails,statistics")
+	q.Set("key", os.Getenv("YOUTUBE_API_KEY"))
+	q.Set("id", id)
+	r.URL.RawQuery = q.Encode()
+	r.Header.Add("Accept", "application/json")
+	return r, nil
+}
+
+func makeExternalRequestYouTubeChannel(id string) (*http.Request, error) {
+	r, err := http.NewRequest(http.MethodGet, "https://youtube.googleapis.com/youtube/v3/channels", nil)
 	if err != nil {
 		return nil, err
 	}

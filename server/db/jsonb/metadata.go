@@ -12,5 +12,4 @@ type MetadataJSON struct {
 	Comment string   `json:"comment,omitempty"`
 	Tags    []string `json:"tags"`
 	// author? subreddit? created at?
-
 }
