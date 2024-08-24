@@ -1,10 +1,89 @@
 package server
 
 import (
+	"bytes"
+	"crypto/md5"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
+
+	kt "github.com/brojonat/kaggo/temporal/v19700101"
 )
+
+var errUnsupportedRequestKind = errors.New("unsupported request kind")
+
+// Helper function that creates a request, serializes it, and computes the id from the hash
+// of the bytes. This is handy for passing to various workflows called in this package.
+func makeExternalRequest(rk, id string) (*http.Request, []byte, string, error) {
+	// construct request by switching over RequestKind
+	var err error
+	var rwf *http.Request
+	switch rk {
+	case kt.RequestKindInternalRandom:
+		rwf, err = makeExternalRequestInternalRandom()
+		if err != nil {
+			return nil, nil, "", err
+		}
+
+	case kt.RequestKindYouTubeVideo:
+		rwf, err = makeExternalRequestYouTubeVideo(id)
+		if err != nil {
+			return nil, nil, "", err
+		}
+
+	case kt.RequestKindKaggleNotebook:
+		rwf, err = makeExternalRequestKaggleNotebook(id)
+		if err != nil {
+			return nil, nil, "", err
+		}
+
+	case kt.RequestKindKaggleDataset:
+		rwf, err = makeExternalRequestKaggleDataset(id)
+		if err != nil {
+			return nil, nil, "", err
+		}
+
+	case kt.RequestKindRedditPost:
+		rwf, err = makeExternalRequestRedditPost(id)
+		if err != nil {
+			return nil, nil, "", err
+		}
+
+	case kt.RequestKindRedditComment:
+		rwf, err = makeExternalRequestRedditComment(id)
+		if err != nil {
+			return nil, nil, "", err
+		}
+
+	case kt.RequestKindRedditSubreddit:
+		rwf, err = makeExternalRequestRedditSubreddit(id)
+		if err != nil {
+			return nil, nil, "", err
+		}
+
+	default:
+		return nil, nil, "", errUnsupportedRequestKind
+	}
+
+	// serialize the request
+	buf := &bytes.Buffer{}
+	err = rwf.Write(buf)
+	if err != nil {
+		return nil, nil, "", err
+	}
+	serialReq := buf.Bytes()
+	h := md5.New()
+	_, err = h.Write(serialReq)
+	if err != nil {
+		return nil, nil, "", err
+	}
+
+	// identifier is the request kind, identifier, and hash of the request
+	rid := fmt.Sprintf("%s %s %x", rk, id, h.Sum(nil))
+
+	return rwf, serialReq, rid, nil
+}
 
 func makeExternalRequestInternalRandom() (*http.Request, error) {
 	r, err := http.NewRequest(http.MethodGet, "https://api.kaggo.brojonat.com/internal/generate", nil)
@@ -83,6 +162,16 @@ func makeExternalRequestRedditComment(id string) (*http.Request, error) {
 	q := r.URL.Query()
 	q.Set("id", fmt.Sprintf("t1_%s", id))
 	r.URL.RawQuery = q.Encode()
+	r.Header.Add("Accept", "application/json")
+	r.Header.Add("User-Agent", "Debian:github.com/brojonat/kaggo/worker:v0.0.1 (by /u/GreaerG)")
+	return r, nil
+}
+
+func makeExternalRequestRedditSubreddit(id string) (*http.Request, error) {
+	r, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://reddit.com/r/%s/about.json", id), nil)
+	if err != nil {
+		return nil, err
+	}
 	r.Header.Add("Accept", "application/json")
 	r.Header.Add("User-Agent", "Debian:github.com/brojonat/kaggo/worker:v0.0.1 (by /u/GreaerG)")
 	return r, nil

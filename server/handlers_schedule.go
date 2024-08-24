@@ -1,8 +1,6 @@
 package server
 
 import (
-	"bytes"
-	"crypto/md5"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -41,12 +39,6 @@ func handleGetSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 	}
 }
 
-type GenericSchedulePayload struct {
-	RequestKind string              `json:"request_kind"`
-	ID          string              `json:"id"`
-	Schedule    client.ScheduleSpec `json:"schedule_spec"`
-}
-
 // create a schedule to query an external api based on the user submitted data
 func handleCreateSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -57,85 +49,23 @@ func handleCreateSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 			return
 		}
 		defer r.Body.Close()
-		var body GenericSchedulePayload
+		var body api.GenericRequestPayload
 		err = json.Unmarshal(b, &body)
 		if err != nil {
 			writeBadRequestError(w, fmt.Errorf("could not parse request body: %w", err))
 			return
 		}
 
-		// probably should validate this...but we're the only ones authed for this API and
-		// at present we're only using the same fixed schedule, so implement validation
-		// later if it's actually needed.
-		sched := body.Schedule
-
-		// construct request by switching over RequestKind
-		var rwf *http.Request
-		switch body.RequestKind {
-		case kt.RequestKindInternalRandom:
-			rwf, err = makeExternalRequestInternalRandom()
-			if err != nil {
-				writeInternalError(l, w, err)
-				return
-			}
-
-		case kt.RequestKindYouTubeVideo:
-			rwf, err = makeExternalRequestYouTubeVideo(body.ID)
-			if err != nil {
-				writeInternalError(l, w, err)
-				return
-			}
-
-		case kt.RequestKindKaggleNotebook:
-			rwf, err = makeExternalRequestKaggleNotebook(body.ID)
-			if err != nil {
-				writeInternalError(l, w, err)
-				return
-			}
-
-		case kt.RequestKindKaggleDataset:
-			rwf, err = makeExternalRequestKaggleDataset(body.ID)
-			if err != nil {
-				writeInternalError(l, w, err)
-				return
-			}
-
-		case kt.RequestKindRedditPost:
-			rwf, err = makeExternalRequestRedditPost(body.ID)
-			if err != nil {
-				writeInternalError(l, w, err)
-				return
-			}
-
-		case kt.RequestKindRedditComment:
-			rwf, err = makeExternalRequestRedditComment(body.ID)
-			if err != nil {
-				writeInternalError(l, w, err)
-				return
-			}
-
-		default:
-			writeBadRequestError(w, fmt.Errorf("unsupported RequestKind: %s", body.RequestKind))
-			return
-		}
-
-		// serialize the request
-		buf := &bytes.Buffer{}
-		err = rwf.Write(buf)
+		// prepare the request to pass to the workflow
+		_, serialReq, id, err := makeExternalRequest(body.RequestKind, body.ID)
 		if err != nil {
+			if errors.Is(err, errUnsupportedRequestKind) {
+				writeBadRequestError(w, fmt.Errorf("%w: %s", err, body.RequestKind))
+				return
+			}
 			writeInternalError(l, w, err)
 			return
 		}
-		serialReq := buf.Bytes()
-		h := md5.New()
-		_, err = h.Write(serialReq)
-		if err != nil {
-			writeInternalError(l, w, err)
-			return
-		}
-
-		// identifier is the request kind, identifier, and hash of the request
-		id := fmt.Sprintf("%s %s %x", body.RequestKind, body.ID, h.Sum(nil))
 
 		// execute a workflow that will fetch the metadata and post it back to the server.
 		// this will be a good litmus test for whether or not the client submitted a "good"
@@ -159,6 +89,11 @@ func handleCreateSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 			writeInternalError(l, w, fmt.Errorf("error running metadata workflow: %w", err))
 			return
 		}
+
+		// probably should validate this...but we're the only ones authed for this API and
+		// at present we're only using the same fixed schedule, so implement validation
+		// later if it's actually needed.
+		sched := body.Schedule
 
 		// Create the schedule.
 		_, err = tc.ScheduleClient().Create(

@@ -182,7 +182,7 @@ func (a *ActivityRequester) handleRedditPostMetadata(l log.Logger, status int, b
 
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
-		return nil, fmt.Errorf("error deserializing dataset response: %w", err)
+		return nil, fmt.Errorf("error deserializing post response: %w", err)
 	}
 
 	// id
@@ -206,14 +206,14 @@ func (a *ActivityRequester) handleRedditPostMetadata(l log.Logger, status int, b
 	title := iface.(string)
 
 	// link
-	iface, err = jmespath.Search("data.children[0].data.url", data)
+	iface, err = jmespath.Search("data.children[0].data.permalink", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting post url: %w", err)
+		return nil, fmt.Errorf("error extracting post permalink: %w", err)
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting post url; id is nil")
+		return nil, fmt.Errorf("error extracting post permalink; id is nil")
 	}
-	link := iface.(string)
+	permalink := iface.(string)
 
 	// upload the metadata to the server
 	payload := api.MetricMetadataPayload{
@@ -221,7 +221,7 @@ func (a *ActivityRequester) handleRedditPostMetadata(l log.Logger, status int, b
 		RequestKind: RequestKindRedditPost,
 		Data: jsonb.MetadataJSON{
 			ID:    id,
-			Link:  link,
+			Link:  "https://www.reddit.com" + permalink,
 			Title: title,
 		},
 	}
@@ -237,7 +237,7 @@ func (a *ActivityRequester) handleRedditCommentMetadata(l log.Logger, status int
 
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
-		return nil, fmt.Errorf("error deserializing dataset response: %w", err)
+		return nil, fmt.Errorf("error deserializing comment response: %w", err)
 	}
 	// id
 	iface, err := jmespath.Search("data.children[0].data.id", data)
@@ -288,6 +288,38 @@ func (a *ActivityRequester) handleRedditCommentMetadata(l log.Logger, status int
 			Author:  author,
 			Comment: text,
 			Link:    "https://www.reddit.com" + permalink,
+		},
+	}
+	b, err = json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
+	}
+	return uploadMetadata(l, b)
+}
+
+// Handle RequestKindRedditSubreddit requests
+func (a *ActivityRequester) handleRedditSubredditMetadata(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
+	var data interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		return nil, fmt.Errorf("error deserializing subreddit response: %w", err)
+	}
+	// id
+	iface, err := jmespath.Search("data.display_name", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting subreddit id: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting subreddit id; id is nil")
+	}
+	id := iface.(string)
+
+	// upload the metadata to the server
+	payload := api.MetricMetadataPayload{
+		ID:          id,
+		RequestKind: RequestKindRedditSubreddit,
+		Data: jsonb.MetadataJSON{
+			ID:   id,
+			Link: "https://www.reddit.com/r/" + id,
 		},
 	}
 	b, err = json.Marshal(payload)

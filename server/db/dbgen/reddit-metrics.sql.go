@@ -26,7 +26,7 @@ UNION ALL
 SELECT
     r.id AS "id",
     r.ts AS "ts",
-    r.controversiality::REAL AS "controversiality",
+    r.controversiality::REAL AS "value",
     'reddit.comment.controversiality' AS "metric"
 FROM reddit_comment_controversiality AS r
 WHERE
@@ -135,6 +135,68 @@ func (q *Queries) GetRedditPostMetricsByIDs(ctx context.Context, arg GetRedditPo
 	return items, nil
 }
 
+const getRedditSubredditMetricsByIDs = `-- name: GetRedditSubredditMetricsByIDs :many
+SELECT
+    r.id AS "id",
+    r.ts AS "ts",
+    r.subscribers::REAL AS "value",
+    'reddit.subreddit.subscribers' AS "metric"
+FROM reddit_subreddit_subscribers AS r
+WHERE
+    r.id = ANY($1::VARCHAR[]) AND
+    r.ts >= $2 AND
+    r.ts <= $3
+UNION ALL
+SELECT
+    r.id AS "id",
+    r.ts AS "ts",
+    r.active_user_count::REAL AS "value",
+    'reddit.subreddit.active_user_count' AS "metric"
+FROM reddit_subreddit_active_user_count AS r
+WHERE
+    r.id = ANY($1::VARCHAR[]) AND
+    r.ts >= $2 AND
+    r.ts <= $3
+`
+
+type GetRedditSubredditMetricsByIDsParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditSubredditMetricsByIDsRow struct {
+	ID     string             `json:"id"`
+	Ts     pgtype.Timestamptz `json:"ts"`
+	Value  float32            `json:"value"`
+	Metric string             `json:"metric"`
+}
+
+func (q *Queries) GetRedditSubredditMetricsByIDs(ctx context.Context, arg GetRedditSubredditMetricsByIDsParams) ([]GetRedditSubredditMetricsByIDsRow, error) {
+	rows, err := q.db.Query(ctx, getRedditSubredditMetricsByIDs, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRedditSubredditMetricsByIDsRow
+	for rows.Next() {
+		var i GetRedditSubredditMetricsByIDsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Ts,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertRedditCommentControversiality = `-- name: InsertRedditCommentControversiality :exec
 INSERT INTO reddit_comment_controversiality (id, ts, controversiality)
 VALUES ($1, NOW()::TIMESTAMPTZ, $2)
@@ -192,5 +254,35 @@ type InsertRedditPostScoreParams struct {
 
 func (q *Queries) InsertRedditPostScore(ctx context.Context, arg InsertRedditPostScoreParams) error {
 	_, err := q.db.Exec(ctx, insertRedditPostScore, arg.ID, arg.Score)
+	return err
+}
+
+const insertRedditSubredditActiveUserCount = `-- name: InsertRedditSubredditActiveUserCount :exec
+INSERT INTO reddit_subreddit_active_user_count (id, ts, active_user_count)
+VALUES ($1, NOW()::TIMESTAMPTZ, $2)
+`
+
+type InsertRedditSubredditActiveUserCountParams struct {
+	ID              string `json:"id"`
+	ActiveUserCount int32  `json:"active_user_count"`
+}
+
+func (q *Queries) InsertRedditSubredditActiveUserCount(ctx context.Context, arg InsertRedditSubredditActiveUserCountParams) error {
+	_, err := q.db.Exec(ctx, insertRedditSubredditActiveUserCount, arg.ID, arg.ActiveUserCount)
+	return err
+}
+
+const insertRedditSubredditSubscribers = `-- name: InsertRedditSubredditSubscribers :exec
+INSERT INTO reddit_subreddit_subscribers (id, ts, subscribers)
+VALUES ($1, NOW()::TIMESTAMPTZ, $2)
+`
+
+type InsertRedditSubredditSubscribersParams struct {
+	ID          string `json:"id"`
+	Subscribers int32  `json:"subscribers"`
+}
+
+func (q *Queries) InsertRedditSubredditSubscribers(ctx context.Context, arg InsertRedditSubredditSubscribersParams) error {
+	_, err := q.db.Exec(ctx, insertRedditSubredditSubscribers, arg.ID, arg.Subscribers)
 	return err
 }

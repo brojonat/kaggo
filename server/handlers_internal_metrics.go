@@ -10,7 +10,6 @@ import (
 
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/dbgen"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 func handleInternalMetricsGenerate(l *slog.Logger) http.HandlerFunc {
@@ -48,7 +47,7 @@ func handleInternalMetricsGet(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc
 	}
 }
 
-func handleInternalMetricsPost(l *slog.Logger, q *dbgen.Queries, value *prometheus.GaugeVec) http.HandlerFunc {
+func handleInternalMetricsPost(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// parse
 		var p api.InternalMetricPayload
@@ -62,14 +61,6 @@ func handleInternalMetricsPost(l *slog.Logger, q *dbgen.Queries, value *promethe
 			writeBadRequestError(w, fmt.Errorf("must supply id"))
 			return
 		}
-
-		// set vote metrics
-		c, err := value.GetMetricWithLabelValues(p.ID)
-		if err != nil {
-			writeBadRequestError(w, err)
-			return
-		}
-		c.Set(float64(p.Value))
 
 		err = q.InsertInternalRandom(
 			r.Context(),

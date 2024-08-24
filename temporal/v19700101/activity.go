@@ -16,12 +16,13 @@ import (
 )
 
 const (
-	RequestKindInternalRandom = "internal.random"
-	RequestKindYouTubeVideo   = "youtube.video"
-	RequestKindKaggleNotebook = "kaggle.notebook"
-	RequestKindKaggleDataset  = "kaggle.dataset"
-	RequestKindRedditPost     = "reddit.post"
-	RequestKindRedditComment  = "reddit.comment"
+	RequestKindInternalRandom  = "internal.random"
+	RequestKindYouTubeVideo    = "youtube.video"
+	RequestKindKaggleNotebook  = "kaggle.notebook"
+	RequestKindKaggleDataset   = "kaggle.dataset"
+	RequestKindRedditPost      = "reddit.post"
+	RequestKindRedditComment   = "reddit.comment"
+	RequestKindRedditSubreddit = "reddit.subreddit"
 )
 
 type ActivityRequester struct {
@@ -68,8 +69,12 @@ func (a *ActivityRequester) prepareRequest(drp DoRequestActRequest) (*http.Reque
 	case RequestKindRedditComment:
 		a.ensureValidRedditToken(time.Duration(60 * time.Second))
 		r.Header.Add("Authorization", "Bearer "+a.RedditAuthToken)
+	case RequestKindRedditSubreddit:
+		a.ensureValidRedditToken(time.Duration(60 * time.Second))
+		r.Header.Add("Authorization", "Bearer "+a.RedditAuthToken)
+	default:
+		return nil, fmt.Errorf("unsupported RequestKind %s", drp.RequestKind)
 	}
-
 	return r, nil
 }
 
@@ -95,6 +100,29 @@ func (a *ActivityRequester) DoRequest(ctx context.Context, drp DoRequestActReque
 	return &res, nil
 }
 
+// UploadMetadata will handle the response from a get metrics
+func (a *ActivityRequester) UploadMetadata(ctx context.Context, drr UploadMetadataActRequest) (*api.DefaultJSONResponse, error) {
+	l := activity.GetLogger(ctx)
+	switch drr.RequestKind {
+	case RequestKindInternalRandom:
+		return a.handleInternalRandomMetadata(l, drr.StatusCode, drr.Body)
+	case RequestKindYouTubeVideo:
+		return a.handleYouTubeVideoMetadata(l, drr.StatusCode, drr.Body)
+	case RequestKindKaggleNotebook:
+		return a.handleKaggleNotebookMetadata(l, drr.StatusCode, drr.Body)
+	case RequestKindKaggleDataset:
+		return a.handleKaggleDatasetMetadata(l, drr.StatusCode, drr.Body)
+	case RequestKindRedditPost:
+		return a.handleRedditPostMetadata(l, drr.StatusCode, drr.Body)
+	case RequestKindRedditComment:
+		return a.handleRedditCommentMetadata(l, drr.StatusCode, drr.Body)
+	case RequestKindRedditSubreddit:
+		return a.handleRedditSubredditMetadata(l, drr.StatusCode, drr.Body)
+	default:
+		return nil, fmt.Errorf("unrecognized RequestKind: %s", drr.RequestKind)
+	}
+}
+
 // UploadMetrics will handle the response from a get metrics request
 func (a *ActivityRequester) UploadMetrics(ctx context.Context, drr UploadMetricsActRequest) (*api.DefaultJSONResponse, error) {
 	l := activity.GetLogger(ctx)
@@ -111,27 +139,8 @@ func (a *ActivityRequester) UploadMetrics(ctx context.Context, drr UploadMetrics
 		return a.handleRedditPostMetrics(l, drr.StatusCode, drr.Body)
 	case RequestKindRedditComment:
 		return a.handleRedditCommentMetrics(l, drr.StatusCode, drr.Body)
-	default:
-		return nil, fmt.Errorf("unrecognized RequestKind: %s", drr.RequestKind)
-	}
-}
-
-// UploadMetrics will handle the response from a get metrics
-func (a *ActivityRequester) UploadMetadata(ctx context.Context, drr UploadMetadataActRequest) (*api.DefaultJSONResponse, error) {
-	l := activity.GetLogger(ctx)
-	switch drr.RequestKind {
-	case RequestKindInternalRandom:
-		return a.handleInternalRandomMetadata(l, drr.StatusCode, drr.Body)
-	case RequestKindYouTubeVideo:
-		return a.handleYouTubeVideoMetadata(l, drr.StatusCode, drr.Body)
-	case RequestKindKaggleNotebook:
-		return a.handleKaggleNotebookMetadata(l, drr.StatusCode, drr.Body)
-	case RequestKindKaggleDataset:
-		return a.handleKaggleDatasetMetadata(l, drr.StatusCode, drr.Body)
-	case RequestKindRedditPost:
-		return a.handleRedditPostMetadata(l, drr.StatusCode, drr.Body)
-	case RequestKindRedditComment:
-		return a.handleRedditCommentMetadata(l, drr.StatusCode, drr.Body)
+	case RequestKindRedditSubreddit:
+		return a.handleRedditSubredditMetrics(l, drr.StatusCode, drr.Body)
 	default:
 		return nil, fmt.Errorf("unrecognized RequestKind: %s", drr.RequestKind)
 	}
