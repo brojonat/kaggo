@@ -43,8 +43,11 @@ SELECT v.id, bucket, v.value, m.DATA ->> 'link' AS "title" FROM (
 LEFT JOIN metadata m ON v.id = m.id 
 WHERE m.request_kind = 'youtube.video';
 	
-SELECT * FROM metadata m WHERE request_kind LIKE 'reddit.%';
+SELECT * FROM metadata m WHERE request_kind LIKE 'youtube.channel';
 
 SELECT * FROM reddit_subreddit_subscribers rss ;
+
+SELECT * FROM youtube_channel_subscribers ycs ;
+
 
 
