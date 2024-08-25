@@ -10,6 +10,25 @@ type DefaultJSONResponse struct {
 	Error   string `json:"error,omitempty"`
 }
 
+type CreateUserPayload struct {
+	Email string                 `json:"email"`
+	Data  jsonb.UserMetadataJSON `json:"data"`
+}
+
+const (
+	UserMetricOpKindAdd         = "add"
+	UserMetricOpKindRemove      = "remove"
+	UserMetricOpKindAddGroup    = "add-group"
+	UserMetricOpKindRemoveGroup = "remove-group"
+)
+
+type UserMetricOperationPayload struct {
+	OpKind      string `json:"op_kind"`
+	Email       string `json:"email"`
+	RequestKind string `json:"request_kind"`
+	ID          string `json:"id"`
+}
+
 type GenericScheduleRequestPayload struct {
 	RequestKind string              `json:"request_kind"`
 	ID          string              `json:"id"`

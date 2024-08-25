@@ -148,6 +148,48 @@ func getRouter(
 	mux.Handle("GET /ping", handlePing(l, p))
 	mux.Handle("POST /token", handleIssueToken())
 
+	// users
+	mux.HandleFunc("GET /users", stools.AdaptHandler(
+		handleGetUsers(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+
+	mux.HandleFunc("POST /users", stools.AdaptHandler(
+		handleAddUser(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+
+	mux.HandleFunc("DELETE /users", stools.AdaptHandler(
+		handleDeleteUser(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+
+	mux.HandleFunc("POST /users/metrics", stools.AdaptHandler(
+		handleUserMetricOperation(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+
+	// metadata
+	mux.HandleFunc("GET /metadata", stools.AdaptHandler(
+		handleGetMetricMetadata(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+	mux.HandleFunc("POST /metadata", stools.AdaptHandler(
+		handlePostMetricMetadata(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+	mux.HandleFunc("POST /metadata/run-workflow", stools.AdaptHandler(
+		handleRunMetadataWF(l, tc),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+
 	// workflow schedule routes
 	mux.Handle("GET /schedule", stools.AdaptHandler(
 		handleGetSchedule(l, tc),
@@ -171,23 +213,6 @@ func getRouter(
 	))
 	mux.Handle("POST /schedule/trigger", stools.AdaptHandler(
 		handleTriggerSchedule(l, tc),
-		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
-	))
-
-	// metadata
-	mux.HandleFunc("GET /metadata", stools.AdaptHandler(
-		handleGetMetricMetadata(l, q),
-		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
-	))
-	mux.HandleFunc("POST /metadata", stools.AdaptHandler(
-		handlePostMetricMetadata(l, q),
-		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
-	))
-	mux.HandleFunc("POST /metadata/run-workflow", stools.AdaptHandler(
-		handleRunMetadataWF(l, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))

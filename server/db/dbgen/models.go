@@ -81,6 +81,17 @@ type RedditSubredditSubscriber struct {
 	Subscribers int32              `json:"subscribers"`
 }
 
+type User struct {
+	Email string                 `json:"email"`
+	Data  jsonb.UserMetadataJSON `json:"data"`
+}
+
+type UsersMetadataThrough struct {
+	Email       string `json:"email"`
+	ID          string `json:"id"`
+	RequestKind string `json:"request_kind"`
+}
+
 type YoutubeChannelSubscriber struct {
 	ID          string             `json:"id"`
 	Ts          pgtype.Timestamptz `json:"ts"`

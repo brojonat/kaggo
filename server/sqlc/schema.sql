@@ -1,10 +1,22 @@
 -- schema.sql for sqlc generation, DO NOT use with atlas; use golang-migrate instead.
 
-CREATE TABLE metadata (
+CREATE TABLE IF NOT EXISTS metadata (
     id VARCHAR(255) NOT NULL,
     request_kind VARCHAR(255) NOT NULL,
     data JSONB NOT NULL DEFAULT '{}'::JSONB,
     PRIMARY KEY (id, request_kind)
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    email VARCHAR(255) PRIMARY KEY NOT NULL,
+    data JSONB NOT NULL DEFAULT '{}'::JSONB
+);
+
+CREATE TABLE IF NOT EXISTS users_metadata_through (
+    email VARCHAR(255) NOT NULL REFERENCES users(email) ON DELETE CASCADE,
+    id VARCHAR(255) NOT NULL REFERENCES metadata(id) ON DELETE CASCADE,
+    request_kind VARCHAR(255) NOT NULL REFERENCES metadata(request_kind) ON DELETE CASCADE,
+    PRIMARY KEY (email, id, request_kind)
 );
 
 -- internal metric for testing

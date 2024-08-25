@@ -41,7 +41,7 @@ const insertMetadata = `-- name: InsertMetadata :exec
 INSERT INTO metadata (id, request_kind, data)
 VALUES ($1, $2, $3)
 ON CONFLICT ON CONSTRAINT metadata_pkey DO UPDATE
-SET DATA = EXCLUDED.data
+SET data = EXCLUDED.data
 `
 
 type InsertMetadataParams struct {

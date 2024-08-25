@@ -13,3 +13,5 @@ type MetadataJSON struct {
 	Tags    []string `json:"tags"`
 	// author? subreddit? created at?
 }
+
+type UserMetadataJSON struct{}

@@ -3,6 +3,7 @@ sql:
   - engine: "postgresql"
     queries:
       - "sqlc/metadata.sql"
+      - "sqlc/users.sql"
       - "sqlc/kaggle-metrics.sql"
       - "sqlc/internal-metrics.sql"
       - "sqlc/youtube-video-metrics.sql"
@@ -21,3 +22,8 @@ sql:
               import: "github.com/brojonat/kaggo/server/db/jsonb"
               package: "jsonb"
               type: "MetadataJSON"
+          - column: "users.data"
+            go_type:
+              import: "github.com/brojonat/kaggo/server/db/jsonb"
+              package: "jsonb"
+              type: "UserMetadataJSON"

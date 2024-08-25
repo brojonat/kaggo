@@ -1,0 +1,6 @@
+BEGIN;
+
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS users_metrics_through;
+
+COMMIT;

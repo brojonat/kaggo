@@ -1,22 +1,15 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
+	"bufio"
 	"fmt"
-	"io"
 	"log/slog"
-	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
-	"time"
 
-	"github.com/brojonat/kaggo/server"
-	"github.com/brojonat/kaggo/server/api"
-	"github.com/brojonat/kaggo/worker"
 	"github.com/urfave/cli/v2"
-	"go.temporal.io/sdk/client"
 )
 
 func getDefaultLogger(lvl slog.Level) *slog.Logger {
@@ -36,6 +29,16 @@ func getDefaultLogger(lvl slog.Level) *slog.Logger {
 	}))
 }
 
+func confirm(prompt string, r *bufio.Reader) (bool, error) {
+	fmt.Println(prompt)
+	input, err := r.ReadString('\n')
+	if err != nil {
+		return false, err
+	}
+	txt := strings.TrimSpace(input)
+	return slices.Contains([]string{"y", "yes", "ye"}, strings.ToLower(txt)), nil
+}
+
 func main() {
 	app := &cli.App{
 		Commands: []*cli.Command{
@@ -44,11 +47,145 @@ func main() {
 				Usage: "Administrative commands (initiating workflows, etc.)",
 				Subcommands: []*cli.Command{
 					{
+						Name:  "users",
+						Usage: "Administrative user commands",
+						Subcommands: []*cli.Command{
+							{
+								Name:  "add",
+								Usage: "Add user",
+								Flags: []cli.Flag{
+									&cli.StringFlag{
+										Name:     "endpoint",
+										Aliases:  []string{"end", "e"},
+										Required: true,
+										Usage:    "Kaggo server endpoint",
+									},
+									&cli.StringFlag{
+										Name:     "email",
+										Required: true,
+										Usage:    "User's email",
+									},
+								},
+								Action: func(ctx *cli.Context) error {
+									return add_user(ctx)
+								},
+							},
+							{
+								Name:  "delete",
+								Usage: "Delete user",
+								Flags: []cli.Flag{
+									&cli.StringFlag{
+										Name:     "endpoint",
+										Aliases:  []string{"end", "e"},
+										Required: true,
+										Usage:    "Kaggo server endpoint",
+									},
+									&cli.StringFlag{
+										Name:     "email",
+										Required: true,
+										Usage:    "User's email",
+									},
+								},
+								Action: func(ctx *cli.Context) error {
+									return delete_user(ctx)
+								},
+							},
+							{
+								Name:  "grant-metric",
+								Usage: "Grant a metric to a user",
+								Flags: []cli.Flag{
+									&cli.StringFlag{
+										Name:     "endpoint",
+										Aliases:  []string{"end", "e"},
+										Required: true,
+										Usage:    "Kaggo server endpoint",
+									},
+									&cli.StringFlag{
+										Name:     "email",
+										Required: true,
+										Usage:    "User's email",
+									},
+									&cli.StringFlag{
+										Name:     "request-kind",
+										Aliases:  []string{"rk", "r"},
+										Required: true,
+										Usage:    "Metric request kind to grant",
+									},
+									&cli.StringFlag{
+										Name:    "id",
+										Aliases: []string{"i"},
+										Usage:   "Metric identifier to grant",
+									},
+									&cli.BoolFlag{
+										Name:    "all-ids",
+										Aliases: []string{"all", "a"},
+										Value:   false,
+										Usage:   "Grant ALL metrics of request-kind to the user",
+									},
+								},
+								Action: func(ctx *cli.Context) error {
+									return grant_metric(ctx)
+								},
+							},
+							{
+								Name:  "remove-metric",
+								Usage: "Remove a metric from a user",
+								Flags: []cli.Flag{
+									&cli.StringFlag{
+										Name:     "endpoint",
+										Aliases:  []string{"end", "e"},
+										Required: true,
+										Usage:    "Kaggo server endpoint",
+									},
+									&cli.StringFlag{
+										Name:     "email",
+										Required: true,
+										Usage:    "User's email",
+									},
+									&cli.StringFlag{
+										Name:     "request-kind",
+										Aliases:  []string{"rk", "r"},
+										Required: true,
+										Usage:    "Metric request kind to grant",
+									},
+									&cli.StringFlag{
+										Name:    "id",
+										Aliases: []string{"i"},
+										Usage:   "Metric identifier to grant",
+									},
+									&cli.BoolFlag{
+										Name:    "all-ids",
+										Aliases: []string{"all", "a"},
+										Value:   false,
+										Usage:   "Grant ALL metrics of request-kind to the user",
+									},
+								},
+								Action: func(ctx *cli.Context) error {
+									return remove_metric(ctx)
+								},
+							},
+						},
+					},
+					{
 						Name:  "tinker",
-						Usage: "playground",
-						Flags: []cli.Flag{},
-						Action: func(ctx *cli.Context) error {
-							return tinker(ctx)
+						Usage: "testing sandbox/playground",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "test",
+								Aliases: []string{"t"},
+								Usage:   "test if passed to subcommand",
+							},
+						},
+						Subcommands: []*cli.Command{
+							{
+								Name: "inner",
+								Flags: []cli.Flag{
+									&cli.StringFlag{Name: "test2", Aliases: []string{"t2"}, Usage: "testing"},
+								},
+								Action: func(ctx *cli.Context) error {
+									return tinker(ctx)
+								},
+							},
 						},
 					},
 					{
@@ -65,7 +202,7 @@ func main() {
 								Name:     "request-kind",
 								Aliases:  []string{"rk", "r"},
 								Required: true,
-								Usage:    "Request kind to perform.",
+								Usage:    "Request kind to perform",
 							},
 							&cli.StringFlag{
 								Name:     "id",
@@ -100,7 +237,7 @@ func main() {
 						},
 					},
 					{
-						Name:  "delete-schedules",
+						Name:  "delete-all-schedules",
 						Usage: "Delete all schedules. Be sure to dump a backup first!",
 						Flags: []cli.Flag{
 							&cli.StringFlag{
@@ -111,7 +248,7 @@ func main() {
 							},
 						},
 						Action: func(ctx *cli.Context) error {
-							return delete_schedules(ctx)
+							return delete_all_schedules(ctx)
 						},
 					},
 					{
@@ -143,30 +280,30 @@ func main() {
 				Subcommands: []*cli.Command{
 					{
 						Name:  "http-server",
-						Usage: "Run the HTTP server on the specified port.",
+						Usage: "Run the HTTP server on the specified port",
 						Flags: []cli.Flag{
 							&cli.StringFlag{
 								Name:    "listen-port",
 								Aliases: []string{"port", "p"},
 								Value:   os.Getenv("SERVER_PORT"),
-								Usage:   "Port to listen on.",
+								Usage:   "Port to listen on",
 							},
 							&cli.StringFlag{
 								Name:    "database",
 								Aliases: []string{"db", "d"},
 								Value:   os.Getenv("DATABASE_URL"),
-								Usage:   "Database endpoint.",
+								Usage:   "Database endpoint",
 							},
 							&cli.StringFlag{
 								Name:    "temporal-host",
 								Aliases: []string{"th", "t"},
 								Value:   os.Getenv("TEMPORAL_HOST"),
-								Usage:   "Temporal endpoint.",
+								Usage:   "Temporal endpoint",
 							},
 							&cli.IntFlag{
 								Name:    "log-level",
 								Aliases: []string{"ll", "l"},
-								Usage:   "Logging level for the slog.Logger. Default is 0 (INFO), use -4 for DEBUG.",
+								Usage:   "Logging level for the slog.Logger. Default is 0 (INFO), use -4 for DEBUG",
 								Value:   0,
 							},
 						},
@@ -176,13 +313,13 @@ func main() {
 					},
 					{
 						Name:  "worker",
-						Usage: "Run the Temporal worker.",
+						Usage: "Run the Temporal worker",
 						Flags: []cli.Flag{
 							&cli.StringFlag{
 								Name:    "temporal-host",
 								Aliases: []string{"th", "t"},
 								Value:   os.Getenv("TEMPORAL_HOST"),
-								Usage:   "Temporal endpoint.",
+								Usage:   "Temporal endpoint",
 							},
 						},
 						Action: func(ctx *cli.Context) error {
@@ -199,231 +336,7 @@ func main() {
 	}
 }
 
-func serve_http(ctx *cli.Context) error {
-	// internal init
-	logger := getDefaultLogger(slog.Level(ctx.Int("log-level")))
-	pms := server.GetDefaultPromMetrics()
-
-	return server.RunHTTPServer(
-		ctx.Context,
-		ctx.String("listen-port"),
-		logger,
-		ctx.String("database"),
-		ctx.String("temporal-host"),
-		pms,
-	)
-}
-
-func run_worker(ctx *cli.Context) error {
-	logger := getDefaultLogger(slog.Level(ctx.Int("log-level")))
-	thp := ctx.String("temporal-host")
-	return worker.RunWorker(ctx.Context, logger, thp)
-}
-
-func run_metadata_wf(ctx *cli.Context) error {
-	p := api.GenericScheduleRequestPayload{
-		RequestKind: ctx.String("request-kind"),
-		ID:          ctx.String("id"),
-	}
-	body, err := json.Marshal(p)
-	if err != nil {
-		return fmt.Errorf("could not serialize payload: %w", err)
-	}
-	r, err := http.NewRequest(
-		http.MethodPost,
-		ctx.String("endpoint")+"/metadata/run-workflow",
-		bytes.NewReader(body),
-	)
-	if err != nil {
-		return err
-	}
-	r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("AUTH_TOKEN")))
-	res, err := http.DefaultClient.Do(r)
-	if err != nil {
-		return err
-	}
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad response from server: %s", res.Status)
-	}
-	return nil
-}
-
-func dump_schedules(ctx *cli.Context) error {
-	r, err := http.NewRequest(
-		http.MethodGet,
-		ctx.String("endpoint")+"/schedule",
-		nil,
-	)
-	if err != nil {
-		return err
-	}
-	r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("AUTH_TOKEN")))
-	res, err := http.DefaultClient.Do(r)
-	if err != nil {
-		return err
-	}
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad response from server: %s", res.Status)
-	}
-	defer res.Body.Close()
-	b, err := io.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
-	err = os.WriteFile(ctx.String("file"), b, 0644)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func delete_schedules(ctx *cli.Context) error {
-
-	r, err := http.NewRequest(
-		http.MethodGet,
-		ctx.String("endpoint")+"/schedule",
-		nil,
-	)
-	if err != nil {
-		return err
-	}
-	r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("AUTH_TOKEN")))
-	res, err := http.DefaultClient.Do(r)
-	if err != nil {
-		return err
-	}
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad response from server: %s", res.Status)
-	}
-	defer res.Body.Close()
-	b, err := io.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
-
-	var schedules []struct {
-		ID   string              `json:"ID"`
-		Spec client.ScheduleSpec `json:"Spec"`
-	}
-	err = json.Unmarshal(b, &schedules)
-	if err != nil {
-		return err
-	}
-
-	for i, sched := range schedules {
-		r, err := http.NewRequest(
-			http.MethodDelete,
-			ctx.String("endpoint")+"/schedule",
-			nil,
-		)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error making request to schedule %d (%s): %s\n", i, sched.ID, err.Error())
-			continue
-		}
-		q := r.URL.Query()
-		q.Add("schedule_id", sched.ID)
-		r.URL.RawQuery = q.Encode()
-
-		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("AUTH_TOKEN")))
-		res, err := http.DefaultClient.Do(r)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error deleting schedule %d (%s): %s\n", i, sched.ID, err.Error())
-			continue
-		}
-		defer res.Body.Close()
-		b, err = io.ReadAll(res.Body)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error reading response for schedule delete %d (%s): %s\n", i, sched.ID, err.Error())
-			continue
-		}
-		var rbody api.DefaultJSONResponse
-		err = json.Unmarshal(b, &rbody)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error parsing \"%s\" response for schedule delete %d (%s): %s\n", res.Status, i, sched.ID, err.Error())
-			continue
-		}
-		if res.StatusCode != http.StatusOK {
-			fmt.Fprintf(os.Stderr, "%s response deleting schedule %d (%s): %s\n", res.Status, i, sched.ID, rbody.Error)
-			continue
-		}
-	}
-	return nil
-}
-
-func load_schedules(ctx *cli.Context) error {
-	b, err := os.ReadFile(ctx.String("file"))
-	if err != nil {
-		return err
-	}
-	var body []struct {
-		ID   string              `json:"ID"`
-		Spec client.ScheduleSpec `json:"Spec"`
-	}
-	err = json.Unmarshal(b, &body)
-	if err != nil {
-		return err
-	}
-	for i, sched := range body {
-		parts := strings.Split(sched.ID, " ")
-		payload := api.GenericScheduleRequestPayload{
-			RequestKind: parts[0],
-			ID:          parts[1],
-			Schedule:    sched.Spec,
-		}
-		b, err := json.Marshal(payload)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error creating payload for schedule %d (%s): %s\n", i, sched.ID, err.Error())
-			continue
-		}
-		r, err := http.NewRequest(
-			http.MethodPost,
-			ctx.String("endpoint")+"/schedule",
-			bytes.NewReader(b),
-		)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error making request to schedule %d (%s): %s\n", i, sched.ID, err.Error())
-			continue
-		}
-
-		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("AUTH_TOKEN")))
-
-		// NOTE: don't block for the metadata operation. We don't want that to
-		// impact the schedule creation here because this is typically used to
-		// bulk (re)create schedules. If you want to bulk create schedules that
-		// need their metadata fetched, then you'll need to thread that update
-		// the CLI to accept that as an additional flag and pass it here.
-		q := r.URL.Query()
-		q.Add("skip-metadata", "true")
-		r.URL.RawQuery = q.Encode()
-		res, err := http.DefaultClient.Do(r)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error uploading schedule %d (%s): %s\n", i, sched.ID, err.Error())
-			continue
-		}
-		defer res.Body.Close()
-		b, err = io.ReadAll(res.Body)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error reading response for schedule upload %d (%s): %s\n", i, sched.ID, err.Error())
-			continue
-		}
-		var rbody api.DefaultJSONResponse
-		err = json.Unmarshal(b, &rbody)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error parsing \"%s\" response for schedule upload %d (%s): %s\n", res.Status, i, sched.ID, err.Error())
-			continue
-		}
-		if res.StatusCode != http.StatusOK {
-			fmt.Fprintf(os.Stderr, "%s response uploading schedule %d (%s): %s\n", res.Status, i, sched.ID, rbody.Error)
-			continue
-		}
-	}
-	return nil
-}
-
 func tinker(ctx *cli.Context) error {
-	td, _ := time.ParseDuration("5s")
-	s := client.ScheduleSpec{Jitter: td}
-	b, _ := json.Marshal(s)
-	fmt.Println(string(b))
+	fmt.Println(ctx.String("test"), ctx.String("test2"))
 	return nil
 }
