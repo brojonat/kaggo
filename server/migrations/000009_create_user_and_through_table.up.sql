@@ -16,5 +16,4 @@ ADD FOREIGN KEY (email) REFERENCES users ON DELETE CASCADE;
 ALTER TABLE users_metadata_through
 ADD FOREIGN KEY (id, request_kind) REFERENCES metadata ON DELETE CASCADE;
 
-
 COMMIT;

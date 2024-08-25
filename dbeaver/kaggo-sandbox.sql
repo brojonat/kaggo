@@ -43,11 +43,21 @@ SELECT v.id, bucket, v.value, m.DATA ->> 'link' AS "title" FROM (
 LEFT JOIN metadata m ON v.id = m.id 
 WHERE m.request_kind = 'youtube.video';
 	
-SELECT * FROM metadata m WHERE request_kind LIKE 'youtube.channel';
+SELECT * FROM metadata;
 
 SELECT * FROM reddit_subreddit_subscribers rss ;
 
 SELECT * FROM youtube_channel_subscribers ycs ;
 
+SELECT * FROM users;
 
+SELECT * FROM metadata m  WHERE request_kind = 'youtube.video';
 
+SELECT * FROM users_metadata_through umt ;
+
+INSERT INTO users_metadata_through (email, id, request_kind)
+SELECT u.email, m.id, m.request_kind
+FROM users u
+CROSS JOIN metadata m
+WHERE u.email = 'brojonat@gmail.com' AND m.request_kind = 'youtube.video';
+     
