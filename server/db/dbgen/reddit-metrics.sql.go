@@ -73,6 +73,284 @@ func (q *Queries) GetRedditCommentMetricsByIDs(ctx context.Context, arg GetReddi
 	return items, nil
 }
 
+const getRedditCommentMetricsByIDsBucket15Min = `-- name: GetRedditCommentMetricsByIDsBucket15Min :many
+
+
+SELECT id, bucket, value, 'reddit.comment.score' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(score::REAL) AS "value"
+	FROM reddit_comment_score
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.comment.controversiality' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(controversiality::REAL) AS "value"
+	FROM reddit_comment_controversiality
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetRedditCommentMetricsByIDsBucket15MinParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditCommentMetricsByIDsBucket15MinRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+// Reddit Comment Bucketed Metrics
+func (q *Queries) GetRedditCommentMetricsByIDsBucket15Min(ctx context.Context, arg GetRedditCommentMetricsByIDsBucket15MinParams) ([]GetRedditCommentMetricsByIDsBucket15MinRow, error) {
+	rows, err := q.db.Query(ctx, getRedditCommentMetricsByIDsBucket15Min, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRedditCommentMetricsByIDsBucket15MinRow
+	for rows.Next() {
+		var i GetRedditCommentMetricsByIDsBucket15MinRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRedditCommentMetricsByIDsBucket1Day = `-- name: GetRedditCommentMetricsByIDsBucket1Day :many
+SELECT id, bucket, value, 'reddit.comment.score' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(score::REAL) AS value
+	FROM reddit_comment_score
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.comment.controversiality' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(controversiality::REAL) AS value
+	FROM reddit_comment_controversiality
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetRedditCommentMetricsByIDsBucket1DayParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditCommentMetricsByIDsBucket1DayRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetRedditCommentMetricsByIDsBucket1Day(ctx context.Context, arg GetRedditCommentMetricsByIDsBucket1DayParams) ([]GetRedditCommentMetricsByIDsBucket1DayRow, error) {
+	rows, err := q.db.Query(ctx, getRedditCommentMetricsByIDsBucket1Day, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRedditCommentMetricsByIDsBucket1DayRow
+	for rows.Next() {
+		var i GetRedditCommentMetricsByIDsBucket1DayRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRedditCommentMetricsByIDsBucket1Hr = `-- name: GetRedditCommentMetricsByIDsBucket1Hr :many
+SELECT id, bucket, value, 'reddit.comment.score' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(score::REAL) AS value
+	FROM reddit_comment_score
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.comment.controversiality' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(controversiality::REAL) AS value
+	FROM reddit_comment_controversiality
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetRedditCommentMetricsByIDsBucket1HrParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditCommentMetricsByIDsBucket1HrRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetRedditCommentMetricsByIDsBucket1Hr(ctx context.Context, arg GetRedditCommentMetricsByIDsBucket1HrParams) ([]GetRedditCommentMetricsByIDsBucket1HrRow, error) {
+	rows, err := q.db.Query(ctx, getRedditCommentMetricsByIDsBucket1Hr, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRedditCommentMetricsByIDsBucket1HrRow
+	for rows.Next() {
+		var i GetRedditCommentMetricsByIDsBucket1HrRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRedditCommentMetricsByIDsBucket8Hr = `-- name: GetRedditCommentMetricsByIDsBucket8Hr :many
+SELECT id, bucket, value, 'reddit.comment.score' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS bucket,
+	    MAX(score::REAL) AS value
+	FROM reddit_comment_score
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.comment.controversiality' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS "bucket",
+	    MAX(controversiality::REAL) AS "value"
+	FROM reddit_comment_controversiality
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetRedditCommentMetricsByIDsBucket8HrParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditCommentMetricsByIDsBucket8HrRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetRedditCommentMetricsByIDsBucket8Hr(ctx context.Context, arg GetRedditCommentMetricsByIDsBucket8HrParams) ([]GetRedditCommentMetricsByIDsBucket8HrRow, error) {
+	rows, err := q.db.Query(ctx, getRedditCommentMetricsByIDsBucket8Hr, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRedditCommentMetricsByIDsBucket8HrRow
+	for rows.Next() {
+		var i GetRedditCommentMetricsByIDsBucket8HrRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getRedditPostMetricsByIDs = `-- name: GetRedditPostMetricsByIDs :many
 SELECT
     id AS "id",
@@ -135,6 +413,284 @@ func (q *Queries) GetRedditPostMetricsByIDs(ctx context.Context, arg GetRedditPo
 	return items, nil
 }
 
+const getRedditPostMetricsByIDsBucket15Min = `-- name: GetRedditPostMetricsByIDsBucket15Min :many
+
+
+SELECT id, bucket, value, 'reddit.post.score' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(score::REAL) AS "value"
+	FROM reddit_post_score
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.post.ratio' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(ratio::REAL) AS "value"
+	FROM reddit_post_ratio
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetRedditPostMetricsByIDsBucket15MinParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditPostMetricsByIDsBucket15MinRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+// Reddit Post Bucketed Metrics
+func (q *Queries) GetRedditPostMetricsByIDsBucket15Min(ctx context.Context, arg GetRedditPostMetricsByIDsBucket15MinParams) ([]GetRedditPostMetricsByIDsBucket15MinRow, error) {
+	rows, err := q.db.Query(ctx, getRedditPostMetricsByIDsBucket15Min, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRedditPostMetricsByIDsBucket15MinRow
+	for rows.Next() {
+		var i GetRedditPostMetricsByIDsBucket15MinRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRedditPostMetricsByIDsBucket1Day = `-- name: GetRedditPostMetricsByIDsBucket1Day :many
+SELECT id, bucket, value, 'reddit.post.score' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(score::REAL) AS value
+	FROM reddit_post_score
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.post.ratio' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(ratio::REAL) AS value
+	FROM reddit_post_ratio
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetRedditPostMetricsByIDsBucket1DayParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditPostMetricsByIDsBucket1DayRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetRedditPostMetricsByIDsBucket1Day(ctx context.Context, arg GetRedditPostMetricsByIDsBucket1DayParams) ([]GetRedditPostMetricsByIDsBucket1DayRow, error) {
+	rows, err := q.db.Query(ctx, getRedditPostMetricsByIDsBucket1Day, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRedditPostMetricsByIDsBucket1DayRow
+	for rows.Next() {
+		var i GetRedditPostMetricsByIDsBucket1DayRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRedditPostMetricsByIDsBucket1Hr = `-- name: GetRedditPostMetricsByIDsBucket1Hr :many
+SELECT id, bucket, value, 'reddit.post.score' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(score::REAL) AS value
+	FROM reddit_post_score
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.post.ratio' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(ratio::REAL) AS value
+	FROM reddit_post_ratio
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetRedditPostMetricsByIDsBucket1HrParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditPostMetricsByIDsBucket1HrRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetRedditPostMetricsByIDsBucket1Hr(ctx context.Context, arg GetRedditPostMetricsByIDsBucket1HrParams) ([]GetRedditPostMetricsByIDsBucket1HrRow, error) {
+	rows, err := q.db.Query(ctx, getRedditPostMetricsByIDsBucket1Hr, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRedditPostMetricsByIDsBucket1HrRow
+	for rows.Next() {
+		var i GetRedditPostMetricsByIDsBucket1HrRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRedditPostMetricsByIDsBucket8Hr = `-- name: GetRedditPostMetricsByIDsBucket8Hr :many
+SELECT id, bucket, value, 'reddit.post.score' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS bucket,
+	    MAX(score::REAL) AS value
+	FROM reddit_post_score
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.post.ratio' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS "bucket",
+	    MAX(ratio::REAL) AS "value"
+	FROM reddit_post_ratio
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetRedditPostMetricsByIDsBucket8HrParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditPostMetricsByIDsBucket8HrRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetRedditPostMetricsByIDsBucket8Hr(ctx context.Context, arg GetRedditPostMetricsByIDsBucket8HrParams) ([]GetRedditPostMetricsByIDsBucket8HrRow, error) {
+	rows, err := q.db.Query(ctx, getRedditPostMetricsByIDsBucket8Hr, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRedditPostMetricsByIDsBucket8HrRow
+	for rows.Next() {
+		var i GetRedditPostMetricsByIDsBucket8HrRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getRedditSubredditMetricsByIDs = `-- name: GetRedditSubredditMetricsByIDs :many
 SELECT
     r.id AS "id",
@@ -184,6 +740,284 @@ func (q *Queries) GetRedditSubredditMetricsByIDs(ctx context.Context, arg GetRed
 		if err := rows.Scan(
 			&i.ID,
 			&i.Ts,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRedditSubredditMetricsByIDsBucket15Min = `-- name: GetRedditSubredditMetricsByIDsBucket15Min :many
+
+
+SELECT id, bucket, value, 'reddit.subreddit.subscribers' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(subscribers::REAL) AS "value"
+	FROM reddit_subreddit_subscribers
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.subreddit.active_user_count' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(active_user_count::REAL) AS "value"
+	FROM reddit_subreddit_active_user_count
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetRedditSubredditMetricsByIDsBucket15MinParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditSubredditMetricsByIDsBucket15MinRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+// Reddit Subreddit Bucketed Metrics
+func (q *Queries) GetRedditSubredditMetricsByIDsBucket15Min(ctx context.Context, arg GetRedditSubredditMetricsByIDsBucket15MinParams) ([]GetRedditSubredditMetricsByIDsBucket15MinRow, error) {
+	rows, err := q.db.Query(ctx, getRedditSubredditMetricsByIDsBucket15Min, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRedditSubredditMetricsByIDsBucket15MinRow
+	for rows.Next() {
+		var i GetRedditSubredditMetricsByIDsBucket15MinRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRedditSubredditMetricsByIDsBucket1Day = `-- name: GetRedditSubredditMetricsByIDsBucket1Day :many
+SELECT id, bucket, value, 'reddit.subreddit.subscribers' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(subscribers::REAL) AS value
+	FROM reddit_subreddit_subscribers
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.subreddit.active_user_count' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(active_user_count::REAL) AS value
+	FROM reddit_subreddit_active_user_count
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetRedditSubredditMetricsByIDsBucket1DayParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditSubredditMetricsByIDsBucket1DayRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetRedditSubredditMetricsByIDsBucket1Day(ctx context.Context, arg GetRedditSubredditMetricsByIDsBucket1DayParams) ([]GetRedditSubredditMetricsByIDsBucket1DayRow, error) {
+	rows, err := q.db.Query(ctx, getRedditSubredditMetricsByIDsBucket1Day, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRedditSubredditMetricsByIDsBucket1DayRow
+	for rows.Next() {
+		var i GetRedditSubredditMetricsByIDsBucket1DayRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRedditSubredditMetricsByIDsBucket1Hr = `-- name: GetRedditSubredditMetricsByIDsBucket1Hr :many
+SELECT id, bucket, value, 'reddit.subreddit.subscribers' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(subscribers::REAL) AS value
+	FROM reddit_subreddit_subscribers
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.subreddit.active_user_count' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(active_user_count::REAL) AS value
+	FROM reddit_subreddit_active_user_count
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetRedditSubredditMetricsByIDsBucket1HrParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditSubredditMetricsByIDsBucket1HrRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetRedditSubredditMetricsByIDsBucket1Hr(ctx context.Context, arg GetRedditSubredditMetricsByIDsBucket1HrParams) ([]GetRedditSubredditMetricsByIDsBucket1HrRow, error) {
+	rows, err := q.db.Query(ctx, getRedditSubredditMetricsByIDsBucket1Hr, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRedditSubredditMetricsByIDsBucket1HrRow
+	for rows.Next() {
+		var i GetRedditSubredditMetricsByIDsBucket1HrRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRedditSubredditMetricsByIDsBucket8Hr = `-- name: GetRedditSubredditMetricsByIDsBucket8Hr :many
+SELECT id, bucket, value, 'reddit.subreddit.subscribers' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS bucket,
+	    MAX(subscribers::REAL) AS value
+	FROM reddit_subreddit_subscribers
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.subreddit.active_user_count' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS "bucket",
+	    MAX(active_user_count::REAL) AS "value"
+	FROM reddit_subreddit_active_user_count
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetRedditSubredditMetricsByIDsBucket8HrParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditSubredditMetricsByIDsBucket8HrRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetRedditSubredditMetricsByIDsBucket8Hr(ctx context.Context, arg GetRedditSubredditMetricsByIDsBucket8HrParams) ([]GetRedditSubredditMetricsByIDsBucket8HrRow, error) {
+	rows, err := q.db.Query(ctx, getRedditSubredditMetricsByIDsBucket8Hr, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRedditSubredditMetricsByIDsBucket8HrRow
+	for rows.Next() {
+		var i GetRedditSubredditMetricsByIDsBucket8HrRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
 			&i.Value,
 			&i.Metric,
 		); err != nil {

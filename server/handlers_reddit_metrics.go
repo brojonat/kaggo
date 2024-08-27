@@ -10,7 +10,6 @@ import (
 
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/dbgen"
-	kt "github.com/brojonat/kaggo/temporal/v19700101"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -97,7 +96,7 @@ func handleRedditPostMetricsPost(l *slog.Logger, q *dbgen.Queries, pms map[strin
 		}
 
 		// prometheus
-		labels := prometheus.Labels{"id": p.ID, "request_kind": kt.RequestKindRedditPost}
+		labels := prometheus.Labels{}
 		setRedditPromMetrics(l, p.InternalData, labels, pms)
 
 		// upload metrics
@@ -159,7 +158,7 @@ func handleRedditCommentMetricsPost(l *slog.Logger, q *dbgen.Queries, pms map[st
 		}
 
 		// prometheus
-		labels := prometheus.Labels{"id": p.ID, "request_kind": kt.RequestKindRedditComment}
+		labels := prometheus.Labels{}
 		setRedditPromMetrics(l, p.InternalData, labels, pms)
 
 		// upload metrics
@@ -221,7 +220,7 @@ func handleRedditSubredditMetricsPost(l *slog.Logger, q *dbgen.Queries, pms map[
 		}
 
 		// prometheus
-		labels := prometheus.Labels{"id": p.ID, "request_kind": kt.RequestKindRedditComment}
+		labels := prometheus.Labels{}
 		setRedditPromMetrics(l, p.InternalData, labels, pms)
 
 		// upload metrics

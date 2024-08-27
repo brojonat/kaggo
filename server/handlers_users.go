@@ -120,7 +120,8 @@ func handleUserMetricOperation(l *slog.Logger, q *dbgen.Queries) http.HandlerFun
 				RequestKind: body.RequestKind,
 			}
 			if err = q.GrantMetricGroupToUser(r.Context(), p); err != nil {
-				if stools.IsPGError(err, stools.PGErrorForeignKeyViolation) {
+				if stools.IsPGError(err, stools.PGErrorForeignKeyViolation) ||
+					stools.IsPGError(err, stools.PGErrorUniqueViolation) {
 					writeBadRequestError(w, fmt.Errorf("unable to grant; be sure user (%s) and metric (%s) exists", body.Email, body.RequestKind))
 					return
 				}

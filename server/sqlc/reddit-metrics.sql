@@ -91,3 +91,371 @@ WHERE
     r.ts >= @ts_start AND
     r.ts <= @ts_end;
 
+
+-- Reddit Post Bucketed Metrics
+
+
+-- name: GetRedditPostMetricsByIDsBucket15Min :many
+SELECT *, 'reddit.post.score' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(score::REAL) AS "value"
+	FROM reddit_post_score
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.post.ratio' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(ratio::REAL) AS "value"
+	FROM reddit_post_ratio
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+-- name: GetRedditPostMetricsByIDsBucket1Hr :many
+SELECT *, 'reddit.post.score' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(score::REAL) AS value
+	FROM reddit_post_score
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.post.ratio' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(ratio::REAL) AS value
+	FROM reddit_post_ratio
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+-- name: GetRedditPostMetricsByIDsBucket8Hr :many
+SELECT *, 'reddit.post.score' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS bucket,
+	    MAX(score::REAL) AS value
+	FROM reddit_post_score
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.post.ratio' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS "bucket",
+	    MAX(ratio::REAL) AS "value"
+	FROM reddit_post_ratio
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+-- name: GetRedditPostMetricsByIDsBucket1Day :many
+SELECT *, 'reddit.post.score' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(score::REAL) AS value
+	FROM reddit_post_score
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.post.ratio' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(ratio::REAL) AS value
+	FROM reddit_post_ratio
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+
+-- Reddit Comment Bucketed Metrics
+
+
+-- name: GetRedditCommentMetricsByIDsBucket15Min :many
+SELECT *, 'reddit.comment.score' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(score::REAL) AS "value"
+	FROM reddit_comment_score
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.comment.controversiality' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(controversiality::REAL) AS "value"
+	FROM reddit_comment_controversiality
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+-- name: GetRedditCommentMetricsByIDsBucket1Hr :many
+SELECT *, 'reddit.comment.score' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(score::REAL) AS value
+	FROM reddit_comment_score
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.comment.controversiality' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(controversiality::REAL) AS value
+	FROM reddit_comment_controversiality
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+-- name: GetRedditCommentMetricsByIDsBucket8Hr :many
+SELECT *, 'reddit.comment.score' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS bucket,
+	    MAX(score::REAL) AS value
+	FROM reddit_comment_score
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.comment.controversiality' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS "bucket",
+	    MAX(controversiality::REAL) AS "value"
+	FROM reddit_comment_controversiality
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+-- name: GetRedditCommentMetricsByIDsBucket1Day :many
+SELECT *, 'reddit.comment.score' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(score::REAL) AS value
+	FROM reddit_comment_score
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.comment.controversiality' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(controversiality::REAL) AS value
+	FROM reddit_comment_controversiality
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+
+-- Reddit Subreddit Bucketed Metrics
+
+
+-- name: GetRedditSubredditMetricsByIDsBucket15Min :many
+SELECT *, 'reddit.subreddit.subscribers' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(subscribers::REAL) AS "value"
+	FROM reddit_subreddit_subscribers
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.subreddit.active_user_count' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(active_user_count::REAL) AS "value"
+	FROM reddit_subreddit_active_user_count
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+-- name: GetRedditSubredditMetricsByIDsBucket1Hr :many
+SELECT *, 'reddit.subreddit.subscribers' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(subscribers::REAL) AS value
+	FROM reddit_subreddit_subscribers
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.subreddit.active_user_count' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(active_user_count::REAL) AS value
+	FROM reddit_subreddit_active_user_count
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+-- name: GetRedditSubredditMetricsByIDsBucket8Hr :many
+SELECT *, 'reddit.subreddit.subscribers' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS bucket,
+	    MAX(subscribers::REAL) AS value
+	FROM reddit_subreddit_subscribers
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.subreddit.active_user_count' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS "bucket",
+	    MAX(active_user_count::REAL) AS "value"
+	FROM reddit_subreddit_active_user_count
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+-- name: GetRedditSubredditMetricsByIDsBucket1Day :many
+SELECT *, 'reddit.subreddit.subscribers' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(subscribers::REAL) AS value
+	FROM reddit_subreddit_subscribers
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.subreddit.active_user_count' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(active_user_count::REAL) AS value
+	FROM reddit_subreddit_active_user_count
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
