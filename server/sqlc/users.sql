@@ -35,5 +35,6 @@ WHERE email = ANY(@emails::VARCHAR[]);
 -- name: GetUserMetrics :many
 SELECT u.email, u.data AS "user_metadata", m.id, m.request_kind, m.data AS "metric_metadata"
 FROM users u
-LEFT JOIN users_metadata_through umt ON u.email = umt.email
-LEFT JOIN metadata m ON umt.id = m.id AND umt.request_kind = m.request_kind;
+INNER JOIN users_metadata_through umt ON u.email = umt.email
+INNER JOIN metadata m ON umt.id = m.id AND umt.request_kind = m.request_kind
+WHERE u.email = @email;

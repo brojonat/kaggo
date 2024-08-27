@@ -50,7 +50,7 @@ func handleYouTubeVideoMetricsPost(l *slog.Logger, q *dbgen.Queries) http.Handle
 				r.Context(),
 				dbgen.InsertYouTubeVideoViewsParams{
 					ID:    p.ID,
-					Views: int32(p.Views),
+					Views: int64(p.Views),
 				})
 			if err != nil {
 				writeInternalError(l, w, err)
@@ -126,7 +126,7 @@ func handleYouTubeChannelMetricsPost(l *slog.Logger, q *dbgen.Queries) http.Hand
 				r.Context(),
 				dbgen.InsertYouTubeChannelViewsParams{
 					ID:    p.ID,
-					Views: int32(p.Views),
+					Views: int64(p.Views),
 				})
 			if err != nil {
 				writeInternalError(l, w, err)

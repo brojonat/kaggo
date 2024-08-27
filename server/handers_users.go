@@ -32,6 +32,27 @@ func handleGetUsers(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	}
 }
 
+func handleGetUserMetrics(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		email := r.URL.Query().Get("email")
+		if email == "" {
+			writeBadRequestError(w, fmt.Errorf("must supply email(s)"))
+			return
+		}
+		res, err := q.GetUserMetrics(r.Context(), email)
+		if err != nil {
+			writeInternalError(l, w, err)
+			return
+		}
+		if len(res) == 0 {
+			writeEmptyResultError(w)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(res)
+	}
+}
+
 func handleAddUser(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body api.CreateUserPayload

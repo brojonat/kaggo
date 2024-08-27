@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS internal_random (
 CREATE TABLE IF NOT EXISTS youtube_video_views (
     id VARCHAR(255) NOT NULL,
     ts TIMESTAMPTZ NOT NULL,
-    views INTEGER NOT NULL
+    views BIGINT NOT NULL
 );
 
 -- youtube video likes
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS youtube_video_comments (
 CREATE TABLE IF NOT EXISTS youtube_channel_views (
     id VARCHAR(255) NOT NULL,
     ts TIMESTAMPTZ NOT NULL,
-    views INTEGER NOT NULL
+    views BIGINT NOT NULL
 );
 
 -- youtube channel subscribers

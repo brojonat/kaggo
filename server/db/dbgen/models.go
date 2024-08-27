@@ -107,7 +107,7 @@ type YoutubeChannelVideo struct {
 type YoutubeChannelView struct {
 	ID    string             `json:"id"`
 	Ts    pgtype.Timestamptz `json:"ts"`
-	Views int32              `json:"views"`
+	Views int64              `json:"views"`
 }
 
 type YoutubeVideoComment struct {
@@ -125,5 +125,5 @@ type YoutubeVideoLike struct {
 type YoutubeVideoView struct {
 	ID    string             `json:"id"`
 	Ts    pgtype.Timestamptz `json:"ts"`
-	Views int32              `json:"views"`
+	Views int64              `json:"views"`
 }

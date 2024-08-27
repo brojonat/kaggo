@@ -4,7 +4,7 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS youtube_channel_views (
     id VARCHAR(255) NOT NULL,
     ts TIMESTAMPTZ NOT NULL,
-    views INTEGER NOT NULL
+    views BIGINT NOT NULL
 );
 SELECT create_hypertable('youtube_channel_views', 'ts', if_not_exists => TRUE);
 CREATE INDEX IF NOT EXISTS youtube_channel_views_id ON youtube_channel_views (id, ts);

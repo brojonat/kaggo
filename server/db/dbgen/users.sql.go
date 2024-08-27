@@ -9,7 +9,6 @@ import (
 	"context"
 
 	jsonb "github.com/brojonat/kaggo/server/db/jsonb"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const deleteUsers = `-- name: DeleteUsers :exec
@@ -25,20 +24,21 @@ func (q *Queries) DeleteUsers(ctx context.Context, emails []string) error {
 const getUserMetrics = `-- name: GetUserMetrics :many
 SELECT u.email, u.data AS "user_metadata", m.id, m.request_kind, m.data AS "metric_metadata"
 FROM users u
-LEFT JOIN users_metadata_through umt ON u.email = umt.email
-LEFT JOIN metadata m ON umt.id = m.id AND umt.request_kind = m.request_kind
+INNER JOIN users_metadata_through umt ON u.email = umt.email
+INNER JOIN metadata m ON umt.id = m.id AND umt.request_kind = m.request_kind
+WHERE u.email = $1
 `
 
 type GetUserMetricsRow struct {
 	Email          string                 `json:"email"`
 	UserMetadata   jsonb.UserMetadataJSON `json:"user_metadata"`
-	ID             pgtype.Text            `json:"id"`
-	RequestKind    pgtype.Text            `json:"request_kind"`
+	ID             string                 `json:"id"`
+	RequestKind    string                 `json:"request_kind"`
 	MetricMetadata jsonb.MetadataJSON     `json:"metric_metadata"`
 }
 
-func (q *Queries) GetUserMetrics(ctx context.Context) ([]GetUserMetricsRow, error) {
-	rows, err := q.db.Query(ctx, getUserMetrics)
+func (q *Queries) GetUserMetrics(ctx context.Context, email string) ([]GetUserMetricsRow, error) {
+	rows, err := q.db.Query(ctx, getUserMetrics, email)
 	if err != nil {
 		return nil, err
 	}

@@ -84,48 +84,326 @@ func (q *Queries) GetYouTubeVideoMetricsByIDs(ctx context.Context, arg GetYouTub
 	return items, nil
 }
 
-const getYouTubeVideoMetricsByIDsBucketed = `-- name: GetYouTubeVideoMetricsByIDsBucketed :many
-SELECT
-    y.id AS "id",
-    FIRST(y.title, y.ts) AS "title",
-    time_bucket(INTERVAL '60 min', y.ts) AS "ts",
-    MAX(y.views::REAL) AS "value",
-    'youtube.video.views' AS "metric"
-FROM youtube_video_views AS y
-GROUP BY y.id, y.ts
-HAVING
-    y.id = ANY($1::VARCHAR[]) AND
-    y.ts >= $2 AND
-    y.ts <= $3
+const getYouTubeVideoMetricsByIDsBucket15Min = `-- name: GetYouTubeVideoMetricsByIDsBucket15Min :many
+SELECT id, bucket, value, 'youtube.video.views' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(views::REAL) AS "value"
+	FROM youtube_video_views
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'youtube.video.likes' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(likes::REAL) AS "value"
+	FROM youtube_video_likes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'youtube.video.comments' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(comments::REAL) AS "value"
+	FROM youtube_video_comments
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
 `
 
-type GetYouTubeVideoMetricsByIDsBucketedParams struct {
+type GetYouTubeVideoMetricsByIDsBucket15MinParams struct {
 	Ids     []string           `json:"ids"`
 	TsStart pgtype.Timestamptz `json:"ts_start"`
 	TsEnd   pgtype.Timestamptz `json:"ts_end"`
 }
 
-type GetYouTubeVideoMetricsByIDsBucketedRow struct {
+type GetYouTubeVideoMetricsByIDsBucket15MinRow struct {
 	ID     string      `json:"id"`
-	Title  interface{} `json:"title"`
-	Ts     interface{} `json:"ts"`
+	Bucket interface{} `json:"bucket"`
 	Value  interface{} `json:"value"`
 	Metric string      `json:"metric"`
 }
 
-func (q *Queries) GetYouTubeVideoMetricsByIDsBucketed(ctx context.Context, arg GetYouTubeVideoMetricsByIDsBucketedParams) ([]GetYouTubeVideoMetricsByIDsBucketedRow, error) {
-	rows, err := q.db.Query(ctx, getYouTubeVideoMetricsByIDsBucketed, arg.Ids, arg.TsStart, arg.TsEnd)
+func (q *Queries) GetYouTubeVideoMetricsByIDsBucket15Min(ctx context.Context, arg GetYouTubeVideoMetricsByIDsBucket15MinParams) ([]GetYouTubeVideoMetricsByIDsBucket15MinRow, error) {
+	rows, err := q.db.Query(ctx, getYouTubeVideoMetricsByIDsBucket15Min, arg.Ids, arg.TsStart, arg.TsEnd)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetYouTubeVideoMetricsByIDsBucketedRow
+	var items []GetYouTubeVideoMetricsByIDsBucket15MinRow
 	for rows.Next() {
-		var i GetYouTubeVideoMetricsByIDsBucketedRow
+		var i GetYouTubeVideoMetricsByIDsBucket15MinRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.Title,
-			&i.Ts,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getYouTubeVideoMetricsByIDsBucket1Day = `-- name: GetYouTubeVideoMetricsByIDsBucket1Day :many
+SELECT id, bucket, value, 'youtube.video.views' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(views::REAL) AS value
+	FROM youtube_video_views
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'youtube.video.likes' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(likes::REAL) AS value
+	FROM youtube_video_likes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'youtube.video.comments' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(comments::REAL) AS value
+	FROM youtube_video_comments
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetYouTubeVideoMetricsByIDsBucket1DayParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetYouTubeVideoMetricsByIDsBucket1DayRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetYouTubeVideoMetricsByIDsBucket1Day(ctx context.Context, arg GetYouTubeVideoMetricsByIDsBucket1DayParams) ([]GetYouTubeVideoMetricsByIDsBucket1DayRow, error) {
+	rows, err := q.db.Query(ctx, getYouTubeVideoMetricsByIDsBucket1Day, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetYouTubeVideoMetricsByIDsBucket1DayRow
+	for rows.Next() {
+		var i GetYouTubeVideoMetricsByIDsBucket1DayRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getYouTubeVideoMetricsByIDsBucket1Hr = `-- name: GetYouTubeVideoMetricsByIDsBucket1Hr :many
+SELECT id, bucket, value, 'youtube.video.views' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(views::REAL) AS value
+	FROM youtube_video_views
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'youtube.video.likes' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(likes::REAL) AS value
+	FROM youtube_video_likes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'youtube.video.comments' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(comments::REAL) AS value
+	FROM youtube_video_comments
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetYouTubeVideoMetricsByIDsBucket1HrParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetYouTubeVideoMetricsByIDsBucket1HrRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetYouTubeVideoMetricsByIDsBucket1Hr(ctx context.Context, arg GetYouTubeVideoMetricsByIDsBucket1HrParams) ([]GetYouTubeVideoMetricsByIDsBucket1HrRow, error) {
+	rows, err := q.db.Query(ctx, getYouTubeVideoMetricsByIDsBucket1Hr, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetYouTubeVideoMetricsByIDsBucket1HrRow
+	for rows.Next() {
+		var i GetYouTubeVideoMetricsByIDsBucket1HrRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getYouTubeVideoMetricsByIDsBucket8Hr = `-- name: GetYouTubeVideoMetricsByIDsBucket8Hr :many
+SELECT id, bucket, value, 'youtube.video.views' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS bucket,
+	    MAX(views::REAL) AS value
+	FROM youtube_video_views AS yvv
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'youtube.video.likes' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS "bucket",
+	    MAX(likes::REAL) AS "value"
+	FROM youtube_video_likes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'youtube.video.comments' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS "bucket",
+	    MAX(comments::REAL) AS "value"
+	FROM youtube_video_comments
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetYouTubeVideoMetricsByIDsBucket8HrParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetYouTubeVideoMetricsByIDsBucket8HrRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetYouTubeVideoMetricsByIDsBucket8Hr(ctx context.Context, arg GetYouTubeVideoMetricsByIDsBucket8HrParams) ([]GetYouTubeVideoMetricsByIDsBucket8HrRow, error) {
+	rows, err := q.db.Query(ctx, getYouTubeVideoMetricsByIDsBucket8Hr, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetYouTubeVideoMetricsByIDsBucket8HrRow
+	for rows.Next() {
+		var i GetYouTubeVideoMetricsByIDsBucket8HrRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
 			&i.Value,
 			&i.Metric,
 		); err != nil {
@@ -176,7 +454,7 @@ VALUES ($1, NOW()::TIMESTAMPTZ, $2)
 
 type InsertYouTubeVideoViewsParams struct {
 	ID    string `json:"id"`
-	Views int32  `json:"views"`
+	Views int64  `json:"views"`
 }
 
 func (q *Queries) InsertYouTubeVideoViews(ctx context.Context, arg InsertYouTubeVideoViewsParams) error {
