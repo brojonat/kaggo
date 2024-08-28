@@ -23,6 +23,4 @@ pgdump.sql
 temporal-starter/
 helm/
 fun.py
-
-
-
+schedule-dump.json

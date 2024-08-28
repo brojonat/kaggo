@@ -50,21 +50,21 @@ func GetDefaultPromMetrics() map[string]prometheus.Collector {
 				Name: "x_ratelimit_used",
 				Help: "The X-Ratelimit-Used header from an external server.",
 			},
-			[]string{"id", "request_kind"},
+			[]string{},
 		),
 		PromMetricXRatelimitRemaining: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "x_ratelimit_remaining",
 				Help: "The X-Ratelimit-Remaining header from an external server.",
 			},
-			[]string{"id", "request_kind"},
+			[]string{},
 		),
 		PromMetricXRatelimitReset: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "x_ratelimit_reset",
 				Help: "The X-Ratelimit-Reset header from an external server.",
 			},
-			[]string{"id", "request_kind"},
+			[]string{},
 		),
 	}
 }

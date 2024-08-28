@@ -23,6 +23,12 @@ func handleGetTimeSeriesByIDsBucketed(l *slog.Logger, q *dbgen.Queries) http.Han
 		case kt.RequestKindYouTubeVideo:
 			handleGetYouTubeVideoTimeSeriesByIDsBucketed(l, q)(w, r)
 			return
+		case kt.RequestKindKaggleNotebook:
+			handleGetKaggleNotebookTimeSeriesByIDsBucketed(l, q)(w, r)
+			return
+		case kt.RequestKindKaggleDataset:
+			handleGetKaggleDatasetTimeSeriesByIDsBucketed(l, q)(w, r)
+			return
 		case kt.RequestKindYouTubeChannel:
 			handleGetYouTubeChannelTimeSeriesByIDsBucketed(l, q)(w, r)
 			return

@@ -84,6 +84,341 @@ func (q *Queries) GetKaggleDatasetMetrics(ctx context.Context, arg GetKaggleData
 	return items, nil
 }
 
+const getKaggleDatasetMetricsByIDsBucket15Min = `-- name: GetKaggleDatasetMetricsByIDsBucket15Min :many
+
+
+SELECT id, bucket, value, 'kaggle.dataset.votes' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(votes::REAL) AS "value"
+	FROM kaggle_dataset_votes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'kaggle.dataset.views' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(views::REAL) AS "value"
+	FROM kaggle_dataset_views
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'kaggle.dataset.downloads' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(downloads::REAL) AS "value"
+	FROM kaggle_dataset_downloads
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetKaggleDatasetMetricsByIDsBucket15MinParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetKaggleDatasetMetricsByIDsBucket15MinRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+// Kaggle Dataset Bucketed Metrics
+func (q *Queries) GetKaggleDatasetMetricsByIDsBucket15Min(ctx context.Context, arg GetKaggleDatasetMetricsByIDsBucket15MinParams) ([]GetKaggleDatasetMetricsByIDsBucket15MinRow, error) {
+	rows, err := q.db.Query(ctx, getKaggleDatasetMetricsByIDsBucket15Min, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetKaggleDatasetMetricsByIDsBucket15MinRow
+	for rows.Next() {
+		var i GetKaggleDatasetMetricsByIDsBucket15MinRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getKaggleDatasetMetricsByIDsBucket1Day = `-- name: GetKaggleDatasetMetricsByIDsBucket1Day :many
+SELECT id, bucket, value, 'kaggle.dataset.votes' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(votes::REAL) AS value
+	FROM kaggle_dataset_votes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'kaggle.dataset.views' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(views::REAL) AS value
+	FROM kaggle_dataset_views
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'kaggle.dataset.downloads' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(downloads::REAL) AS value
+	FROM kaggle_dataset_downloads
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetKaggleDatasetMetricsByIDsBucket1DayParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetKaggleDatasetMetricsByIDsBucket1DayRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetKaggleDatasetMetricsByIDsBucket1Day(ctx context.Context, arg GetKaggleDatasetMetricsByIDsBucket1DayParams) ([]GetKaggleDatasetMetricsByIDsBucket1DayRow, error) {
+	rows, err := q.db.Query(ctx, getKaggleDatasetMetricsByIDsBucket1Day, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetKaggleDatasetMetricsByIDsBucket1DayRow
+	for rows.Next() {
+		var i GetKaggleDatasetMetricsByIDsBucket1DayRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getKaggleDatasetMetricsByIDsBucket1Hr = `-- name: GetKaggleDatasetMetricsByIDsBucket1Hr :many
+SELECT id, bucket, value, 'kaggle.dataset.votes' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(votes::REAL) AS value
+	FROM kaggle_dataset_votes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'kaggle.dataset.views' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(views::REAL) AS value
+	FROM kaggle_dataset_views
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'kaggle.dataset.downloads' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(downloads::REAL) AS value
+	FROM kaggle_dataset_downloads
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetKaggleDatasetMetricsByIDsBucket1HrParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetKaggleDatasetMetricsByIDsBucket1HrRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetKaggleDatasetMetricsByIDsBucket1Hr(ctx context.Context, arg GetKaggleDatasetMetricsByIDsBucket1HrParams) ([]GetKaggleDatasetMetricsByIDsBucket1HrRow, error) {
+	rows, err := q.db.Query(ctx, getKaggleDatasetMetricsByIDsBucket1Hr, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetKaggleDatasetMetricsByIDsBucket1HrRow
+	for rows.Next() {
+		var i GetKaggleDatasetMetricsByIDsBucket1HrRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getKaggleDatasetMetricsByIDsBucket8Hr = `-- name: GetKaggleDatasetMetricsByIDsBucket8Hr :many
+SELECT id, bucket, value, 'kaggle.dataset.votes' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS bucket,
+	    MAX(votes::REAL) AS value
+	FROM kaggle_dataset_votes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'kaggle.dataset.views' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS "bucket",
+	    MAX(views::REAL) AS "value"
+	FROM kaggle_dataset_views
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'kaggle.dataset.downloads' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(downloads::REAL) AS value
+	FROM kaggle_dataset_downloads
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetKaggleDatasetMetricsByIDsBucket8HrParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetKaggleDatasetMetricsByIDsBucket8HrRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetKaggleDatasetMetricsByIDsBucket8Hr(ctx context.Context, arg GetKaggleDatasetMetricsByIDsBucket8HrParams) ([]GetKaggleDatasetMetricsByIDsBucket8HrRow, error) {
+	rows, err := q.db.Query(ctx, getKaggleDatasetMetricsByIDsBucket8Hr, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetKaggleDatasetMetricsByIDsBucket8HrRow
+	for rows.Next() {
+		var i GetKaggleDatasetMetricsByIDsBucket8HrRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getKaggleNotebookMetrics = `-- name: GetKaggleNotebookMetrics :many
 SELECT
     k.id AS "id",
@@ -122,6 +457,226 @@ func (q *Queries) GetKaggleNotebookMetrics(ctx context.Context, arg GetKaggleNot
 		if err := rows.Scan(
 			&i.ID,
 			&i.Ts,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getKaggleNotebookMetricsByIDsBucket15Min = `-- name: GetKaggleNotebookMetricsByIDsBucket15Min :many
+
+
+SELECT id, bucket, value, 'kaggle.notebook.votes' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(votes::REAL) AS "value"
+	FROM kaggle_notebook_votes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetKaggleNotebookMetricsByIDsBucket15MinParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetKaggleNotebookMetricsByIDsBucket15MinRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+// Kaggle Notebook Bucketed Metrics
+func (q *Queries) GetKaggleNotebookMetricsByIDsBucket15Min(ctx context.Context, arg GetKaggleNotebookMetricsByIDsBucket15MinParams) ([]GetKaggleNotebookMetricsByIDsBucket15MinRow, error) {
+	rows, err := q.db.Query(ctx, getKaggleNotebookMetricsByIDsBucket15Min, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetKaggleNotebookMetricsByIDsBucket15MinRow
+	for rows.Next() {
+		var i GetKaggleNotebookMetricsByIDsBucket15MinRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getKaggleNotebookMetricsByIDsBucket1Day = `-- name: GetKaggleNotebookMetricsByIDsBucket1Day :many
+SELECT id, bucket, value, 'kaggle.notebook.votes' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(votes::REAL) AS value
+	FROM kaggle_notebook_votes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetKaggleNotebookMetricsByIDsBucket1DayParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetKaggleNotebookMetricsByIDsBucket1DayRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetKaggleNotebookMetricsByIDsBucket1Day(ctx context.Context, arg GetKaggleNotebookMetricsByIDsBucket1DayParams) ([]GetKaggleNotebookMetricsByIDsBucket1DayRow, error) {
+	rows, err := q.db.Query(ctx, getKaggleNotebookMetricsByIDsBucket1Day, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetKaggleNotebookMetricsByIDsBucket1DayRow
+	for rows.Next() {
+		var i GetKaggleNotebookMetricsByIDsBucket1DayRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getKaggleNotebookMetricsByIDsBucket1Hr = `-- name: GetKaggleNotebookMetricsByIDsBucket1Hr :many
+SELECT id, bucket, value, 'kaggle.notebook.votes' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(votes::REAL) AS value
+	FROM kaggle_notebook_votes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetKaggleNotebookMetricsByIDsBucket1HrParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetKaggleNotebookMetricsByIDsBucket1HrRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetKaggleNotebookMetricsByIDsBucket1Hr(ctx context.Context, arg GetKaggleNotebookMetricsByIDsBucket1HrParams) ([]GetKaggleNotebookMetricsByIDsBucket1HrRow, error) {
+	rows, err := q.db.Query(ctx, getKaggleNotebookMetricsByIDsBucket1Hr, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetKaggleNotebookMetricsByIDsBucket1HrRow
+	for rows.Next() {
+		var i GetKaggleNotebookMetricsByIDsBucket1HrRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getKaggleNotebookMetricsByIDsBucket8Hr = `-- name: GetKaggleNotebookMetricsByIDsBucket8Hr :many
+SELECT id, bucket, value, 'kaggle.notebook.votes' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS bucket,
+	    MAX(votes::REAL) AS value
+	FROM kaggle_notebook_votes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetKaggleNotebookMetricsByIDsBucket8HrParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetKaggleNotebookMetricsByIDsBucket8HrRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetKaggleNotebookMetricsByIDsBucket8Hr(ctx context.Context, arg GetKaggleNotebookMetricsByIDsBucket8HrParams) ([]GetKaggleNotebookMetricsByIDsBucket8HrRow, error) {
+	rows, err := q.db.Query(ctx, getKaggleNotebookMetricsByIDsBucket8Hr, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetKaggleNotebookMetricsByIDsBucket8HrRow
+	for rows.Next() {
+		var i GetKaggleNotebookMetricsByIDsBucket8HrRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
 			&i.Value,
 			&i.Metric,
 		); err != nil {

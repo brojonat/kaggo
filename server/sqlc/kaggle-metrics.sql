@@ -60,3 +60,262 @@ WHERE
     k.ts >= @ts_start AND
     k.ts <= @ts_end;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- Kaggle Notebook Bucketed Metrics
+
+
+-- name: GetKaggleNotebookMetricsByIDsBucket15Min :many
+SELECT *, 'kaggle.notebook.votes' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(votes::REAL) AS "value"
+	FROM kaggle_notebook_votes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+-- name: GetKaggleNotebookMetricsByIDsBucket1Hr :many
+SELECT *, 'kaggle.notebook.votes' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(votes::REAL) AS value
+	FROM kaggle_notebook_votes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+-- name: GetKaggleNotebookMetricsByIDsBucket8Hr :many
+SELECT *, 'kaggle.notebook.votes' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS bucket,
+	    MAX(votes::REAL) AS value
+	FROM kaggle_notebook_votes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+-- name: GetKaggleNotebookMetricsByIDsBucket1Day :many
+SELECT *, 'kaggle.notebook.votes' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(votes::REAL) AS value
+	FROM kaggle_notebook_votes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+
+-- Kaggle Dataset Bucketed Metrics
+
+
+-- name: GetKaggleDatasetMetricsByIDsBucket15Min :many
+SELECT *, 'kaggle.dataset.votes' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(votes::REAL) AS "value"
+	FROM kaggle_dataset_votes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'kaggle.dataset.views' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(views::REAL) AS "value"
+	FROM kaggle_dataset_views
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'kaggle.dataset.downloads' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(downloads::REAL) AS "value"
+	FROM kaggle_dataset_downloads
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+-- name: GetKaggleDatasetMetricsByIDsBucket1Hr :many
+SELECT *, 'kaggle.dataset.votes' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(votes::REAL) AS value
+	FROM kaggle_dataset_votes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'kaggle.dataset.views' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(views::REAL) AS value
+	FROM kaggle_dataset_views
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'kaggle.dataset.downloads' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(downloads::REAL) AS value
+	FROM kaggle_dataset_downloads
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+-- name: GetKaggleDatasetMetricsByIDsBucket8Hr :many
+SELECT *, 'kaggle.dataset.votes' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS bucket,
+	    MAX(votes::REAL) AS value
+	FROM kaggle_dataset_votes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'kaggle.dataset.views' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS "bucket",
+	    MAX(views::REAL) AS "value"
+	FROM kaggle_dataset_views
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'kaggle.dataset.downloads' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(downloads::REAL) AS value
+	FROM kaggle_dataset_downloads
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+-- name: GetKaggleDatasetMetricsByIDsBucket1Day :many
+SELECT *, 'kaggle.dataset.votes' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(votes::REAL) AS value
+	FROM kaggle_dataset_votes
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'kaggle.dataset.views' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(views::REAL) AS value
+	FROM kaggle_dataset_views
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'kaggle.dataset.downloads' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(downloads::REAL) AS value
+	FROM kaggle_dataset_downloads
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
