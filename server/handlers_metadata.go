@@ -16,7 +16,7 @@ import (
 	"go.temporal.io/sdk/temporal"
 )
 
-func handleRunMetadataWF(l *slog.Logger, tc client.Client) http.HandlerFunc {
+func handleRunMetadataWF(l *slog.Logger, q *dbgen.Queries, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// parse body
 		b, err := io.ReadAll(r.Body)
@@ -33,7 +33,7 @@ func handleRunMetadataWF(l *slog.Logger, tc client.Client) http.HandlerFunc {
 		}
 
 		// prepare the request to pass to the workflow
-		_, serialReq, id, err := makeExternalRequest(body.RequestKind, body.ID)
+		_, serialReq, id, err := makeExternalRequest(q, body.RequestKind, body.ID, true)
 		if err != nil {
 			if errors.Is(err, errUnsupportedRequestKind) {
 				writeBadRequestError(w, fmt.Errorf("%w: %s", err, body.RequestKind))

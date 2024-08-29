@@ -25,6 +25,7 @@ import (
 // the following keys are specified.
 const (
 	PromMetricInternalRandom      = "pm-internal-random"
+	PromMetricXRatelimitLimit     = "pm-x-ratelimit-limit"
 	PromMetricXRatelimitUsed      = "pm-x-ratelimit-used"
 	PromMetricXRatelimitRemaining = "pm-x-ratelimit-remaining"
 	PromMetricXRatelimitReset     = "pm-x-ratelimit-reset"
@@ -45,26 +46,33 @@ func GetDefaultPromMetrics() map[string]prometheus.Collector {
 			},
 			[]string{"id"},
 		),
+		PromMetricXRatelimitLimit: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "x_ratelimit_limit",
+				Help: "The X-Ratelimit-Limit header from an external server.",
+			},
+			[]string{"source"},
+		),
 		PromMetricXRatelimitUsed: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "x_ratelimit_used",
 				Help: "The X-Ratelimit-Used header from an external server.",
 			},
-			[]string{},
+			[]string{"source"},
 		),
 		PromMetricXRatelimitRemaining: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "x_ratelimit_remaining",
 				Help: "The X-Ratelimit-Remaining header from an external server.",
 			},
-			[]string{},
+			[]string{"source"},
 		),
 		PromMetricXRatelimitReset: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "x_ratelimit_reset",
 				Help: "The X-Ratelimit-Reset header from an external server.",
 			},
-			[]string{},
+			[]string{"source"},
 		),
 	}
 }
@@ -191,7 +199,7 @@ func getRouter(
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
 	mux.HandleFunc("POST /metadata/run-workflow", stools.AdaptHandler(
-		handleRunMetadataWF(l, tc),
+		handleRunMetadataWF(l, q, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
@@ -203,7 +211,7 @@ func getRouter(
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
 	mux.Handle("POST /schedule", stools.AdaptHandler(
-		handleCreateSchedule(l, tc),
+		handleCreateSchedule(l, q, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
@@ -251,7 +259,6 @@ func getRouter(
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
-
 	// youtube channel metrics
 	mux.HandleFunc("GET /youtube/channel", stools.AdaptHandler(
 		handleYouTubeChannelMetricsGet(l, q),
@@ -275,6 +282,7 @@ func getRouter(
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
+
 	// kaggle dataset metrics
 	mux.HandleFunc("GET /kaggle/dataset", stools.AdaptHandler(
 		handleKaggleDatasetMetricsGet(l, q),
@@ -286,6 +294,7 @@ func getRouter(
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
+
 	// reddit post metrics
 	mux.HandleFunc("GET /reddit/post", stools.AdaptHandler(
 		handleRedditPostMetricsGet(l, q),
@@ -297,6 +306,7 @@ func getRouter(
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
+
 	// reddit comment metrics
 	mux.HandleFunc("GET /reddit/comment", stools.AdaptHandler(
 		handleRedditCommentMetricsGet(l, q),
@@ -308,6 +318,7 @@ func getRouter(
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
+
 	// reddit subreddit metrics
 	mux.HandleFunc("GET /reddit/subreddit", stools.AdaptHandler(
 		handleRedditSubredditMetricsGet(l, q),
@@ -316,6 +327,34 @@ func getRouter(
 	))
 	mux.HandleFunc("POST /reddit/subreddit", stools.AdaptHandler(
 		handleRedditSubredditMetricsPost(l, q, pms),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+
+	// twitch clip metrics
+	mux.HandleFunc("POST /twitch/clip", stools.AdaptHandler(
+		handleTwitchClipMetricsPost(l, q, pms),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+
+	// twitch video metrics
+	mux.HandleFunc("POST /twitch/video", stools.AdaptHandler(
+		handleTwitchVideoMetricsPost(l, q, pms),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+
+	// twitch stream metrics
+	mux.HandleFunc("POST /twitch/stream", stools.AdaptHandler(
+		handleTwitchStreamMetricsPost(l, q, pms),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+
+	// twitch user-past-dec metrics
+	mux.HandleFunc("POST /twitch/user-past-dec", stools.AdaptHandler(
+		handleTwitchUserPastDecMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))

@@ -167,109 +167,151 @@ func main() {
 						},
 					},
 					{
-						Name:  "tinker",
-						Usage: "testing sandbox/playground",
-						Flags: []cli.Flag{
-							&cli.StringFlag{
-								Name:    "test",
-								Aliases: []string{"t"},
-								Usage:   "test if passed to subcommand",
-							},
-						},
+						Name:  "schedule",
+						Usage: "Schedule operations",
 						Subcommands: []*cli.Command{
 							{
-								Name: "inner",
+								Name:  "create-schedule",
+								Usage: "Create a schedule",
 								Flags: []cli.Flag{
-									&cli.StringFlag{Name: "test2", Aliases: []string{"t2"}, Usage: "testing"},
+									&cli.StringFlag{
+										Name:     "endpoint",
+										Aliases:  []string{"end", "e"},
+										Required: true,
+										Usage:    "Kaggo server endpoint",
+									},
+									&cli.StringFlag{
+										Name:     "request-kind",
+										Aliases:  []string{"rk", "r"},
+										Required: true,
+										Usage:    "Request kind for the schedule",
+									},
+									&cli.StringFlag{
+										Name:     "id",
+										Aliases:  []string{"i"},
+										Required: true,
+										Usage:    "Identifier for the schedule",
+									},
 								},
 								Action: func(ctx *cli.Context) error {
-									return tinker(ctx)
+									return create_schedule(ctx)
+								},
+							},
+							{
+								Name:  "delete-schedule",
+								Usage: "Delete a schedule",
+								Flags: []cli.Flag{
+									&cli.StringFlag{
+										Name:     "endpoint",
+										Aliases:  []string{"end", "e"},
+										Required: true,
+										Usage:    "Kaggo server endpoint",
+									},
+									&cli.StringFlag{
+										Name:     "schedule-id",
+										Aliases:  []string{"schedule_id", "sid", "s", "id"},
+										Required: true,
+										Usage:    "Schedule to delete",
+									},
+								},
+								Action: func(ctx *cli.Context) error {
+									return delete_schedule(ctx)
+								},
+							},
+							{
+								Name:  "dump-schedules",
+								Usage: "Dump schedules to file",
+								Flags: []cli.Flag{
+									&cli.StringFlag{
+										Name:     "endpoint",
+										Aliases:  []string{"end", "e"},
+										Required: true,
+										Usage:    "Kaggo server endpoint",
+									},
+									&cli.StringFlag{
+										Name:     "file",
+										Aliases:  []string{"f"},
+										Required: true,
+										Usage:    "Output file location",
+									},
+								},
+								Action: func(ctx *cli.Context) error {
+									return dump_schedules(ctx)
+								},
+							},
+							{
+								Name:  "load-schedules",
+								Usage: "Load schedules from file",
+								Flags: []cli.Flag{
+									&cli.StringFlag{
+										Name:     "endpoint",
+										Aliases:  []string{"end", "e"},
+										Required: true,
+										Usage:    "Kaggo server endpoint",
+									},
+									&cli.StringFlag{
+										Name:     "file",
+										Aliases:  []string{"f"},
+										Required: true,
+										Usage:    "Input file location",
+									},
+								},
+								Action: func(ctx *cli.Context) error {
+									return load_schedules(ctx)
+								},
+							},
+							{
+								Name:  "delete-all-schedules",
+								Usage: "Delete all schedules. Be sure to dump a backup first!",
+								Flags: []cli.Flag{
+									&cli.StringFlag{
+										Name:     "endpoint",
+										Aliases:  []string{"end", "e"},
+										Required: true,
+										Usage:    "Kaggo server endpoint",
+									},
+								},
+								Action: func(ctx *cli.Context) error {
+									return delete_all_schedules(ctx)
 								},
 							},
 						},
 					},
 					{
-						Name:  "run-metadata-workflow",
-						Usage: "Send a POST request to initiate a metadata workflow",
-						Flags: []cli.Flag{
-							&cli.StringFlag{
-								Name:     "endpoint",
-								Aliases:  []string{"end", "e"},
-								Required: true,
-								Usage:    "Kaggo server endpoint",
+						Name:  "workflow",
+						Usage: "Commands for managing workflows",
+						Subcommands: []*cli.Command{
+							{
+								Name:  "run-metadata-workflow",
+								Usage: "Send a POST request to initiate a metadata workflow",
+								Flags: []cli.Flag{
+									&cli.StringFlag{
+										Name:     "endpoint",
+										Aliases:  []string{"end", "e"},
+										Required: true,
+										Usage:    "Kaggo server endpoint",
+									},
+									&cli.StringFlag{
+										Name:     "request-kind",
+										Aliases:  []string{"rk", "r"},
+										Required: true,
+										Usage:    "Request kind to perform",
+									},
+									&cli.StringFlag{
+										Name:    "id",
+										Aliases: []string{"i"},
+										Usage:   "Resource ID for the request",
+									},
+									&cli.BoolFlag{
+										Name:    "all-ids",
+										Aliases: []string{"all", "a"},
+										Usage:   "Run for all IDs",
+									},
+								},
+								Action: func(ctx *cli.Context) error {
+									return run_metadata_wf(ctx)
+								},
 							},
-							&cli.StringFlag{
-								Name:     "request-kind",
-								Aliases:  []string{"rk", "r"},
-								Required: true,
-								Usage:    "Request kind to perform",
-							},
-							&cli.StringFlag{
-								Name:     "id",
-								Aliases:  []string{"i"},
-								Required: true,
-								Usage:    "Resource ID for the request",
-							},
-						},
-						Action: func(ctx *cli.Context) error {
-							return run_metadata_wf(ctx)
-						},
-					},
-					{
-						Name:  "dump-schedules",
-						Usage: "Dump schedules to file",
-						Flags: []cli.Flag{
-							&cli.StringFlag{
-								Name:     "endpoint",
-								Aliases:  []string{"end", "e"},
-								Required: true,
-								Usage:    "Kaggo server endpoint",
-							},
-							&cli.StringFlag{
-								Name:     "file",
-								Aliases:  []string{"f"},
-								Required: true,
-								Usage:    "Output file location",
-							},
-						},
-						Action: func(ctx *cli.Context) error {
-							return dump_schedules(ctx)
-						},
-					},
-					{
-						Name:  "delete-all-schedules",
-						Usage: "Delete all schedules. Be sure to dump a backup first!",
-						Flags: []cli.Flag{
-							&cli.StringFlag{
-								Name:     "endpoint",
-								Aliases:  []string{"end", "e"},
-								Required: true,
-								Usage:    "Kaggo server endpoint",
-							},
-						},
-						Action: func(ctx *cli.Context) error {
-							return delete_all_schedules(ctx)
-						},
-					},
-					{
-						Name:  "load-schedules",
-						Usage: "Load schedules from file",
-						Flags: []cli.Flag{
-							&cli.StringFlag{
-								Name:     "endpoint",
-								Aliases:  []string{"end", "e"},
-								Required: true,
-								Usage:    "Kaggo server endpoint",
-							},
-							&cli.StringFlag{
-								Name:     "file",
-								Aliases:  []string{"f"},
-								Required: true,
-								Usage:    "Input file location",
-							},
-						},
-						Action: func(ctx *cli.Context) error {
-							return load_schedules(ctx)
 						},
 					},
 				},
@@ -326,6 +368,20 @@ func main() {
 							return run_worker(ctx)
 						},
 					},
+				},
+			},
+			{
+				Name:  "tinker",
+				Usage: "testing sandbox/playground",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "test",
+						Aliases: []string{"t"},
+						Usage:   "Test flag",
+					},
+				},
+				Action: func(ctx *cli.Context) error {
+					return tinker(ctx)
 				},
 			},
 		}}

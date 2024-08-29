@@ -5,13 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
+	"time"
 
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/jmespath/go-jmespath"
 	"go.temporal.io/sdk/log"
+	"gonum.org/v1/gonum/stat"
 )
 
 // Helper to upload metrics to the kaggo backend
@@ -73,7 +77,7 @@ func (a *ActivityRequester) handleInternalRandomMetrics(l log.Logger, status int
 
 	payload := api.InternalMetricPayload{
 		ID:           id,
-		Value:        int(value),
+		Value:        int(math.Round(value)),
 		InternalData: internalData,
 	}
 	b, err = json.Marshal(payload)
@@ -145,11 +149,11 @@ func (a *ActivityRequester) handleYouTubeVideoMetrics(l log.Logger, status int, 
 	payload := api.YouTubeVideoMetricPayload{
 		ID:           id,
 		SetViews:     true,
-		Views:        int(views),
+		Views:        views,
 		SetComments:  true,
-		Comments:     int(comments),
+		Comments:     comments,
 		SetLikes:     true,
-		Likes:        int(likes),
+		Likes:        likes,
 		InternalData: internalData,
 	}
 	b, err = json.Marshal(payload)
@@ -221,11 +225,11 @@ func (a *ActivityRequester) handleYouTubeChannelMetrics(l log.Logger, status int
 	payload := api.YouTubeChannelMetricPayload{
 		ID:             id,
 		SetViews:       true,
-		Views:          int(views),
+		Views:          views,
 		SetSubscribers: true,
-		Subscribers:    int(subscribers),
+		Subscribers:    subscribers,
 		SetVideos:      true,
-		Videos:         int(videos),
+		Videos:         videos,
 		InternalData:   internalData,
 	}
 	b, err = json.Marshal(payload)
@@ -266,7 +270,7 @@ func (a *ActivityRequester) handleKaggleNotebookMetrics(l log.Logger, status int
 	payload := api.KaggleNotebookMetricPayload{
 		ID:           id,
 		SetVotes:     true,
-		Votes:        int(votes),
+		Votes:        int(math.Round(votes)),
 		InternalData: internalData,
 	}
 	b, err = json.Marshal(payload)
@@ -328,11 +332,11 @@ func (a *ActivityRequester) handleKaggleDatasetMetrics(l log.Logger, status int,
 	payload := api.KaggleDatasetMetricPayload{
 		ID:           id,
 		SetViews:     true,
-		Views:        int(views),
+		Views:        int(math.Round(views)),
 		SetVotes:     true,
-		Votes:        int(votes),
+		Votes:        int(math.Round(votes)),
 		SetDownloads: true,
-		Downloads:    int(downloads),
+		Downloads:    int(math.Round(downloads)),
 		InternalData: internalData,
 	}
 
@@ -385,7 +389,7 @@ func (a *ActivityRequester) handleRedditPostMetrics(l log.Logger, status int, b 
 	payload := api.RedditPostMetricPayload{
 		ID:           id,
 		SetScore:     true,
-		Score:        int(score),
+		Score:        int(math.Round(score)),
 		SetRatio:     true,
 		Ratio:        float32(ratio),
 		InternalData: internalData,
@@ -440,7 +444,7 @@ func (a *ActivityRequester) handleRedditCommentMetrics(l log.Logger, status int,
 	payload := api.RedditCommentMetricPayload{
 		ID:                  id,
 		SetScore:            true,
-		Score:               int(score),
+		Score:               int(math.Round(score)),
 		SetControversiality: true,
 		Controversiality:    float32(cont),
 		InternalData:        internalData,
@@ -493,9 +497,9 @@ func (a *ActivityRequester) handleRedditSubredditMetrics(l log.Logger, status in
 	payload := api.RedditSubredditMetricPayload{
 		ID:                 id,
 		SetSubscribers:     true,
-		Subscribers:        int(subscribers),
+		Subscribers:        int(math.Round(subscribers)),
 		SetActiveUserCount: true,
-		ActiveUserCount:    int(active_user_count),
+		ActiveUserCount:    int(math.Round(active_user_count)),
 		InternalData:       internalData,
 	}
 	b, err = json.Marshal(payload)
@@ -503,4 +507,201 @@ func (a *ActivityRequester) handleRedditSubredditMetrics(l log.Logger, status in
 		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
 	}
 	return uploadMetrics(l, "/reddit/subreddit", b)
+}
+
+// Handle RequestKindTwitchClip requests
+func (a *ActivityRequester) handleTwitchClipMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+	var data interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		return nil, fmt.Errorf("error deserializing response: %w", err)
+	}
+	// id
+	iface, err := jmespath.Search("data[0].id", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting id: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting id; id is nil")
+	}
+	id := iface.(string)
+
+	// view_count
+	iface, err = jmespath.Search("data[0].view_count", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting view_count: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting view_count; view_count is nil")
+	}
+	vc := iface.(float64)
+
+	// upload the metrics to the server
+	payload := api.TwitchClipMetricPayload{
+		ID:           id,
+		SetViewCount: true,
+		ViewCount:    int(math.Round(vc)),
+		InternalData: internalData,
+	}
+	b, err = json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
+	}
+	return uploadMetrics(l, "/twitch/clip", b)
+}
+
+// Handle RequestKindTwitchVideo requests
+func (a *ActivityRequester) handleTwitchVideoMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+	var data interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		return nil, fmt.Errorf("error deserializing response: %w", err)
+	}
+	// id
+	iface, err := jmespath.Search("data[0].id", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting id: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting id; id is nil")
+	}
+	id := iface.(string)
+
+	// view_count
+	iface, err = jmespath.Search("data[0].view_count", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting view_count: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting view_count; view_count is nil")
+	}
+	vc := iface.(float64)
+
+	// upload the metrics to the server
+	payload := api.TwitchVideoMetricPayload{
+		ID:           id,
+		SetViewCount: true,
+		ViewCount:    int(math.Round(vc)),
+		InternalData: internalData,
+	}
+	b, err = json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
+	}
+	return uploadMetrics(l, "/twitch/video", b)
+}
+
+// Handle RequestKindTwitchStream requests
+func (a *ActivityRequester) handleTwitchStreamMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+	var data interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		return nil, fmt.Errorf("error deserializing response: %w", err)
+	}
+
+	// short circuit if nothing is returned; streamer is probably just offline
+	iface, err := jmespath.Search("data | count(@)", data)
+	if err != nil {
+		return nil, fmt.Errorf("error counting stream results: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error counting stream results; count is nil")
+	}
+	count := iface.(float64)
+	if count < 1 {
+		return &api.DefaultJSONResponse{Message: "ok"}, nil
+	}
+
+	// id
+	iface, err = jmespath.Search("data[0].user_login", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting user_login: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting user_login; user_login is nil")
+	}
+	user_login := iface.(string)
+
+	// view_count
+	iface, err = jmespath.Search("data[0].viewer_count", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting viewer_count: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting viewer_count; viewer_count is nil")
+	}
+	vc := iface.(float64)
+
+	// upload the metrics to the server
+	payload := api.TwitchStreamMetricPayload{
+		ID:           user_login,
+		SetViewCount: true,
+		ViewCount:    int(math.Round(vc)),
+		InternalData: internalData,
+	}
+	b, err = json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
+	}
+	return uploadMetrics(l, "/twitch/stream", b)
+}
+
+// Handle RequestKindTwitchUserLastDec requests
+func (a *ActivityRequester) handleTwitchUserPastDecMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+	var body struct {
+		Data []struct {
+			UserID    string `json:"user_login"`
+			ViewCount int    `json:"view_count"`
+			Duration  string `json:"duration"`
+		}
+	}
+
+	if err := json.Unmarshal(b, &body); err != nil {
+		return nil, fmt.Errorf("error deserializing response: %w", err)
+	}
+
+	views := []float64{}
+	durs := []float64{}
+
+	for _, v := range body.Data {
+		views = append(views, float64(v.ViewCount))
+		d, err := time.ParseDuration(v.Duration)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing video duration %s: %w", v.Duration, err)
+		}
+		durs = append(durs, float64(d/time.Second))
+	}
+
+	slices.Sort(views)
+	slices.Sort(durs)
+
+	// views
+	avc := stat.Mean(views, nil)
+	mvc := stat.Quantile(0.5, stat.LinInterp, views, nil)
+	svc := stat.StdDev(views, nil)
+
+	// durations
+	ad := stat.Mean(durs, nil)
+	md := stat.Quantile(0.5, stat.LinInterp, durs, nil)
+	sd := stat.StdDev(durs, nil)
+
+	// upload the metrics to the server
+	payload := api.TwitchUserPastDecMetricPayload{
+		ID:              body.Data[0].UserID,
+		SetAvgViewCount: true,
+		AvgViewCount:    float32(avc),
+		SetMedViewCount: true,
+		MedViewCount:    float32(mvc),
+		SetStdViewCount: true,
+		StdViewCount:    float32(svc),
+		SetAvgDuration:  true,
+		AvgDuration:     float32(ad),
+		SetMedDuration:  true,
+		MedDuration:     float32(md),
+		SetStdDuration:  true,
+		StdDuration:     float32(sd),
+		InternalData:    internalData,
+	}
+	b, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
+	}
+	return uploadMetrics(l, "/twitch/user-past-dec", b)
 }

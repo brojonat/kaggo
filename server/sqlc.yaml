@@ -9,6 +9,7 @@ sql:
       - "sqlc/youtube-video-metrics.sql"
       - "sqlc/youtube-channel-metrics.sql"
       - "sqlc/reddit-metrics.sql"
+      - "sqlc/twitch-metrics.sql"
     schema: "sqlc/schema.sql"
     gen:
       go:

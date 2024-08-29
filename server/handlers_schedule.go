@@ -8,8 +8,10 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/brojonat/kaggo/server/api"
+	"github.com/brojonat/kaggo/server/db/dbgen"
 	kt "github.com/brojonat/kaggo/temporal/v19700101"
 	"github.com/brojonat/server-tools/stools"
 	"go.temporal.io/api/enums/v1"
@@ -19,6 +21,7 @@ import (
 
 func handleGetSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		rk := r.URL.Query().Get("request_kind")
 		ss, err := tc.ScheduleClient().List(r.Context(), client.ScheduleListOptions{})
 		if err != nil {
 			writeBadRequestError(w, err)
@@ -33,7 +36,9 @@ func handleGetSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 			if err != nil {
 				break
 			}
-			res = append(res, s)
+			if rk == "" || strings.HasPrefix(s.ID, rk) {
+				res = append(res, s)
+			}
 		}
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(res)
@@ -41,7 +46,7 @@ func handleGetSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 }
 
 // create a schedule to query an external api based on the user submitted data
-func handleCreateSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
+func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// parse body
 		b, err := io.ReadAll(r.Body)
@@ -57,8 +62,8 @@ func handleCreateSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 			return
 		}
 
-		// prepare the request to pass to the workflow
-		_, serialReq, id, err := makeExternalRequest(body.RequestKind, body.ID)
+		// prepare the request to pass to the metadata workflow
+		_, serialReq, id, err := makeExternalRequest(q, body.RequestKind, body.ID, true)
 		if err != nil {
 			if errors.Is(err, errUnsupportedRequestKind) {
 				writeBadRequestError(w, fmt.Errorf("%w: %s", err, body.RequestKind))
@@ -108,6 +113,17 @@ func handleCreateSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 		// at present we're only using the same fixed schedule, so implement validation
 		// later if it's actually needed.
 		sched := body.Schedule
+
+		// prepare the request to pass to the polling workflow
+		_, serialReq, id, err = makeExternalRequest(q, body.RequestKind, body.ID, false)
+		if err != nil {
+			if errors.Is(err, errUnsupportedRequestKind) {
+				writeBadRequestError(w, fmt.Errorf("%w: %s", err, body.RequestKind))
+				return
+			}
+			writeInternalError(l, w, err)
+			return
+		}
 
 		// Create the schedule.
 		_, err = tc.ScheduleClient().Create(

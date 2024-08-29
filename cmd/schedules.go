@@ -15,6 +15,21 @@ import (
 	"go.temporal.io/sdk/client"
 )
 
+func getDefaultScheduleSpec(rk, id string) client.ScheduleSpec {
+	s := client.ScheduleSpec{
+		Calendars: []client.ScheduleCalendarSpec{
+			{
+				Second:  []client.ScheduleRange{{Start: 0}},
+				Minute:  []client.ScheduleRange{{Start: 0, End: 59}},
+				Hour:    []client.ScheduleRange{{Start: 0, End: 23}},
+				Comment: "Every minute",
+			},
+		},
+		Jitter: 60000000000,
+	}
+	return s
+}
+
 func dump_schedules(ctx *cli.Context) error {
 	r, err := http.NewRequest(http.MethodGet, ctx.String("endpoint")+"/schedule", nil)
 	if err != nil {
@@ -174,6 +189,63 @@ func load_schedules(ctx *cli.Context) error {
 			fmt.Fprintf(os.Stderr, "%s response uploading schedule %d (%s): %s\n", res.Status, i, sched.ID, rbody.Error)
 			continue
 		}
+	}
+	return nil
+}
+
+func create_schedule(ctx *cli.Context) error {
+	rk := ctx.String("request-kind")
+	id := ctx.String("id")
+	sched := getDefaultScheduleSpec(rk, id)
+	payload := api.GenericScheduleRequestPayload{
+		RequestKind: rk,
+		ID:          id,
+		Schedule:    sched,
+	}
+	b, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	r, err := http.NewRequest(http.MethodPost, ctx.String("endpoint")+"/schedule", bytes.NewReader(b))
+	if err != nil {
+		return err
+	}
+	r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("AUTH_TOKEN")))
+	res, err := http.DefaultClient.Do(r)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	b, err = io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad response from server: %d: %s", res.StatusCode, string(b))
+	}
+	return nil
+}
+
+func delete_schedule(ctx *cli.Context) error {
+	r, err := http.NewRequest(http.MethodDelete, ctx.String("endpoint")+"/schedule", nil)
+	if err != nil {
+		return err
+	}
+	r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("AUTH_TOKEN")))
+	q := r.URL.Query()
+	q.Add("schedule_id", ctx.String("schedule_id"))
+	r.URL.RawQuery = q.Encode()
+	res, err := http.DefaultClient.Do(r)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	b, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad response from server: %d: %s", res.StatusCode, string(b))
 	}
 	return nil
 }

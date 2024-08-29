@@ -137,3 +137,66 @@ CREATE TABLE IF NOT EXISTS reddit_subreddit_active_user_count (
     ts TIMESTAMPTZ NOT NULL,
     active_user_count INTEGER NOT NULL
 );
+
+-- twitch clip views
+CREATE TABLE IF NOT EXISTS twitch_clip_views (
+    id VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    views BIGINT NOT NULL
+);
+
+-- twitch video views
+CREATE TABLE IF NOT EXISTS twitch_video_views (
+    id VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    views BIGINT NOT NULL
+);
+
+-- twitch stream views
+CREATE TABLE IF NOT EXISTS twitch_stream_views (
+    id VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    views BIGINT NOT NULL
+);
+
+-- twitch user past dec avg views
+CREATE TABLE IF NOT EXISTS twitch_user_past_dec_avg_views (
+    id VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    avg_views REAL NOT NULL
+);
+
+-- twitch user past dec med views
+CREATE TABLE IF NOT EXISTS twitch_user_past_dec_med_views (
+    id VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    med_views REAL NOT NULL
+);
+
+-- twitch user past dec std views
+CREATE TABLE IF NOT EXISTS twitch_user_past_dec_std_views (
+    id VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    std_views REAL NOT NULL
+);
+
+-- twitch user past dec avg duration
+CREATE TABLE IF NOT EXISTS twitch_user_past_dec_avg_duration (
+    id VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    avg_duration REAL NOT NULL
+);
+
+-- twitch user past dec med duration
+CREATE TABLE IF NOT EXISTS twitch_user_past_dec_med_duration (
+    id VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    med_duration REAL NOT NULL
+);
+
+-- twitch user past dec std duration
+CREATE TABLE IF NOT EXISTS twitch_user_past_dec_std_duration (
+    id VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    std_duration REAL NOT NULL
+);

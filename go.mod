@@ -98,4 +98,5 @@ require (
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/urfave/cli/v2 v2.27.3
 	golang.org/x/sys v0.20.0 // indirect
+	gonum.org/v1/gonum v0.15.1
 )

@@ -81,6 +81,60 @@ type RedditSubredditSubscriber struct {
 	Subscribers int32              `json:"subscribers"`
 }
 
+type TwitchClipView struct {
+	ID    string             `json:"id"`
+	Ts    pgtype.Timestamptz `json:"ts"`
+	Views int64              `json:"views"`
+}
+
+type TwitchStreamView struct {
+	ID    string             `json:"id"`
+	Ts    pgtype.Timestamptz `json:"ts"`
+	Views int64              `json:"views"`
+}
+
+type TwitchUserPastDecAvgDuration struct {
+	ID          string             `json:"id"`
+	Ts          pgtype.Timestamptz `json:"ts"`
+	AvgDuration float32            `json:"avg_duration"`
+}
+
+type TwitchUserPastDecAvgView struct {
+	ID       string             `json:"id"`
+	Ts       pgtype.Timestamptz `json:"ts"`
+	AvgViews float32            `json:"avg_views"`
+}
+
+type TwitchUserPastDecMedDuration struct {
+	ID          string             `json:"id"`
+	Ts          pgtype.Timestamptz `json:"ts"`
+	MedDuration float32            `json:"med_duration"`
+}
+
+type TwitchUserPastDecMedView struct {
+	ID       string             `json:"id"`
+	Ts       pgtype.Timestamptz `json:"ts"`
+	MedViews float32            `json:"med_views"`
+}
+
+type TwitchUserPastDecStdDuration struct {
+	ID          string             `json:"id"`
+	Ts          pgtype.Timestamptz `json:"ts"`
+	StdDuration float32            `json:"std_duration"`
+}
+
+type TwitchUserPastDecStdView struct {
+	ID       string             `json:"id"`
+	Ts       pgtype.Timestamptz `json:"ts"`
+	StdViews float32            `json:"std_views"`
+}
+
+type TwitchVideoView struct {
+	ID    string             `json:"id"`
+	Ts    pgtype.Timestamptz `json:"ts"`
+	Views int64              `json:"views"`
+}
+
 type User struct {
 	Email string                 `json:"email"`
 	Data  jsonb.UserMetadataJSON `json:"data"`

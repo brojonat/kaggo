@@ -16,19 +16,25 @@ import (
 )
 
 const (
-	RequestKindInternalRandom  = "internal.random"
-	RequestKindYouTubeVideo    = "youtube.video"
-	RequestKindYouTubeChannel  = "youtube.channel"
-	RequestKindKaggleNotebook  = "kaggle.notebook"
-	RequestKindKaggleDataset   = "kaggle.dataset"
-	RequestKindRedditPost      = "reddit.post"
-	RequestKindRedditComment   = "reddit.comment"
-	RequestKindRedditSubreddit = "reddit.subreddit"
+	RequestKindInternalRandom    = "internal.random"
+	RequestKindYouTubeVideo      = "youtube.video"
+	RequestKindYouTubeChannel    = "youtube.channel"
+	RequestKindKaggleNotebook    = "kaggle.notebook"
+	RequestKindKaggleDataset     = "kaggle.dataset"
+	RequestKindRedditPost        = "reddit.post"
+	RequestKindRedditComment     = "reddit.comment"
+	RequestKindRedditSubreddit   = "reddit.subreddit"
+	RequestKindTwitchClip        = "twitch.clip"
+	RequestKindTwitchVideo       = "twitch.video"
+	RequestKindTwitchStream      = "twitch.stream"
+	RequestKindTwitchUserPastDec = "twitch.user-past-dec"
 )
 
 type ActivityRequester struct {
 	RedditAuthToken    string
 	RedditAuthTokenExp time.Time
+	TwitchAuthToken    string
+	TwitchAuthTokenExp time.Time
 }
 
 // This is a hook to update requests without updating the originally scheduled
@@ -48,6 +54,9 @@ func (a *ActivityRequester) prepareRequest(drp DoRequestActRequest) (*http.Reque
 	if err != nil {
 		return nil, fmt.Errorf("error parsing request URL: %s", r.RequestURI)
 	}
+
+	r.Header.Add("Accept", "application/json")
+
 	r.URL = u
 	r.RequestURI = ""
 
@@ -71,7 +80,12 @@ func (a *ActivityRequester) prepareRequest(drp DoRequestActRequest) (*http.Reque
 			return nil, err
 		}
 		r.Header.Add("Authorization", "bearer "+a.RedditAuthToken)
-		r.Header.Add("Accept", "application/json")
+	case RequestKindTwitchClip, RequestKindTwitchVideo, RequestKindTwitchStream, RequestKindTwitchUserPastDec:
+		err = a.ensureValidTwitchToken(time.Duration(60 * time.Second))
+		if err != nil {
+			return nil, err
+		}
+		r.Header.Add("Authorization", "Bearer "+a.TwitchAuthToken)
 	default:
 		return nil, fmt.Errorf("unsupported RequestKind %s", drp.RequestKind)
 	}
@@ -98,9 +112,14 @@ func (a *ActivityRequester) DoRequest(ctx context.Context, drp DoRequestActReque
 		StatusCode:  resp.StatusCode,
 		Body:        b,
 		InternalData: api.MetricQueryInternalData{
+			// reddit rate limits
 			XRatelimitUsed:      resp.Header.Get("X-Ratelimit-Used"),
 			XRatelimitRemaining: resp.Header.Get("X-Ratelimit-Remaining"),
 			XRatelimitReset:     resp.Header.Get("X-Ratelimit-Reset"),
+			// twitch rate limits
+			RatelimitLimit:     resp.Header.Get("Ratelimit-Limit"),
+			RatelimitRemaining: resp.Header.Get("Ratelimit-Remaining"),
+			RatelimitReset:     resp.Header.Get("Ratelimit-Reset"),
 		},
 	}
 	return &res, nil
@@ -126,6 +145,14 @@ func (a *ActivityRequester) UploadMetadata(ctx context.Context, drr UploadMetada
 		return a.handleRedditCommentMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindRedditSubreddit:
 		return a.handleRedditSubredditMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+	case RequestKindTwitchClip:
+		return a.handleTwitchClipMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+	case RequestKindTwitchVideo:
+		return a.handleTwitchVideoMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+	case RequestKindTwitchStream:
+		return a.handleTwitchStreamMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+	case RequestKindTwitchUserPastDec:
+		return a.handleTwitchUserPastDecMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
 	default:
 		return nil, fmt.Errorf("unrecognized RequestKind: %s", drr.RequestKind)
 	}
@@ -151,6 +178,14 @@ func (a *ActivityRequester) UploadMetrics(ctx context.Context, drr UploadMetrics
 		return a.handleRedditCommentMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindRedditSubreddit:
 		return a.handleRedditSubredditMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+	case RequestKindTwitchClip:
+		return a.handleTwitchClipMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+	case RequestKindTwitchVideo:
+		return a.handleTwitchVideoMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+	case RequestKindTwitchStream:
+		return a.handleTwitchStreamMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+	case RequestKindTwitchUserPastDec:
+		return a.handleTwitchUserPastDecMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
 	default:
 		return nil, fmt.Errorf("unrecognized RequestKind: %s", drr.RequestKind)
 	}

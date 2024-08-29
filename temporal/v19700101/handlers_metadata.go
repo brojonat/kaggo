@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 
@@ -64,92 +65,6 @@ func (a *ActivityRequester) handleInternalRandomMetadata(l log.Logger, status in
 		ID:           id,
 		RequestKind:  RequestKindInternalRandom,
 		Data:         jsonb.MetadataJSON{ID: id, Link: "https://api.kaggo.brojonat.com/internal/metrics?id=" + id},
-		InternalData: internalData,
-	}
-	b, err = json.Marshal(payload)
-	if err != nil {
-		return nil, fmt.Errorf("error serializing upload data: %w", err)
-	}
-	return uploadMetadata(l, b)
-}
-
-// Handle RequestKindYouTubeVideo requests
-func (a *ActivityRequester) handleYouTubeVideoMetadata(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
-	var data interface{}
-	if err := json.Unmarshal(b, &data); err != nil {
-		return nil, fmt.Errorf("error deserializing internal response: %w", err)
-	}
-	// id
-	iface, err := jmespath.Search("items[0].id", data)
-	if err != nil {
-		return nil, fmt.Errorf("error extracting id: %w", err)
-	}
-	if iface == nil {
-		return nil, fmt.Errorf("error extracting id; id is nil")
-	}
-	id := iface.(string)
-
-	// title
-	iface, err = jmespath.Search("items[0].snippet.title", data)
-	if err != nil {
-		return nil, fmt.Errorf("error extracting title: %w", err)
-	}
-	if iface == nil {
-		return nil, fmt.Errorf("error extracting title; title is nil")
-	}
-	title := iface.(string)
-
-	payload := api.MetricMetadataPayload{
-		ID:          id,
-		RequestKind: RequestKindYouTubeVideo,
-		Data: jsonb.MetadataJSON{
-			ID:    id,
-			Link:  fmt.Sprintf("https://www.youtube.com/watch?v=%s", id),
-			Title: title,
-		},
-		InternalData: internalData,
-	}
-	b, err = json.Marshal(payload)
-	if err != nil {
-		return nil, fmt.Errorf("error serializing upload data: %w", err)
-	}
-	return uploadMetadata(l, b)
-}
-
-// Handle RequestKindYouTubeChannel requests
-func (a *ActivityRequester) handleYouTubeChannelMetadata(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
-	var data interface{}
-	if err := json.Unmarshal(b, &data); err != nil {
-		return nil, fmt.Errorf("error deserializing internal response: %w", err)
-	}
-	// id
-	iface, err := jmespath.Search("items[0].id", data)
-	if err != nil {
-		return nil, fmt.Errorf("error extracting id: %w", err)
-	}
-	if iface == nil {
-		return nil, fmt.Errorf("error extracting id; id is nil")
-	}
-	id := iface.(string)
-
-	// title
-	iface, err = jmespath.Search("items[0].snippet.title", data)
-	if err != nil {
-		return nil, fmt.Errorf("error extracting title: %w", err)
-	}
-	if iface == nil {
-		return nil, fmt.Errorf("error extracting title; title is nil")
-	}
-	title := iface.(string)
-
-	payload := api.MetricMetadataPayload{
-		ID:          id,
-		RequestKind: RequestKindYouTubeChannel,
-		Data: jsonb.MetadataJSON{
-			ID:    id,
-			Link:  fmt.Sprintf("https://www.youtube.com/channel/%s", id),
-			Title: title,
-		},
 		InternalData: internalData,
 	}
 	b, err = json.Marshal(payload)
@@ -224,6 +139,103 @@ func (a *ActivityRequester) handleKaggleDatasetMetadata(l log.Logger, status int
 	return uploadMetadata(l, b)
 }
 
+// Handle RequestKindYouTubeVideo requests
+func (a *ActivityRequester) handleYouTubeVideoMetadata(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+	var data interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		return nil, fmt.Errorf("error deserializing internal response: %w", err)
+	}
+	// id
+	iface, err := jmespath.Search("items[0].id", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting id: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting id; id is nil")
+	}
+	id := iface.(string)
+
+	// title
+	iface, err = jmespath.Search("items[0].snippet.title", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting title: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting title; title is nil")
+	}
+	title := iface.(string)
+
+	// channel
+	iface, err = jmespath.Search("items[0].snippet.channelTitle", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting channelTitle: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting channelTitle; channelTitle is nil")
+	}
+	channelTitle := iface.(string)
+
+	payload := api.MetricMetadataPayload{
+		ID:          id,
+		RequestKind: RequestKindYouTubeVideo,
+		Data: jsonb.MetadataJSON{
+			ID:    id,
+			Link:  fmt.Sprintf("https://www.youtube.com/watch?v=%s", id),
+			Title: title,
+			Owner: channelTitle,
+		},
+		InternalData: internalData,
+	}
+	b, err = json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("error serializing upload data: %w", err)
+	}
+	return uploadMetadata(l, b)
+}
+
+// Handle RequestKindYouTubeChannel requests
+func (a *ActivityRequester) handleYouTubeChannelMetadata(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+	var data interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		return nil, fmt.Errorf("error deserializing internal response: %w", err)
+	}
+	// id
+	iface, err := jmespath.Search("items[0].id", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting id: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting id; id is nil")
+	}
+	id := iface.(string)
+
+	// title
+	iface, err = jmespath.Search("items[0].snippet.title", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting title: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting title; title is nil")
+	}
+	title := iface.(string)
+
+	payload := api.MetricMetadataPayload{
+		ID:          id,
+		RequestKind: RequestKindYouTubeChannel,
+		Data: jsonb.MetadataJSON{
+			ID:    id,
+			Link:  fmt.Sprintf("https://www.youtube.com/channel/%s", id),
+			Title: title,
+		},
+		InternalData: internalData,
+	}
+	b, err = json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("error serializing upload data: %w", err)
+	}
+	return uploadMetadata(l, b)
+}
+
 // Handle RequestKindRedditPost requests
 func (a *ActivityRequester) handleRedditPostMetadata(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
 
@@ -262,6 +274,16 @@ func (a *ActivityRequester) handleRedditPostMetadata(l log.Logger, status int, b
 	}
 	permalink := iface.(string)
 
+	// owner
+	iface, err = jmespath.Search("data.children[0].data.author", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting author: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting author; author is nil")
+	}
+	author := iface.(string)
+
 	// upload the metadata to the server
 	payload := api.MetricMetadataPayload{
 		ID:          id,
@@ -270,6 +292,7 @@ func (a *ActivityRequester) handleRedditPostMetadata(l log.Logger, status int, b
 			ID:    id,
 			Link:  "https://www.reddit.com" + permalink,
 			Title: title,
+			Owner: author,
 		},
 		InternalData: internalData,
 	}
@@ -297,15 +320,15 @@ func (a *ActivityRequester) handleRedditCommentMetadata(l log.Logger, status int
 	}
 	id := iface.(string)
 
-	// text
-	iface, err = jmespath.Search("data.children[0].data.body", data)
+	// link
+	iface, err = jmespath.Search("data.children[0].data.permalink", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting body: %w", err)
+		return nil, fmt.Errorf("error extracting permalink: %w", err)
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting body; body is nil")
+		return nil, fmt.Errorf("error extracting permalink; permalink is nil")
 	}
-	text := iface.(string)
+	permalink := iface.(string)
 
 	// author
 	iface, err = jmespath.Search("data.children[0].data.author", data)
@@ -317,25 +340,36 @@ func (a *ActivityRequester) handleRedditCommentMetadata(l log.Logger, status int
 	}
 	author := iface.(string)
 
-	// link
-	iface, err = jmespath.Search("data.children[0].data.permalink", data)
+	// text
+	iface, err = jmespath.Search("data.children[0].data.body", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting permalink: %w", err)
+		return nil, fmt.Errorf("error extracting body: %w", err)
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting permalink; permalink is nil")
+		return nil, fmt.Errorf("error extracting body; body is nil")
 	}
-	permalink := iface.(string)
+	text := iface.(string)
+
+	// subreddit
+	iface, err = jmespath.Search("data.children[0].data.subreddit", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting subreddit: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting subreddit; subreddit is nil")
+	}
+	subreddit := iface.(string)
 
 	// upload the metadata to the server
 	payload := api.MetricMetadataPayload{
 		ID:          id,
 		RequestKind: RequestKindRedditComment,
 		Data: jsonb.MetadataJSON{
-			ID:      id,
-			Author:  author,
-			Comment: text,
-			Link:    "https://www.reddit.com" + permalink,
+			ID:        id,
+			Owner:     author,
+			Comment:   text,
+			Link:      "https://www.reddit.com" + permalink,
+			Subreddit: subreddit,
 		},
 		InternalData: internalData,
 	}
@@ -369,6 +403,284 @@ func (a *ActivityRequester) handleRedditSubredditMetadata(l log.Logger, status i
 		Data: jsonb.MetadataJSON{
 			ID:   id,
 			Link: "https://www.reddit.com/r/" + id,
+		},
+		InternalData: internalData,
+	}
+	b, err = json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
+	}
+	return uploadMetadata(l, b)
+}
+
+// Handle RequestKindTwitchClip requests
+func (a *ActivityRequester) handleTwitchClipMetadata(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+	var data interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		return nil, fmt.Errorf("error deserializing response: %w", err)
+	}
+	// id
+	iface, err := jmespath.Search("data[0].id", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting id: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting id; id is nil")
+	}
+	id := iface.(string)
+
+	// url
+	iface, err = jmespath.Search("data[0].url", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting url: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting url; url is nil")
+	}
+	url := iface.(string)
+
+	// broadcaster_name
+	iface, err = jmespath.Search("data[0].broadcaster_name", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting broadcaster_name: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting broadcaster_name; broadcaster_name is nil")
+	}
+	broadcaster_name := iface.(string)
+
+	// creator_name
+	iface, err = jmespath.Search("data[0].creator_name", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting creator_name: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting creator_name; creator_name is nil")
+	}
+	creator_name := iface.(string)
+
+	// game_id
+	iface, err = jmespath.Search("data[0].game_id", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting game_id: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting game_id; game_id is nil")
+	}
+	game_id := iface.(string)
+
+	// title
+	iface, err = jmespath.Search("data[0].title", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting title: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting title; title is nil")
+	}
+	title := iface.(string)
+
+	// duration
+	iface, err = jmespath.Search("data[0].duration", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting duration: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting duration; duration is nil")
+	}
+	duration := iface.(float64)
+
+	// upload the metadata to the server
+	payload := api.MetricMetadataPayload{
+		ID:          id,
+		RequestKind: RequestKindTwitchClip,
+		Data: jsonb.MetadataJSON{
+			ID:          id,
+			Link:        url,
+			Broadcaster: broadcaster_name,
+			Owner:       creator_name,
+			GameID:      game_id,
+			Title:       title,
+			Duration:    int(math.Round(duration)),
+		},
+		InternalData: internalData,
+	}
+	b, err = json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
+	}
+	return uploadMetadata(l, b)
+}
+
+// Handle RequestKindTwitchVideo requests
+func (a *ActivityRequester) handleTwitchVideoMetadata(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+	var data interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		return nil, fmt.Errorf("error deserializing response: %w", err)
+	}
+	// id
+	iface, err := jmespath.Search("data[0].id", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting id: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting id; id is nil")
+	}
+	id := iface.(string)
+
+	// user_name
+	iface, err = jmespath.Search("data[0].user_name", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting user_name: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting user_name; user_name is nil")
+	}
+	user_name := iface.(string)
+
+	// title
+	iface, err = jmespath.Search("data[0].title", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting title: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting title; title is nil")
+	}
+	title := iface.(string)
+
+	// url
+	iface, err = jmespath.Search("data[0].url", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting url: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting url; url is nil")
+	}
+	url := iface.(string)
+
+	// upload the metadata to the server
+	payload := api.MetricMetadataPayload{
+		ID:          id,
+		RequestKind: RequestKindTwitchVideo,
+		Data: jsonb.MetadataJSON{
+			ID:    id,
+			Owner: user_name,
+			Title: title,
+			Link:  url,
+		},
+		InternalData: internalData,
+	}
+	b, err = json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
+	}
+	return uploadMetadata(l, b)
+}
+
+// Handle RequestKindTwitchStream requests
+func (a *ActivityRequester) handleTwitchStreamMetadata(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+	var data interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		return nil, fmt.Errorf("error deserializing response: %w", err)
+	}
+	// user_id
+	iface, err := jmespath.Search("data[0].id", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting user id: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting user id; id is nil")
+	}
+	user_id := iface.(string)
+
+	// user_login
+	iface, err = jmespath.Search("data[0].login", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting user login: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting user login; login is nil")
+	}
+	user_login := iface.(string)
+
+	// user_name
+	iface, err = jmespath.Search("data[0].display_name", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting display_name: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting display_name; display_name is nil")
+	}
+	display_name := iface.(string)
+
+	// upload the metadata to the server
+	payload := api.MetricMetadataPayload{
+		// NOTE: the ID field for this type of request is the user slug, NOT the user ID because
+		// twitch makes it nearly impossible to find the user_id
+		ID:          user_login,
+		RequestKind: RequestKindTwitchStream,
+		Data: jsonb.MetadataJSON{
+			ID:          user_id,
+			Owner:       user_login,
+			Link:        "https://twitch.tv/" + user_login,
+			DisplayName: display_name,
+		},
+		InternalData: internalData,
+	}
+	b, err = json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
+	}
+	return uploadMetadata(l, b)
+
+}
+
+// Handle RequestKindTwitchUserPastDec requests
+func (a *ActivityRequester) handleTwitchUserPastDecMetadata(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+	var data interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		return nil, fmt.Errorf("error deserializing response: %w", err)
+	}
+	// user_id
+	iface, err := jmespath.Search("data[0].id", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting user id: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting user id; id is nil")
+	}
+	user_id := iface.(string)
+
+	// user_login
+	iface, err = jmespath.Search("data[0].login", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting user login: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting user login; login is nil")
+	}
+	user_login := iface.(string)
+
+	// user_name
+	iface, err = jmespath.Search("data[0].display_name", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting display_name: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting display_name; display_name is nil")
+	}
+	display_name := iface.(string)
+
+	// upload the metadata to the server
+	payload := api.MetricMetadataPayload{
+		// NOTE: the ID field for this type of request is the user slug, NOT the user ID because
+		// twitch makes it nearly impossible to find the user_id
+		ID:          user_login,
+		RequestKind: RequestKindTwitchUserPastDec,
+		Data: jsonb.MetadataJSON{
+			ID:          user_id,
+			Owner:       user_login,
+			Link:        "https://twitch.tv/" + user_login,
+			DisplayName: display_name,
 		},
 		InternalData: internalData,
 	}

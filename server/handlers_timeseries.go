@@ -41,6 +41,18 @@ func handleGetTimeSeriesByIDsBucketed(l *slog.Logger, q *dbgen.Queries) http.Han
 		case kt.RequestKindRedditSubreddit:
 			handleGetRedditSubredditTimeSeriesByIDsBucketed(l, q)(w, r)
 			return
+		case kt.RequestKindTwitchClip:
+			handleGetTwitchClipTimeSeriesByIDsBucketed(l, q)(w, r)
+			return
+		case kt.RequestKindTwitchVideo:
+			handleGetTwitchVideoTimeSeriesByIDsBucketed(l, q)(w, r)
+			return
+		case kt.RequestKindTwitchStream:
+			handleGetTwitchStreamTimeSeriesByIDsBucketed(l, q)(w, r)
+			return
+		case kt.RequestKindTwitchUserPastDec:
+			handleGetTwitchUserPastDecTimeSeriesByIDsBucketed(l, q)(w, r)
+			return
 		default:
 			writeBadRequestError(w, fmt.Errorf("unsupported request kind: %s", rk))
 			return
@@ -124,10 +136,7 @@ func handleGetTimeSeriesByIDs(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc
 	}
 }
 
-// maybe move these into a service file or something
-
-// Main entry point for getting the internal.random timeseries. This will return a
-// list of JSON serializable objects. The details are...in a state of flux.
+// the following are semi deprecated routes
 func getInternalRandomTimeSeries(
 	ctx context.Context,
 	l *slog.Logger,

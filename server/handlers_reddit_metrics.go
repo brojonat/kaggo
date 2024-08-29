@@ -96,7 +96,7 @@ func handleRedditPostMetricsPost(l *slog.Logger, q *dbgen.Queries, pms map[strin
 		}
 
 		// prometheus
-		labels := prometheus.Labels{}
+		labels := prometheus.Labels{"source": "reddit"}
 		setRedditPromMetrics(l, p.InternalData, labels, pms)
 
 		// upload metrics
@@ -158,7 +158,7 @@ func handleRedditCommentMetricsPost(l *slog.Logger, q *dbgen.Queries, pms map[st
 		}
 
 		// prometheus
-		labels := prometheus.Labels{}
+		labels := prometheus.Labels{"source": "reddit"}
 		setRedditPromMetrics(l, p.InternalData, labels, pms)
 
 		// upload metrics
@@ -220,7 +220,7 @@ func handleRedditSubredditMetricsPost(l *slog.Logger, q *dbgen.Queries, pms map[
 		}
 
 		// prometheus
-		labels := prometheus.Labels{}
+		labels := prometheus.Labels{"source": "reddit"}
 		setRedditPromMetrics(l, p.InternalData, labels, pms)
 
 		// upload metrics
