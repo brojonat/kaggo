@@ -325,7 +325,7 @@ func makeExternalRequestTwitchUserPastDec(q *dbgen.Queries, username string) (*h
 	var user_id string
 	for _, md := range mds {
 		if md.RequestKind == kt.RequestKindTwitchUserPastDec {
-			user_id = md.Data.ID
+			user_id = md.Data.UserID
 			break
 		}
 	}

@@ -27,6 +27,7 @@ FROM users u
 INNER JOIN users_metadata_through umt ON u.email = umt.email
 INNER JOIN metadata m ON umt.id = m.id AND umt.request_kind = m.request_kind
 WHERE u.email = $1
+ORDER BY m.request_kind, m.id
 `
 
 type GetUserMetricsRow struct {

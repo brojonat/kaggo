@@ -21,7 +21,7 @@ func DoMetadataRequestWF(ctx workflow.Context, r DoMetadataRequestWFRequest) err
 	// Retry this a couple times because we're only doing this once and if
 	// we error out then it'll look like a service error.
 	activityOptions := workflow.ActivityOptions{
-		ScheduleToCloseTimeout: 10 * time.Second,
+		ScheduleToCloseTimeout: 20 * time.Second,
 		RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 5},
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
@@ -38,7 +38,7 @@ func DoMetadataRequestWF(ctx workflow.Context, r DoMetadataRequestWFRequest) err
 	// Upload the response to our server. Don't retry; if the request doesn't go
 	// through, we'll want to fail fast and loud.
 	activityOptions = workflow.ActivityOptions{
-		ScheduleToCloseTimeout: 10 * time.Second,
+		ScheduleToCloseTimeout: 20 * time.Second,
 		RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 1},
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
@@ -60,7 +60,7 @@ func DoPollingRequestWF(ctx workflow.Context, r DoPollingRequestWFRequest) error
 	// it's better to miss some window of data than risk spamming the external
 	// server with retries.
 	activityOptions := workflow.ActivityOptions{
-		ScheduleToCloseTimeout: 10 * time.Second,
+		ScheduleToCloseTimeout: 20 * time.Second,
 		RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 1},
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
@@ -77,7 +77,7 @@ func DoPollingRequestWF(ctx workflow.Context, r DoPollingRequestWFRequest) error
 	// Upload the response to our server. Don't retry; if the request doesn't go
 	// through, we'll want to fail fast and loud.
 	activityOptions = workflow.ActivityOptions{
-		ScheduleToCloseTimeout: 10 * time.Second,
+		ScheduleToCloseTimeout: 20 * time.Second,
 		RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 1},
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)

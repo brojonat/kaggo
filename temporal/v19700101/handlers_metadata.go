@@ -619,10 +619,11 @@ func (a *ActivityRequester) handleTwitchStreamMetadata(l log.Logger, status int,
 		ID:          user_login,
 		RequestKind: RequestKindTwitchStream,
 		Data: jsonb.MetadataJSON{
-			ID:          user_id,
+			ID:          user_login,
 			Owner:       user_login,
 			Link:        "https://twitch.tv/" + user_login,
 			DisplayName: display_name,
+			UserID:      user_id,
 		},
 		InternalData: internalData,
 	}
@@ -677,10 +678,11 @@ func (a *ActivityRequester) handleTwitchUserPastDecMetadata(l log.Logger, status
 		ID:          user_login,
 		RequestKind: RequestKindTwitchUserPastDec,
 		Data: jsonb.MetadataJSON{
-			ID:          user_id,
+			ID:          user_login,
 			Owner:       user_login,
 			Link:        "https://twitch.tv/" + user_login,
 			DisplayName: display_name,
+			UserID:      user_id,
 		},
 		InternalData: internalData,
 	}

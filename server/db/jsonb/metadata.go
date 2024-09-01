@@ -11,6 +11,7 @@ type MetadataJSON struct {
 	Title       string `json:"title,omitempty"`
 	Comment     string `json:"comment,omitempty"`
 	Subreddit   string `json:"subreddit,omitempty"`
+	UserID      string `json:"user_id,omitempty"`
 	GameID      string `json:"game_id,omitempty"`
 	Broadcaster string `json:"broadcaster,omitempty"`
 	Duration    int    `json:"duration,omitempty"`
