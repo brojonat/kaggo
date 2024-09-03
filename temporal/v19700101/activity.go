@@ -31,6 +31,7 @@ const (
 )
 
 type ActivityRedditListener struct{}
+type ActivityYouTubeListener struct{}
 
 type ActivityRequester struct {
 	RedditAuthToken    string

@@ -328,6 +328,21 @@ func main() {
 								},
 							},
 							{
+								Name:  "initiate-youtube-listener",
+								Usage: "Send a POST request to initiate a workflow that listens to YouTube",
+								Flags: []cli.Flag{
+									&cli.StringFlag{
+										Name:     "endpoint",
+										Aliases:  []string{"end", "e"},
+										Required: true,
+										Usage:    "Kaggo server endpoint",
+									},
+								},
+								Action: func(ctx *cli.Context) error {
+									return initiate_youtube_listener(ctx)
+								},
+							},
+							{
 								Name:  "tinker-wf",
 								Usage: "Send a POST request to initiate a tinkering workflow",
 								Flags: []cli.Flag{

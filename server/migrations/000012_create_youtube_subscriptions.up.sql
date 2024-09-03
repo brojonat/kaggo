@@ -1,0 +1,7 @@
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS youtube_channel_subscriptions (
+    id VARCHAR(255) PRIMARY KEY NOT NULL
+);
+
+COMMIT;

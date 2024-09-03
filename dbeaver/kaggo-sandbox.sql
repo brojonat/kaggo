@@ -63,7 +63,7 @@ SELECT * FROM users_metadata_through umt ;
 
 SELECT * FROM twitch_stream_views ;
 
-SELECT * FROM metadata m WHERE request_kind like 'twitch.stream';
+SELECT DATA FROM metadata m WHERE request_kind like 'youtube.channel';
 
 
 SELECT u.email, u.data AS "user_metadata", m.id, m.request_kind, m.data AS "metric_metadata"
@@ -76,7 +76,7 @@ WHERE u.email = 'brojonat@gmail.com';
 SELECT * FROM reddit_user_subscriptions;
 -- insert
 INSERT INTO reddit_user_subscriptions (name)
-VALUES ('smartastic');
+VALUES ('Francis_Star');
 -- delete
 DELETE  FROM reddit_user_subscriptions WHERE name = 'miaipanema';
 
@@ -93,6 +93,14 @@ VALUES ('orangecounty');
 -- delete
 DELETE FROM reddit_subreddit_subscriptions WHERE name = ANY('{"golang","orangecounty"}'::VARCHAR[]);
 
+
+-- get
+SELECT * FROM youtube_channel_subscriptions ycs ;
+-- insert
+INSERT INTO youtube_channel_subscriptions(id)
+VALUES ('UCfQgsKhHjSyRLOp9mnffqVg');
+-- delete
+DELETE FROM youtube_channel_subscriptions WHERE url = ANY('{"foo"}'::VARCHAR[]);
 
 
 

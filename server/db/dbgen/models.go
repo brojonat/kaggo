@@ -160,6 +160,10 @@ type YoutubeChannelSubscriber struct {
 	Subscribers int32              `json:"subscribers"`
 }
 
+type YoutubeChannelSubscription struct {
+	ID string `json:"id"`
+}
+
 type YoutubeChannelVideo struct {
 	ID     string             `json:"id"`
 	Ts     pgtype.Timestamptz `json:"ts"`

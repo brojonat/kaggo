@@ -58,3 +58,41 @@ func (q *Queries) GetRedditUserSubscriptions(ctx context.Context) ([]string, err
 	}
 	return items, nil
 }
+
+const getYouTubeChannelSubscriptions = `-- name: GetYouTubeChannelSubscriptions :many
+SELECT id
+FROM youtube_channel_subscriptions
+`
+
+func (q *Queries) GetYouTubeChannelSubscriptions(ctx context.Context) ([]string, error) {
+	rows, err := q.db.Query(ctx, getYouTubeChannelSubscriptions)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const youTubeChannelSubscriptionExists = `-- name: YouTubeChannelSubscriptionExists :one
+SELECT 1 AS "exists"
+FROM youtube_channel_subscriptions
+WHERE id = $1
+`
+
+func (q *Queries) YouTubeChannelSubscriptionExists(ctx context.Context, id string) (int32, error) {
+	row := q.db.QueryRow(ctx, youTubeChannelSubscriptionExists, id)
+	var exists int32
+	err := row.Scan(&exists)
+	return exists, err
+}

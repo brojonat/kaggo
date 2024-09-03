@@ -377,13 +377,33 @@ func getRouter(
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
+	mux.HandleFunc("POST /notification/reddit/post", stools.AdaptHandler(
+		handleRedditPostNotification(l, q, tc),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
 	mux.HandleFunc("POST /run-reddit-listener-wf", stools.AdaptHandler(
 		handleRunRedditListener(l, q, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
-	mux.HandleFunc("POST /notification/reddit/post", stools.AdaptHandler(
-		handleRedditPostNotification(l, q, tc),
+
+	// youtube notifications
+	mux.HandleFunc("GET /notification/youtube/targets", stools.AdaptHandler(
+		handleGetYouTubeListenTargets(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+	mux.HandleFunc("GET /notification/youtube/websub", stools.AdaptHandler(
+		handleYouTubeVideoWebSubSetup(l, q, tc),
+		apiMode(l, maxBytes, headers, methods, origins),
+	))
+	mux.HandleFunc("POST /notification/youtube/websub", stools.AdaptHandler(
+		handleYouTubeVideoWebSubNotification(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+	))
+	mux.HandleFunc("POST /run-youtube-listener-wf", stools.AdaptHandler(
+		handleRunYouTubeListener(l, q, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))

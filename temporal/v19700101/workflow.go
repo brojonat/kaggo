@@ -11,6 +11,32 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
+func RunYouTubeListenerWF(ctx workflow.Context, r RunYouTubeListenerWFRequest) error {
+	var a *ActivityYouTubeListener
+
+	// get the targets to listen on from the database
+	activityOptions := workflow.ActivityOptions{
+		ScheduleToCloseTimeout: 20 * time.Second,
+		RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 1},
+	}
+	ctx = workflow.WithActivityOptions(ctx, activityOptions)
+	var ar YouTubeChannelSubActRequest
+	err := workflow.ExecuteActivity(ctx, a.GetYouTubeChannelTargets).Get(ctx, &ar)
+	if err != nil {
+		return err
+	}
+
+	// send all the requests to the websub hub
+	activityOptions = workflow.ActivityOptions{
+		ScheduleToCloseTimeout: 10 * time.Minute,
+		RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 1},
+		HeartbeatTimeout:       60 * time.Second,
+	}
+	ctx = workflow.WithActivityOptions(ctx, activityOptions)
+	return workflow.ExecuteActivity(ctx, a.Subscribe, ar).Get(ctx, nil)
+	// FIXME: eventually we'll handle problematic IDs better
+}
+
 func RunRedditListenerWF(ctx workflow.Context, r RunRedditListenerWFRequest) error {
 	var a *ActivityRedditListener
 
@@ -20,8 +46,8 @@ func RunRedditListenerWF(ctx workflow.Context, r RunRedditListenerWFRequest) err
 		RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 1},
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
-	var ar RunActRequest
-	err := workflow.ExecuteActivity(ctx, a.GetTargets).Get(ctx, &ar)
+	var ar RedditSubActRequest
+	err := workflow.ExecuteActivity(ctx, a.GetRedditUserTargets).Get(ctx, &ar)
 	if err != nil {
 		return err
 	}

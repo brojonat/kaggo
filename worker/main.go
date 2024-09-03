@@ -26,12 +26,18 @@ func RunWorker(ctx context.Context, l *slog.Logger, thp string) error {
 	w.RegisterWorkflow(kt.DoPollingRequestWF)
 	w.RegisterWorkflow(kt.DoMetadataRequestWF)
 	w.RegisterWorkflow(kt.RunRedditListenerWF)
+	w.RegisterWorkflow(kt.RunYouTubeListenerWF)
 
 	// register activities
+	// NOTE: you MUST NOT have any identical methods on these activity structs,
+	// or you will encounter a runtime error that prevents all of your workers
+	// from starting :O
 	a := &kt.ActivityRequester{}
 	rsub := &kt.ActivityRedditListener{}
+	ysub := &kt.ActivityYouTubeListener{}
 	w.RegisterActivity(a)
 	w.RegisterActivity(rsub)
+	w.RegisterActivity(ysub)
 	return w.Run(worker.InterruptCh())
 
 }

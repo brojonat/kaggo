@@ -4,6 +4,7 @@ import "github.com/brojonat/kaggo/server/api"
 
 // workflows
 
+type RunYouTubeListenerWFRequest struct{}
 type RunRedditListenerWFRequest struct{}
 
 type DoMetadataRequestWFRequest struct {
@@ -18,7 +19,11 @@ type DoPollingRequestWFRequest struct {
 
 // activities
 
-type RunActRequest struct {
+type YouTubeChannelSubActRequest struct {
+	ChannelIDs []string `json:"channel_ids"`
+}
+
+type RedditSubActRequest struct {
 	Subreddits []string `json:"subreddits"`
 	Users      []string `json:"users"`
 }

@@ -90,36 +90,36 @@ func (rh *redditHandler) UserComment(c *reddit.Comment) error      { return nil 
 func (rh *redditHandler) CommentReply(reply *reddit.Message) error { return nil }
 func (rh *redditHandler) Mention(m *reddit.Message) error          { return nil }
 
-func (a *ActivityRedditListener) GetTargets(ctx context.Context) (RunActRequest, error) {
+func (a *ActivityRedditListener) GetRedditUserTargets(ctx context.Context) (RedditSubActRequest, error) {
 	r, err := http.NewRequest(
 		http.MethodGet,
 		os.Getenv("KAGGO_ENDPOINT")+"/notification/reddit/targets",
 		nil)
 	if err != nil {
-		return RunActRequest{}, err
+		return RedditSubActRequest{}, err
 	}
 	r.Header.Add("Authorization", os.Getenv("AUTH_TOKEN"))
 	res, err := http.DefaultClient.Do(r)
 	if err != nil {
-		return RunActRequest{}, err
+		return RedditSubActRequest{}, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return RunActRequest{}, fmt.Errorf("bad response: %s", res.Status)
+		return RedditSubActRequest{}, fmt.Errorf("bad response: %s", res.Status)
 	}
 	defer res.Body.Close()
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
-		return RunActRequest{}, err
+		return RedditSubActRequest{}, err
 	}
-	var ar RunActRequest
+	var ar RedditSubActRequest
 	err = json.Unmarshal(b, &ar)
 	if err != nil {
-		return RunActRequest{}, err
+		return RedditSubActRequest{}, err
 	}
 	return ar, nil
 }
 
-func (a *ActivityRedditListener) Run(ctx context.Context, r RunActRequest) error {
+func (a *ActivityRedditListener) Run(ctx context.Context, r RedditSubActRequest) error {
 	l := activity.GetLogger(ctx)
 
 	cfg := reddit.BotConfig{
@@ -140,14 +140,36 @@ func (a *ActivityRedditListener) Run(ctx context.Context, r RunActRequest) error
 		Subreddits: r.Subreddits,
 		Users:      r.Users,
 	}
-	_, wait, err := graw.Run(&redditHandler{}, bot, lcfg)
-	if err != nil {
-		return fmt.Errorf("error running graw: %w", err)
-	}
-	l.Info("starting reddit listener", "subreddits", r.Subreddits, "users", r.Users)
 
-	// continuously wait for graw updates, send any errors to the channel
+	// need to send heartbeats while setting up since this can take a bit
+	ticker := time.NewTicker(10 * time.Second)
 	errC := make(chan error)
+	var wait func() error
+	go func() {
+		_, wait, err = graw.Run(&redditHandler{}, bot, lcfg)
+		if err != nil {
+			errC <- err
+		}
+		l.Info("starting reddit listener", "subreddits", r.Subreddits, "users", r.Users)
+		errC <- nil
+	}()
+	doLoop := true
+	for doLoop {
+		select {
+		case <-ticker.C:
+			activity.RecordHeartbeat(ctx)
+		case err := <-errC:
+			if err != nil {
+				return fmt.Errorf("error starting graw run: %w", err)
+			}
+			doLoop = false
+		}
+	}
+
+	// Continuously wait for graw updates, send any errors to the channel.
+	// FIXME: yes, I'm not cleaning this goroutine up as I should but the should
+	// get killed with some regularity anyway so I don't anticipate it will be a
+	// problem.
 	go func() {
 		for {
 			if err := wait(); err != nil {
@@ -156,9 +178,8 @@ func (a *ActivityRedditListener) Run(ctx context.Context, r RunActRequest) error
 		}
 	}()
 
-	outer := true
-	ticker := time.NewTicker(10 * time.Second)
-	for outer {
+	doLoop = true
+	for doLoop {
 		select {
 		case <-ctx.Done():
 			return context.Canceled

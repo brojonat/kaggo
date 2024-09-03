@@ -74,4 +74,10 @@ deploy-all:
 	kubectl apply -f -
 	kubectl rollout restart deployment kaggo-treq-worker
 
+initialize-lurkers:
+	$(call setup_env, server/.env)
+	@$(MAKE) build-cli
+	./cli admin workflow initiate-reddit-listener --endpoint $(KAGGO_ENDPOINT)
+	./cli admin workflow initiate-youtube-listener --endpoint $(KAGGO_ENDPOINT)
+
 

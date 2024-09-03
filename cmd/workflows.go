@@ -45,6 +45,22 @@ func initiate_reddit_listener(ctx *cli.Context) error {
 	return nil
 }
 
+func initiate_youtube_listener(ctx *cli.Context) error {
+	r, err := http.NewRequest(http.MethodPost, ctx.String("endpoint")+"/run-youtube-listener-wf", nil)
+	if err != nil {
+		return err
+	}
+	r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("AUTH_TOKEN")))
+	res, err := http.DefaultClient.Do(r)
+	if err != nil {
+		return err
+	}
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad response from server: %s", res.Status)
+	}
+	return nil
+}
+
 func run_metadata_wf(ctx *cli.Context) error {
 	id := ctx.String("id")
 	rk := ctx.String("request-kind")
