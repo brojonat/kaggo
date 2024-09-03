@@ -201,7 +201,7 @@ func makeExternalRequestRedditPost(id string) (*http.Request, error) {
 	q := r.URL.Query()
 	q.Set("id", fmt.Sprintf("t3_%s", id))
 	r.URL.RawQuery = q.Encode()
-	r.Header.Add("User-Agent", "Debian:github.com/brojonat/kaggo/worker:v0.0.1 (by /u/GraearG)")
+	r.Header.Add("User-Agent", os.Getenv("REDDIT_USER_AGENT"))
 	return r, nil
 }
 
@@ -213,7 +213,7 @@ func makeExternalRequestRedditComment(id string) (*http.Request, error) {
 	q := r.URL.Query()
 	q.Set("id", fmt.Sprintf("t1_%s", id))
 	r.URL.RawQuery = q.Encode()
-	r.Header.Add("User-Agent", "Debian:github.com/brojonat/kaggo/worker:v0.0.1 (by /u/GraearG)")
+	r.Header.Add("User-Agent", os.Getenv("REDDIT_USER_AGENT"))
 	return r, nil
 }
 
@@ -222,7 +222,7 @@ func makeExternalRequestRedditSubreddit(id string) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
-	r.Header.Add("User-Agent", "Debian:github.com/brojonat/kaggo/worker:v0.0.1 (by /u/GraearG)")
+	r.Header.Add("User-Agent", os.Getenv("REDDIT_USER_AGENT"))
 	return r, nil
 }
 

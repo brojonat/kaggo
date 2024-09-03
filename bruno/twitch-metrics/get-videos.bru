@@ -5,7 +5,16 @@ meta {
 }
 
 get {
-  url: https://api.twitch.tv/helix/videos
+  url: https://api.twitch.tv/helix/videos?user_id=22561231
   body: none
   auth: none
+}
+
+query {
+  user_id: 22561231
+}
+
+headers {
+  Client-Id: {{TWITCH_CLIENT_ID}}
+  Authorization: Bearer {{TWITCH_AUTH_TOKEN}}
 }

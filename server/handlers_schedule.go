@@ -13,7 +13,6 @@ import (
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/dbgen"
 	kt "github.com/brojonat/kaggo/temporal/v19700101"
-	"github.com/brojonat/server-tools/stools"
 	"go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
@@ -141,9 +140,9 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 				},
 			})
 		if err != nil {
-			if errors.Is(err, temporal.ErrScheduleAlreadyRunning) ||
-				stools.IsTemporalServiceError(err) {
-				writeBadRequestError(w, err)
+			if errors.Is(err, temporal.ErrScheduleAlreadyRunning) {
+				w.WriteHeader(http.StatusConflict)
+				json.NewEncoder(w).Encode(api.DefaultJSONResponse{Error: "schedule already running"})
 				return
 			}
 			writeInternalError(l, w, err)

@@ -47,23 +47,51 @@ SELECT * FROM metadata;
 
 SELECT * FROM reddit_subreddit_subscribers rss ;
 
-SELECT * FROM youtube_channel_subscribers ycs ;
+SELECT * FROM youtube_video_views ycs ;
 
 SELECT * FROM users;
 
-SELECT * FROM metadata m  WHERE request_kind = 'youtube.video';
+SELECT * FROM metadata m WHERE request_kind LIKE 'twitch%';
+
+SELECT m.data->>'id' AS foo
+FROM metadata m
+WHERE id = 'lj99vxv' AND request_kind = 'reddit.comment';
+
+SELECT * FROM youtube_channel_views;
 
 SELECT * FROM users_metadata_through umt ;
 
-SELECT *, 'youtube.video.views' AS "metric" FROM (
-	SELECT
-	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
-	    MAX(views::REAL) AS "value"
-	FROM youtube_video_views 
-	WHERE id = 'OdxSbc0ap-s' 
-	GROUP BY bucket
-	ORDER BY bucket
-);
+SELECT * FROM twitch_stream_views ;
+
+SELECT * FROM metadata m WHERE request_kind like 'twitch.stream';
+
+
+SELECT u.email, u.data AS "user_metadata", m.id, m.request_kind, m.data AS "metric_metadata"
+FROM users u
+INNER JOIN users_metadata_through umt ON u.email = umt.email
+INNER JOIN metadata m ON umt.id = m.id AND umt.request_kind = m.request_kind
+WHERE u.email = 'brojonat@gmail.com';
+
+-- get
+SELECT * FROM reddit_user_subscriptions;
+-- insert
+INSERT INTO reddit_user_subscriptions (name)
+VALUES ('smartastic');
+-- delete
+DELETE  FROM reddit_user_subscriptions WHERE name = 'miaipanema';
+
+SELECT id, DATA->>'owner' AS owner, DATA->>'link' AS link, data
+FROM metadata 
+WHERE request_kind = 'reddit.post';
+
+
+-- get
+SELECT * FROM reddit_subreddit_subscriptions;
+-- insert
+INSERT INTO reddit_subreddit_subscriptions (name) 
+VALUES ('orangecounty');
+-- delete
+DELETE FROM reddit_subreddit_subscriptions WHERE name = ANY('{"golang","orangecounty"}'::VARCHAR[]);
 
 
 

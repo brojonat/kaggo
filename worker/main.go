@@ -25,11 +25,13 @@ func RunWorker(ctx context.Context, l *slog.Logger, thp string) error {
 	w := worker.New(c, "kaggo", worker.Options{})
 	w.RegisterWorkflow(kt.DoPollingRequestWF)
 	w.RegisterWorkflow(kt.DoMetadataRequestWF)
+	w.RegisterWorkflow(kt.RunRedditListenerWF)
 
 	// register activities
 	a := &kt.ActivityRequester{}
+	rsub := &kt.ActivityRedditListener{}
 	w.RegisterActivity(a)
-
-	// run indefinitely
+	w.RegisterActivity(rsub)
 	return w.Run(worker.InterruptCh())
+
 }

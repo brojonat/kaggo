@@ -22,5 +22,5 @@ pgdump.sql
 # temporal tinkering stuff
 temporal-starter/
 helm/
-fun.py
+tinker.py
 schedule-dump.json

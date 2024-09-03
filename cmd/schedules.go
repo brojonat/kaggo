@@ -15,21 +15,6 @@ import (
 	"go.temporal.io/sdk/client"
 )
 
-func getDefaultScheduleSpec(rk, id string) client.ScheduleSpec {
-	s := client.ScheduleSpec{
-		Calendars: []client.ScheduleCalendarSpec{
-			{
-				Second:  []client.ScheduleRange{{Start: 0}},
-				Minute:  []client.ScheduleRange{{Start: 0, End: 59}},
-				Hour:    []client.ScheduleRange{{Start: 0, End: 23}},
-				Comment: "Every minute",
-			},
-		},
-		Jitter: 60000000000,
-	}
-	return s
-}
-
 func dump_schedules(ctx *cli.Context) error {
 	r, err := http.NewRequest(http.MethodGet, ctx.String("endpoint")+"/schedule", nil)
 	if err != nil {
@@ -196,7 +181,7 @@ func load_schedules(ctx *cli.Context) error {
 func create_schedule(ctx *cli.Context) error {
 	rk := ctx.String("request-kind")
 	id := ctx.String("id")
-	sched := getDefaultScheduleSpec(rk, id)
+	sched := api.GetDefaultScheduleSpec(rk, id)
 	payload := api.GenericScheduleRequestPayload{
 		RequestKind: rk,
 		ID:          id,

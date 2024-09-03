@@ -81,6 +81,14 @@ type RedditSubredditSubscriber struct {
 	Subscribers int32              `json:"subscribers"`
 }
 
+type RedditSubredditSubscription struct {
+	Name string `json:"name"`
+}
+
+type RedditUserSubscription struct {
+	Name string `json:"name"`
+}
+
 type TwitchClipView struct {
 	ID    string             `json:"id"`
 	Ts    pgtype.Timestamptz `json:"ts"`

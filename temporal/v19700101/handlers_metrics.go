@@ -597,7 +597,7 @@ func (a *ActivityRequester) handleTwitchStreamMetrics(l log.Logger, status int, 
 	}
 
 	// short circuit if nothing is returned; streamer is probably just offline
-	iface, err := jmespath.Search("data | count(@)", data)
+	iface, err := jmespath.Search("data | length(@)", data)
 	if err != nil {
 		return nil, fmt.Errorf("error counting stream results: %w", err)
 	}

@@ -371,5 +371,22 @@ func getRouter(
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
 
+	// reddit notifications
+	mux.HandleFunc("GET /notification/reddit/targets", stools.AdaptHandler(
+		handleGetRedditListenTargets(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+	mux.HandleFunc("POST /run-reddit-listener-wf", stools.AdaptHandler(
+		handleRunRedditListener(l, q, tc),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+	mux.HandleFunc("POST /notification/reddit/post", stools.AdaptHandler(
+		handleRedditPostNotification(l, q, tc),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+
 	return mux, nil
 }

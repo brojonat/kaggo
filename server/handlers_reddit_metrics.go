@@ -13,27 +13,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-func handleRedditPostMetricsGet(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ids := r.URL.Query()["id"]
-		if len(ids) == 0 {
-			writeBadRequestError(w, fmt.Errorf("must supply id"))
-			return
-		}
-		res, err := getRedditPostTimeSeries(r.Context(), l, q, ids, time.Time{}, time.Now())
-		if err != nil {
-			writeInternalError(l, w, err)
-			return
-		}
-		if res == nil {
-			writeEmptyResultError(w)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(res)
-	}
-}
-
 func setRedditPromMetrics(l *slog.Logger, data api.MetricQueryInternalData, labels prometheus.Labels, pms map[string]prometheus.Collector) {
 
 	// Set Prometheus metrics. The ones we're interested in for Reddit are
@@ -81,6 +60,27 @@ func setRedditPromMetrics(l *slog.Logger, data api.MetricQueryInternalData, labe
 		}
 
 		c.Set(val)
+	}
+}
+
+func handleRedditPostMetricsGet(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ids := r.URL.Query()["id"]
+		if len(ids) == 0 {
+			writeBadRequestError(w, fmt.Errorf("must supply id"))
+			return
+		}
+		res, err := getRedditPostTimeSeries(r.Context(), l, q, ids, time.Time{}, time.Now())
+		if err != nil {
+			writeInternalError(l, w, err)
+			return
+		}
+		if res == nil {
+			writeEmptyResultError(w)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(res)
 	}
 }
 

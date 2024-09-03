@@ -5,7 +5,16 @@ meta {
 }
 
 get {
-  url: https://api.twitch.tv/helix/streams
+  url: https://api.twitch.tv/helix/streams?user_login=purgegamers
   body: none
   auth: none
+}
+
+query {
+  user_login: purgegamers
+}
+
+headers {
+  Client-Id: {{TWITCH_CLIENT_ID}}
+  Authorization: Bearer {{TWITCH_AUTH_TOKEN}}
 }

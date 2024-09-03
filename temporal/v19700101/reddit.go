@@ -37,7 +37,7 @@ func (a *ActivityRequester) ensureValidRedditToken(minDur time.Duration) error {
 	}
 	r.SetBasicAuth(os.Getenv("REDDIT_CLIENT_ID"), os.Getenv("REDDIT_CLIENT_SECRET"))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	r.Header.Add("User-Agent", "Debian:github.com/brojonat/kaggo/worker:v0.0.1 (by /u/GraearG)")
+	r.Header.Add("User-Agent", os.Getenv("REDDIT_USER_AGENT"))
 	resp, err := http.DefaultClient.Do(r)
 	if err != nil {
 		return err

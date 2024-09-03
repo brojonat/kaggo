@@ -5,7 +5,15 @@ meta {
 }
 
 get {
-  url: {{ENDPOINT}}/users/metrics
+  url: {{ENDPOINT}}/users/metrics?email=brojonat@gmail.com
   body: none
   auth: none
+}
+
+query {
+  email: brojonat@gmail.com
+}
+
+headers {
+  Authorization: Bearer {{AUTH_TOKEN}}
 }

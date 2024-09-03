@@ -5,13 +5,13 @@ meta {
 }
 
 post {
-  url: {{ENDPOINT}}/schedule?skip-metadata=true
+  url: {{ENDPOINT}}/schedule
   body: json
   auth: none
 }
 
 query {
-  skip-metadata: true
+  : 
 }
 
 headers {
@@ -21,7 +21,7 @@ headers {
 body:json {
   {
     "request_kind": "reddit.post",
-    "id": "1exwqrp",
+    "id": "1f33c8h",
     "schedule_spec": {
       "Calendars": [
         {

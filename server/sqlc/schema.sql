@@ -200,3 +200,11 @@ CREATE TABLE IF NOT EXISTS twitch_user_past_dec_std_duration (
     ts TIMESTAMPTZ NOT NULL,
     std_duration REAL NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS reddit_user_subscriptions (
+    name VARCHAR(255) PRIMARY KEY NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS reddit_subreddit_subscriptions (
+    name VARCHAR(255) PRIMARY KEY NOT NULL
+);

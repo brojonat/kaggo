@@ -4,8 +4,14 @@ meta {
   seq: 2
 }
 
-get {
+post {
   url: https://id.twitch.tv/oauth2/token
-  body: none
+  body: formUrlEncoded
   auth: none
+}
+
+body:form-urlencoded {
+  grant_type: client_credentials
+  client_id: {{TWITCH_CLIENT_ID}}
+  client_secret: {{TWITCH_CLIENT_SECRET}}
 }

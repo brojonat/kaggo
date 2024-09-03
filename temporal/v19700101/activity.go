@@ -30,6 +30,8 @@ const (
 	RequestKindTwitchUserPastDec = "twitch.user-past-dec"
 )
 
+type ActivityRedditListener struct{}
+
 type ActivityRequester struct {
 	RedditAuthToken    string
 	RedditAuthTokenExp time.Time

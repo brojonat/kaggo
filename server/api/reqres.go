@@ -2,8 +2,24 @@ package api
 
 import (
 	"github.com/brojonat/kaggo/server/db/jsonb"
+	"github.com/turnage/graw/reddit"
 	"go.temporal.io/sdk/client"
 )
+
+func GetDefaultScheduleSpec(rk, id string) client.ScheduleSpec {
+	s := client.ScheduleSpec{
+		Calendars: []client.ScheduleCalendarSpec{
+			{
+				Second:  []client.ScheduleRange{{Start: 0}},
+				Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 5}},
+				Hour:    []client.ScheduleRange{{Start: 0, End: 23}},
+				Comment: "every 5 minutes",
+			},
+		},
+		Jitter: 300000000000,
+	}
+	return s
+}
 
 type DefaultJSONResponse struct {
 	Message string `json:"message,omitempty"`
@@ -167,4 +183,8 @@ type TwitchUserPastDecMetricPayload struct {
 	SetStdDuration  bool                    `json:"set_std_duration"`
 	StdDuration     float32                 `json:"std_duration"`
 	InternalData    MetricQueryInternalData `json:"internal_data"`
+}
+
+type RedditPostUpdate struct {
+	Post reddit.Post `json:"post"`
 }

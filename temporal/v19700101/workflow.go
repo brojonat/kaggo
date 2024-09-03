@@ -1,6 +1,7 @@
 package temporal
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -9,6 +10,40 @@ import (
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
+
+func RunRedditListenerWF(ctx workflow.Context, r RunRedditListenerWFRequest) error {
+	var a *ActivityRedditListener
+
+	// get the targets to listen on from the database
+	activityOptions := workflow.ActivityOptions{
+		ScheduleToCloseTimeout: 20 * time.Second,
+		RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 1},
+	}
+	ctx = workflow.WithActivityOptions(ctx, activityOptions)
+	var ar RunActRequest
+	err := workflow.ExecuteActivity(ctx, a.GetTargets).Get(ctx, &ar)
+	if err != nil {
+		return err
+	}
+
+	// run the long lived monitoring activity
+	activityOptions = workflow.ActivityOptions{
+		ScheduleToCloseTimeout: 10 * time.Minute,
+		RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 1},
+		HeartbeatTimeout:       60 * time.Second,
+	}
+	ctx = workflow.WithActivityOptions(ctx, activityOptions)
+	err = workflow.ExecuteActivity(ctx, a.Run, ar).Get(ctx, nil)
+
+	// We expect the activity to eventually timeout; if we don't get a timeout
+	// error, then return a generic error, otherwise just restart the workflow
+	// as new.
+	var te *temporal.TimeoutError
+	if !errors.As(err, &te) {
+		return fmt.Errorf("unexpected error from activity: %w", err)
+	}
+	return workflow.NewContinueAsNewError(ctx, RunRedditListenerWF, r)
+}
 
 // Performs a request against an external API and passes the response to a
 // handler that will parse metadata from the response and upload the metadata to
