@@ -53,9 +53,15 @@ func RunRedditListenerWF(ctx workflow.Context, r RunRedditListenerWFRequest) err
 	}
 
 	// run the long lived monitoring activity
+	rp := temporal.RetryPolicy{
+		InitialInterval:    time.Second,
+		BackoffCoefficient: 5.0,
+		MaximumInterval:    time.Second * 100,
+		MaximumAttempts:    100,
+	}
 	activityOptions = workflow.ActivityOptions{
 		ScheduleToCloseTimeout: 10 * time.Minute,
-		RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 1},
+		RetryPolicy:            &rp,
 		HeartbeatTimeout:       60 * time.Second,
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)

@@ -47,9 +47,8 @@ func handleGetRedditListenTargets(l *slog.Logger, q *dbgen.Queries) http.Handler
 func handleRunRedditListener(l *slog.Logger, q *dbgen.Queries, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		wopts := client.StartWorkflowOptions{
-			ID:          "reddit.listener",
-			TaskQueue:   "kaggo",
-			RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 1},
+			ID:        "reddit.listener",
+			TaskQueue: "kaggo",
 		}
 		wfr := kt.RunRedditListenerWFRequest{}
 		_, err := tc.ExecuteWorkflow(r.Context(), wopts, kt.RunRedditListenerWF, wfr)
