@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"sync"
 	"time"
 
 	"github.com/brojonat/kaggo/server/api"
@@ -61,6 +62,7 @@ func handleRunRedditListener(l *slog.Logger, q *dbgen.Queries, tc client.Client)
 }
 
 func handleRedditPostNotification(l *slog.Logger, q *dbgen.Queries, tc client.Client) http.HandlerFunc {
+	seen := sync.Map{}
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		var rb api.RedditPostUpdate
@@ -69,9 +71,22 @@ func handleRedditPostNotification(l *slog.Logger, q *dbgen.Queries, tc client.Cl
 			return
 		}
 
-		// we want to follow this post for some nominal amount of time
 		rk := "reddit.post"
 		id := rb.Post.ID
+
+		// We have a local cache to deal with users' pinned posts getting
+		// through our validation. This doesn't have to be perfect, but it'll
+		// get us 90% of the way there. Users' pinned posts will still end up
+		// getting tracked much of the time, but this will at least prevent
+		// constant reprocessing. In the future we may implement a blocklist,
+		// but this is fine for now.
+		if _, ok := seen.Load(id); ok {
+			writeOK(w)
+			return
+		}
+		seen.Store(id, struct{}{})
+
+		// we want to follow this post for some nominal amount of time
 		l.Info("got new reddit post to follow", "rk", "reddit.post", "id", id, "title", rb.Post.Title, "user", rb.Post.Author)
 		sched := api.GetDefaultScheduleSpec("reddit.post", id)
 		sched.EndAt = time.Now().Add(7 * 24 * time.Hour) // 1 week
@@ -153,7 +168,6 @@ func handleYouTubeVideoWebSubSetup(l *slog.Logger, q *dbgen.Queries, tc client.C
 	return func(w http.ResponseWriter, r *http.Request) {
 		topicRaw := r.URL.Query().Get("hub.topic")
 		challenge := r.URL.Query().Get("hub.challenge")
-		l.Info("youtube subscription lease seconds", "value", r.URL.Query().Get("hub.lease_seconds"))
 		turl, err := url.Parse(topicRaw)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
@@ -174,8 +188,9 @@ func handleYouTubeVideoWebSubSetup(l *slog.Logger, q *dbgen.Queries, tc client.C
 	}
 }
 
-// handles a websub update
+// handles a YouTube websub update
 func handleYouTubeVideoWebSubNotification(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
+	seen := sync.Map{}
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		b, err := io.ReadAll(r.Body)
@@ -193,6 +208,17 @@ func handleYouTubeVideoWebSubNotification(l *slog.Logger, q *dbgen.Queries) http
 			return
 		}
 		vid := matches[vidIdx]
+
+		// We have a local cache to deal with duplicate notifications. This
+		// doesn't have to be perfect, but it'll get us 90% of the way there.
+		// THe service will get restarted frequently enough that this shouldn't
+		// grow _too_ large.
+		if _, ok := seen.Load(vid); ok {
+			writeOK(w)
+			return
+		}
+		seen.Store(vid, struct{}{})
+
 		l.Info("got new youtube video to monitor", "id", vid)
 		// we want to follow this post for some nominal amount of time
 		rk := "youtube.video"
@@ -228,7 +254,8 @@ func handleYouTubeVideoWebSubNotification(l *slog.Logger, q *dbgen.Queries) http
 			writeInternalError(l, w, err)
 			return
 		}
-		// we expect some posts will end up here twice, so ignore StatusConflict
+		// we expect some posts will end up here twice, especially in cases where the
+		// creator changes the title or description, so ignore StatusConflict
 		if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusConflict {
 			writeInternalError(l, w, fmt.Errorf("bad response from server: %d: %s", res.StatusCode, string(b)))
 			return

@@ -63,21 +63,17 @@ deploy-worker:
 	kubectl apply -f -
 	kubectl rollout restart deployment kaggo-treq-worker
 
+initialize-lurkers:
+	$(call setup_env, server/.env)
+	@$(MAKE) build-cli
+	./cli admin workflow initiate-reddit-listener --endpoint https://api.kaggo.brojonat.com
+	./cli admin workflow initiate-youtube-listener --endpoint https://api.kaggo.brojonat.com
+
 deploy-all:
 	# server
 	@$(MAKE) deploy-server
 	# worker
-	$(call setup_env, worker/.env)
-	kustomize build --load-restrictor=LoadRestrictionsNone worker/k8s | \
-	sed -e "s;{{DOCKER_REPO}};$(DOCKER_REPO);g" | \
-	sed -e "s;{{CLI_IMG_TAG}};$(CLI_IMG_TAG);g" | \
-	kubectl apply -f -
-	kubectl rollout restart deployment kaggo-treq-worker
-
-initialize-lurkers:
-	$(call setup_env, server/.env)
-	@$(MAKE) build-cli
-	./cli admin workflow initiate-reddit-listener --endpoint $(KAGGO_ENDPOINT)
-	./cli admin workflow initiate-youtube-listener --endpoint $(KAGGO_ENDPOINT)
-
+	@$(MAKE) deploy-worker
+	# kick off long lived processes
+	@$(MAKE) initialize-lurkers
 
