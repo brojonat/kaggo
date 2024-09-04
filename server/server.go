@@ -333,7 +333,7 @@ func getRouter(
 	))
 
 	// reddit user metrics
-	mux.HandleFunc("GET /reddit/subreddit", stools.AdaptHandler(
+	mux.HandleFunc("GET /reddit/user", stools.AdaptHandler(
 		handleRedditUserMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
