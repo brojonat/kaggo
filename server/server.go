@@ -24,11 +24,12 @@ import (
 // own prometheus metrics other than the defaults, you should make sure all of
 // the following keys are specified.
 const (
-	PromMetricInternalRandom      = "pm-internal-random"
-	PromMetricXRatelimitLimit     = "pm-x-ratelimit-limit"
-	PromMetricXRatelimitUsed      = "pm-x-ratelimit-used"
-	PromMetricXRatelimitRemaining = "pm-x-ratelimit-remaining"
-	PromMetricXRatelimitReset     = "pm-x-ratelimit-reset"
+	PromMetricInternalRandom        = "pm-internal-random"
+	PromMetricXRatelimitLimit       = "pm-x-ratelimit-limit"
+	PromMetricXRatelimitUsed        = "pm-x-ratelimit-used"
+	PromMetricXRatelimitRemaining   = "pm-x-ratelimit-remaining"
+	PromMetricXRatelimitReset       = "pm-x-ratelimit-reset"
+	PromMetricHandlerRequestCounter = "pm-handler-counter"
 )
 
 // This is a convenience method for getting the necessary metrics. Some handlers
@@ -73,6 +74,13 @@ func GetDefaultPromMetrics() map[string]prometheus.Collector {
 				Help: "The X-Ratelimit-Reset header from an external server.",
 			},
 			[]string{"source"},
+		),
+		PromMetricHandlerRequestCounter: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "request_counter",
+				Help: "Count requests to handler",
+			},
+			[]string{"name", "code"},
 		),
 	}
 }
@@ -151,9 +159,17 @@ func getRouter(
 	methods := normalizeCORSParams(ms)
 	origins := normalizeCORSParams(ogs)
 
+	prcounter, ok := pms[PromMetricHandlerRequestCounter].(*prometheus.CounterVec)
+	if !ok {
+		return nil, fmt.Errorf("error with prom metric %s", PromMetricHandlerRequestCounter)
+	}
+
 	// admin/auth handlers
 	mux.Handle("/metrics", promhttp.Handler())
-	mux.Handle("GET /ping", handlePing(l, p))
+	mux.Handle("GET /ping", stools.AdaptHandler(
+		handlePing(l, p),
+		withPromCounter(prcounter),
+	))
 	mux.Handle("POST /token", handleIssueToken())
 
 	// users
@@ -161,30 +177,35 @@ func getRouter(
 		handleGetUsers(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	mux.HandleFunc("POST /users", stools.AdaptHandler(
 		handleAddUser(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	mux.HandleFunc("DELETE /users", stools.AdaptHandler(
 		handleDeleteUser(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	mux.HandleFunc("GET /users/metrics", stools.AdaptHandler(
 		handleGetUserMetrics(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	mux.HandleFunc("POST /users/metrics", stools.AdaptHandler(
 		handleUserMetricOperation(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	// metadata
@@ -192,16 +213,19 @@ func getRouter(
 		handleGetMetricMetadata(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /metadata", stools.AdaptHandler(
 		handlePostMetricMetadata(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /metadata/run-workflow", stools.AdaptHandler(
 		handleRunMetadataWF(l, q, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	// workflow schedule routes
@@ -209,26 +233,31 @@ func getRouter(
 		handleGetSchedule(l, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.Handle("POST /schedule", stools.AdaptHandler(
 		handleCreateSchedule(l, q, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.Handle("PUT /schedule", stools.AdaptHandler(
 		handleUpdateSchedule(l, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.Handle("DELETE /schedule", stools.AdaptHandler(
 		handleCancelSchedule(l, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.Handle("POST /schedule/trigger", stools.AdaptHandler(
 		handleTriggerSchedule(l, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	// internal metrics
@@ -236,16 +265,19 @@ func getRouter(
 		handleInternalMetricsGenerate(l),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("GET /internal/metrics", stools.AdaptHandler(
 		handleInternalMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /internal/metrics", stools.AdaptHandler(
 		handleInternalMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	// kaggle notebook metrics
@@ -253,11 +285,13 @@ func getRouter(
 		handleKaggleNotebookMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /kaggle/notebook", stools.AdaptHandler(
 		handleKaggleNotebookPost(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	// kaggle dataset metrics
@@ -265,11 +299,13 @@ func getRouter(
 		handleKaggleDatasetMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /kaggle/dataset", stools.AdaptHandler(
 		handleKaggleDatasetPost(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	// youtube video metrics
@@ -277,11 +313,13 @@ func getRouter(
 		handleYouTubeVideoMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /youtube/video", stools.AdaptHandler(
 		handleYouTubeVideoMetricsPost(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	// youtube channel metrics
@@ -289,11 +327,13 @@ func getRouter(
 		handleYouTubeChannelMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /youtube/channel", stools.AdaptHandler(
 		handleYouTubeChannelMetricsPost(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	// reddit post metrics
@@ -301,11 +341,13 @@ func getRouter(
 		handleRedditPostMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /reddit/post", stools.AdaptHandler(
 		handleRedditPostMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	// reddit comment metrics
@@ -313,11 +355,13 @@ func getRouter(
 		handleRedditCommentMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /reddit/comment", stools.AdaptHandler(
 		handleRedditCommentMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	// reddit subreddit metrics
@@ -325,11 +369,13 @@ func getRouter(
 		handleRedditSubredditMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /reddit/subreddit", stools.AdaptHandler(
 		handleRedditSubredditMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	// reddit user metrics
@@ -337,11 +383,13 @@ func getRouter(
 		handleRedditUserMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /reddit/user", stools.AdaptHandler(
 		handleRedditUserMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	// twitch clip metrics
@@ -349,6 +397,7 @@ func getRouter(
 		handleTwitchClipMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	// twitch video metrics
@@ -356,6 +405,7 @@ func getRouter(
 		handleTwitchVideoMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	// twitch stream metrics
@@ -363,6 +413,7 @@ func getRouter(
 		handleTwitchStreamMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	// twitch user-past-dec metrics
@@ -370,6 +421,7 @@ func getRouter(
 		handleTwitchUserPastDecMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	// getting timeseries
@@ -377,11 +429,13 @@ func getRouter(
 		handleGetTimeSeriesByIDs(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("GET /timeseries/bucketed", stools.AdaptHandler(
 		handleGetTimeSeriesByIDsBucketed(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	// reddit notifications
@@ -389,16 +443,19 @@ func getRouter(
 		handleGetRedditListenTargets(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /notification/reddit/post", stools.AdaptHandler(
 		handleRedditPostNotification(l, q, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /run-reddit-listener-wf", stools.AdaptHandler(
 		handleRunRedditListener(l, q, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	// youtube notifications
@@ -406,19 +463,23 @@ func getRouter(
 		handleGetYouTubeListenTargets(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("GET /notification/youtube/websub", stools.AdaptHandler(
 		handleYouTubeVideoWebSubSetup(l, q, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
+		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /notification/youtube/websub", stools.AdaptHandler(
 		handleYouTubeVideoWebSubNotification(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
+		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /run-youtube-listener-wf", stools.AdaptHandler(
 		handleRunYouTubeListener(l, q, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
 	))
 
 	return mux, nil

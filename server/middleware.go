@@ -12,6 +12,8 @@ import (
 	"github.com/brojonat/server-tools/stools"
 	"github.com/golang-jwt/jwt"
 	"github.com/gorilla/handlers"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/urfave/negroni"
 )
 
 const FirebaseJWTHeader = "Firebase-JWT"
@@ -113,6 +115,19 @@ func atLeastOneAuth(authorizers ...func(*http.Request) bool) stools.HandlerAdapt
 			}
 			w.WriteHeader(http.StatusUnauthorized)
 			json.NewEncoder(w).Encode(api.DefaultJSONResponse{Error: "unauthorized"})
+		}
+	}
+}
+
+// Increment a prometheus counter for each request
+func withPromCounter(pm *prometheus.CounterVec) stools.HandlerAdapter {
+	return func(hf http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			nwr := negroni.NewResponseWriter(w)
+			hf(nwr, r)
+			name := fmt.Sprintf("%s %s", r.Method, r.URL)
+			sc := fmt.Sprintf("%d", nwr.Status())
+			pm.With(prometheus.Labels{"name": name, "code": sc}).Inc()
 		}
 	}
 }
