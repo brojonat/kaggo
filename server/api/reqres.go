@@ -147,6 +147,21 @@ type RedditSubredditMetricPayload struct {
 	InternalData       MetricQueryInternalData `json:"internal_data"`
 }
 
+type RedditUserMetricPayload struct {
+	ID              string                  `json:"id"`
+	SetAwardeeKarma bool                    `json:"set_awardee_karma"`
+	AwardeeKarma    int                     `json:"awardee_karma"`
+	SetAwarderKarma bool                    `json:"set_awarder_karma"`
+	AwarderKarma    int                     `json:"awarder_karma"`
+	SetCommentKarma bool                    `json:"set_comment_karma"`
+	CommentKarma    int                     `json:"comment_karma"`
+	SetLinkKarma    bool                    `json:"set_like_karma"`
+	LinkKarma       int                     `json:"like_karma"`
+	SetTotalKarma   bool                    `json:"set_total_karma"`
+	TotalKarma      int                     `json:"total_karma"`
+	InternalData    MetricQueryInternalData `json:"internal_data"`
+}
+
 type TwitchClipMetricPayload struct {
 	ID           string                  `json:"id"`
 	SetViewCount bool                    `json:"set_view_count"`

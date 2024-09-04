@@ -10,6 +10,7 @@ type MetadataJSON struct {
 	Owner       string `json:"owner,omitempty"`
 	Title       string `json:"title,omitempty"`
 	Comment     string `json:"comment,omitempty"`
+	TSCreated   int    `json:"ts_created,omitempty"`
 	Subreddit   string `json:"subreddit,omitempty"`
 	UserID      string `json:"user_id,omitempty"`
 	GameID      string `json:"game_id,omitempty"`

@@ -251,3 +251,83 @@ func handleGetRedditSubredditTimeSeriesByIDsBucketed(l *slog.Logger, q *dbgen.Qu
 
 	}
 }
+
+func handleGetRedditUserTimeSeriesByIDsBucketed(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		bs := r.URL.Query().Get("bucket_size")
+		if bs == "" {
+			bs = "60m"
+		}
+		ids := r.URL.Query()["id"]
+		if len(ids) == 0 {
+			idstr := r.URL.Query().Get("ids")
+			ids = strings.Split(idstr, ",")
+		}
+		if len(ids) == 0 {
+			writeBadRequestError(w, fmt.Errorf("must supply id(s)"))
+			return
+		}
+
+		var res interface{}
+		var err error
+
+		switch bs {
+		case "15m":
+
+			res, err = q.GetRedditUserMetricsByIDsBucket15Min(
+				r.Context(),
+				dbgen.GetRedditUserMetricsByIDsBucket15MinParams{
+					Ids:     ids,
+					TsStart: pgtype.Timestamptz{Time: time.Time{}, Valid: true},
+					TsEnd:   pgtype.Timestamptz{Time: time.Now(), Valid: true},
+				},
+			)
+
+		case "60m", "1h":
+			res, err = q.GetRedditUserMetricsByIDsBucket1Hr(
+				r.Context(),
+				dbgen.GetRedditUserMetricsByIDsBucket1HrParams{
+					Ids:     ids,
+					TsStart: pgtype.Timestamptz{Time: time.Time{}, Valid: true},
+					TsEnd:   pgtype.Timestamptz{Time: time.Now(), Valid: true},
+				},
+			)
+
+		case "8h":
+			res, err = q.GetRedditUserMetricsByIDsBucket8Hr(
+				r.Context(),
+				dbgen.GetRedditUserMetricsByIDsBucket8HrParams{
+					Ids:     ids,
+					TsStart: pgtype.Timestamptz{Time: time.Time{}, Valid: true},
+					TsEnd:   pgtype.Timestamptz{Time: time.Now(), Valid: true},
+				},
+			)
+
+		case "1d":
+			res, err = q.GetRedditUserMetricsByIDsBucket1Day(
+				r.Context(),
+				dbgen.GetRedditUserMetricsByIDsBucket1DayParams{
+					Ids:     ids,
+					TsStart: pgtype.Timestamptz{Time: time.Time{}, Valid: true},
+					TsEnd:   pgtype.Timestamptz{Time: time.Now(), Valid: true},
+				},
+			)
+
+		default:
+			writeBadRequestError(w, fmt.Errorf("unsupported bucket_size: %s", bs))
+			return
+		}
+
+		if err != nil {
+			writeInternalError(l, w, err)
+			return
+		}
+		if res == nil {
+			writeEmptyResultError(w)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(res)
+
+	}
+}

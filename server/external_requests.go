@@ -15,8 +15,9 @@ import (
 
 var errUnsupportedRequestKind = errors.New("unsupported request kind")
 
-// Helper function that creates a request, serializes it, and computes the id from the hash
-// of the bytes. This is handy for passing to various workflows called in this package.
+// Helper function that creates a request, serializes it, and computes the id
+// from the hash of the bytes. This is handy for passing to various workflows
+// called in this package.
 func makeExternalRequest(q *dbgen.Queries, rk, id string, meta bool) (*http.Request, []byte, string, error) {
 	// construct request by switching over RequestKind
 	var err error
@@ -27,19 +28,6 @@ func makeExternalRequest(q *dbgen.Queries, rk, id string, meta bool) (*http.Requ
 		if err != nil {
 			return nil, nil, "", err
 		}
-
-	case kt.RequestKindYouTubeVideo:
-		rwf, err = makeExternalRequestYouTubeVideo(id)
-		if err != nil {
-			return nil, nil, "", err
-		}
-
-	case kt.RequestKindYouTubeChannel:
-		rwf, err = makeExternalRequestYouTubeChannel(id)
-		if err != nil {
-			return nil, nil, "", err
-		}
-
 	case kt.RequestKindKaggleNotebook:
 		rwf, err = makeExternalRequestKaggleNotebook(id)
 		if err != nil {
@@ -51,25 +39,36 @@ func makeExternalRequest(q *dbgen.Queries, rk, id string, meta bool) (*http.Requ
 		if err != nil {
 			return nil, nil, "", err
 		}
-
+	case kt.RequestKindYouTubeVideo:
+		rwf, err = makeExternalRequestYouTubeVideo(id)
+		if err != nil {
+			return nil, nil, "", err
+		}
+	case kt.RequestKindYouTubeChannel:
+		rwf, err = makeExternalRequestYouTubeChannel(id)
+		if err != nil {
+			return nil, nil, "", err
+		}
 	case kt.RequestKindRedditPost:
 		rwf, err = makeExternalRequestRedditPost(id)
 		if err != nil {
 			return nil, nil, "", err
 		}
-
 	case kt.RequestKindRedditComment:
 		rwf, err = makeExternalRequestRedditComment(id)
 		if err != nil {
 			return nil, nil, "", err
 		}
-
 	case kt.RequestKindRedditSubreddit:
 		rwf, err = makeExternalRequestRedditSubreddit(id)
 		if err != nil {
 			return nil, nil, "", err
 		}
-
+	case kt.RequestKindRedditUser:
+		rwf, err = makeExternalRequestRedditUser(id)
+		if err != nil {
+			return nil, nil, "", err
+		}
 	case kt.RequestKindTwitchClip:
 		rwf, err = makeExternalRequestTwitchClip(id)
 		if err != nil {
@@ -128,11 +127,20 @@ func makeExternalRequest(q *dbgen.Queries, rk, id string, meta bool) (*http.Requ
 	return rwf, serialReq, rid, nil
 }
 
+// NOTE: the following makeExternalRequestFoo functions will return a PROTOTYPE
+// of a request to be made to an external resource. The implementation of these
+// functions MUST NOT include dynamic values! The returned request may be
+// serialized and a hash of the request bytes may be used as part of the
+// schedule identifier. If any dynamic values are included and later on change,
+// the hash of the resultant request will also change, and we won't be able to
+// trivially prevent duplicate schedules from being created.
+
 func makeExternalRequestInternalRandom() (*http.Request, error) {
 	r, err := http.NewRequest(http.MethodGet, "https://api.kaggo.brojonat.com/internal/generate", nil)
 	if err != nil {
 		return nil, err
 	}
+	// FIXME: remove when permitted
 	r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("AUTH_TOKEN")))
 	return r, nil
 }
@@ -143,6 +151,7 @@ func makeExternalRequestYouTubeVideo(id string) (*http.Request, error) {
 		return nil, err
 	}
 	q := r.URL.Query()
+	// FIXME: remove when permitted
 	q.Set("part", "snippet,contentDetails,statistics")
 	q.Set("key", os.Getenv("YOUTUBE_API_KEY"))
 	q.Set("id", id)
@@ -156,6 +165,7 @@ func makeExternalRequestYouTubeChannel(id string) (*http.Request, error) {
 		return nil, err
 	}
 	q := r.URL.Query()
+	// FIXME: remove when permitted
 	q.Set("part", "snippet,contentDetails,statistics")
 	q.Set("key", os.Getenv("YOUTUBE_API_KEY"))
 	q.Set("id", id)
@@ -173,6 +183,7 @@ func makeExternalRequestKaggleNotebook(id string) (*http.Request, error) {
 	q := r.URL.Query()
 	q.Set("search", id)
 	r.URL.RawQuery = q.Encode()
+	// FIXME: remove when permitted
 	// basic auth
 	r.SetBasicAuth(os.Getenv("KAGGLE_USERNAME"), os.Getenv("KAGGLE_API_KEY"))
 	return r, nil
@@ -188,6 +199,7 @@ func makeExternalRequestKaggleDataset(id string) (*http.Request, error) {
 	q := r.URL.Query()
 	q.Set("search", id)
 	r.URL.RawQuery = q.Encode()
+	// FIXME: remove when permitted
 	// basic auth
 	r.SetBasicAuth(os.Getenv("KAGGLE_USERNAME"), os.Getenv("KAGGLE_API_KEY"))
 	return r, nil
@@ -201,7 +213,8 @@ func makeExternalRequestRedditPost(id string) (*http.Request, error) {
 	q := r.URL.Query()
 	q.Set("id", fmt.Sprintf("t3_%s", id))
 	r.URL.RawQuery = q.Encode()
-	r.Header.Add("User-Agent", os.Getenv("REDDIT_USER_AGENT"))
+	// FIXME: remove when permitted
+	r.Header.Set("User-Agent", os.Getenv("REDDIT_USER_AGENT"))
 	return r, nil
 }
 
@@ -213,7 +226,8 @@ func makeExternalRequestRedditComment(id string) (*http.Request, error) {
 	q := r.URL.Query()
 	q.Set("id", fmt.Sprintf("t1_%s", id))
 	r.URL.RawQuery = q.Encode()
-	r.Header.Add("User-Agent", os.Getenv("REDDIT_USER_AGENT"))
+	// FIXME: remove when permitted
+	r.Header.Set("User-Agent", os.Getenv("REDDIT_USER_AGENT"))
 	return r, nil
 }
 
@@ -222,7 +236,18 @@ func makeExternalRequestRedditSubreddit(id string) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
-	r.Header.Add("User-Agent", os.Getenv("REDDIT_USER_AGENT"))
+	// FIXME: remove when permitted
+	r.Header.Set("User-Agent", os.Getenv("REDDIT_USER_AGENT"))
+	return r, nil
+}
+
+func makeExternalRequestRedditUser(id string) (*http.Request, error) {
+	r, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://oauth.reddit.com/user/%s/about.json", id), nil)
+	if err != nil {
+		return nil, err
+	}
+	// FIXME: remove when permitted
+	r.Header.Set("User-Agent", os.Getenv("REDDIT_USER_AGENT"))
 	return r, nil
 }
 
@@ -231,10 +256,11 @@ func makeExternalRequestTwitchClip(id string) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
-	r.Header.Add("Client-Id", os.Getenv("TWITCH_CLIENT_ID"))
 	q := r.URL.Query()
 	q.Add("id", id)
 	r.URL.RawQuery = q.Encode()
+	// FIXME: remove when permitted
+	r.Header.Set("Client-Id", os.Getenv("TWITCH_CLIENT_ID"))
 	return r, nil
 }
 
@@ -243,23 +269,11 @@ func makeExternalRequestTwitchVideo(id string) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
-	r.Header.Add("Client-Id", os.Getenv("TWITCH_CLIENT_ID"))
 	q := r.URL.Query()
 	q.Add("id", id)
 	r.URL.RawQuery = q.Encode()
-	return r, nil
-}
-
-func makeExternalRequestTwitchStreamMetadata(username string) (*http.Request, error) {
-	r, err := http.NewRequest(http.MethodGet, "https://api.twitch.tv/helix/streams", nil)
-	if err != nil {
-		return nil, err
-	}
-	r.Header.Add("Client-Id", os.Getenv("TWITCH_CLIENT_ID"))
-	q := r.URL.Query()
-	q.Add("user_login", username)
-	q.Add("sort", "time")
-	r.URL.RawQuery = q.Encode()
+	// FIXME: remove when permitted
+	r.Header.Set("Client-Id", os.Getenv("TWITCH_CLIENT_ID"))
 	return r, nil
 }
 
@@ -268,11 +282,12 @@ func makeExternalRequestTwitchStreamMeta(username string) (*http.Request, error)
 	if err != nil {
 		return nil, err
 	}
-	r.Header.Add("Client-Id", os.Getenv("TWITCH_CLIENT_ID"))
 	q := r.URL.Query()
 	q.Add("login", username)
 	q.Add("sort", "time")
 	r.URL.RawQuery = q.Encode()
+	// FIXME: remove when permitted
+	r.Header.Set("Client-Id", os.Getenv("TWITCH_CLIENT_ID"))
 	return r, nil
 }
 
@@ -281,11 +296,12 @@ func makeExternalRequestTwitchStream(username string) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
-	r.Header.Add("Client-Id", os.Getenv("TWITCH_CLIENT_ID"))
 	q := r.URL.Query()
 	q.Add("user_login", username)
 	q.Add("sort", "time")
 	r.URL.RawQuery = q.Encode()
+	// FIXME: remove when permitted
+	r.Header.Set("Client-Id", os.Getenv("TWITCH_CLIENT_ID"))
 	return r, nil
 }
 
@@ -294,10 +310,11 @@ func makeExternalRequestTwitchUserPastDecMeta(username string) (*http.Request, e
 	if err != nil {
 		return nil, err
 	}
-	r.Header.Add("Client-Id", os.Getenv("TWITCH_CLIENT_ID"))
 	qs := r.URL.Query()
 	qs.Add("login", username)
 	r.URL.RawQuery = qs.Encode()
+	// FIXME: remove when permitted
+	r.Header.Set("Client-Id", os.Getenv("TWITCH_CLIENT_ID"))
 	return r, nil
 }
 
@@ -332,9 +349,10 @@ func makeExternalRequestTwitchUserPastDec(q *dbgen.Queries, username string) (*h
 	if user_id == "" {
 		return nil, fmt.Errorf("error getting twitch user_id from metadata: no user_id found in metadata")
 	}
-	r.Header.Add("Client-Id", os.Getenv("TWITCH_CLIENT_ID"))
 	qs := r.URL.Query()
 	qs.Add("user_id", user_id)
 	r.URL.RawQuery = qs.Encode()
+	// FIXME: remove when permitted
+	r.Header.Set("Client-Id", os.Getenv("TWITCH_CLIENT_ID"))
 	return r, nil
 }

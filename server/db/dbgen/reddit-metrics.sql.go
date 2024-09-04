@@ -415,7 +415,6 @@ func (q *Queries) GetRedditPostMetricsByIDs(ctx context.Context, arg GetRedditPo
 
 const getRedditPostMetricsByIDsBucket15Min = `-- name: GetRedditPostMetricsByIDsBucket15Min :many
 
-
 SELECT id, bucket, value, 'reddit.post.score' AS "metric"
 FROM (
 	SELECT
@@ -1031,6 +1030,559 @@ func (q *Queries) GetRedditSubredditMetricsByIDsBucket8Hr(ctx context.Context, a
 	return items, nil
 }
 
+const getRedditUserMetricsByIDs = `-- name: GetRedditUserMetricsByIDs :many
+SELECT
+    r.id AS "id",
+    r.ts AS "ts",
+    r.karma::REAL AS "value",
+    'reddit.user.awardee_karma' AS "metric"
+FROM reddit_user_awardee_karma AS r
+WHERE
+    r.id = ANY($1::VARCHAR[]) AND
+    r.ts >= $2 AND
+    r.ts <= $3
+UNION ALL
+SELECT
+    r.id AS "id",
+    r.ts AS "ts",
+    r.karma::REAL AS "value",
+    'reddit.user.awarder_karma' AS "metric"
+FROM reddit_user_awarder_karma AS r
+WHERE
+    r.id = ANY($1::VARCHAR[]) AND
+    r.ts >= $2 AND
+    r.ts <= $3
+UNION ALL
+SELECT
+    r.id AS "id",
+    r.ts AS "ts",
+    r.karma::REAL AS "value",
+    'reddit.user.comment_karma' AS "metric"
+FROM reddit_user_comment_karma AS r
+WHERE
+    r.id = ANY($1::VARCHAR[]) AND
+    r.ts >= $2 AND
+    r.ts <= $3
+UNION ALL
+SELECT
+    r.id AS "id",
+    r.ts AS "ts",
+    r.karma::REAL AS "value",
+    'reddit.user.link_karma' AS "metric"
+FROM reddit_user_link_karma AS r
+WHERE
+    r.id = ANY($1::VARCHAR[]) AND
+    r.ts >= $2 AND
+    r.ts <= $3
+UNION ALL
+SELECT
+    r.id AS "id",
+    r.ts AS "ts",
+    r.karma::REAL AS "value",
+    'reddit.user.total_karma' AS "metric"
+FROM reddit_user_total_karma AS r
+WHERE
+    r.id = ANY($1::VARCHAR[]) AND
+    r.ts >= $2 AND
+    r.ts <= $3
+`
+
+type GetRedditUserMetricsByIDsParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditUserMetricsByIDsRow struct {
+	ID     string             `json:"id"`
+	Ts     pgtype.Timestamptz `json:"ts"`
+	Value  float32            `json:"value"`
+	Metric string             `json:"metric"`
+}
+
+func (q *Queries) GetRedditUserMetricsByIDs(ctx context.Context, arg GetRedditUserMetricsByIDsParams) ([]GetRedditUserMetricsByIDsRow, error) {
+	rows, err := q.db.Query(ctx, getRedditUserMetricsByIDs, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRedditUserMetricsByIDsRow
+	for rows.Next() {
+		var i GetRedditUserMetricsByIDsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Ts,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRedditUserMetricsByIDsBucket15Min = `-- name: GetRedditUserMetricsByIDsBucket15Min :many
+
+
+SELECT id, bucket, value, 'reddit.user.awardee_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_awardee_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.user.awarder_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_awarder_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.user.comment_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_comment_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.user.link_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_link_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.user.total_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_total_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetRedditUserMetricsByIDsBucket15MinParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditUserMetricsByIDsBucket15MinRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+// Reddit User Bucketed Metrics
+func (q *Queries) GetRedditUserMetricsByIDsBucket15Min(ctx context.Context, arg GetRedditUserMetricsByIDsBucket15MinParams) ([]GetRedditUserMetricsByIDsBucket15MinRow, error) {
+	rows, err := q.db.Query(ctx, getRedditUserMetricsByIDsBucket15Min, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRedditUserMetricsByIDsBucket15MinRow
+	for rows.Next() {
+		var i GetRedditUserMetricsByIDsBucket15MinRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRedditUserMetricsByIDsBucket1Day = `-- name: GetRedditUserMetricsByIDsBucket1Day :many
+SELECT id, bucket, value, 'reddit.user.awardee_karma' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(karma::REAL) AS value
+	FROM reddit_user_awardee_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.user.awarder_karma' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(karma::REAL) AS value
+	FROM reddit_user_awarder_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+	UNION ALL
+SELECT id, bucket, value, 'reddit.user.comment_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_comment_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.user.link_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_link_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.user.total_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_total_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetRedditUserMetricsByIDsBucket1DayParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditUserMetricsByIDsBucket1DayRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetRedditUserMetricsByIDsBucket1Day(ctx context.Context, arg GetRedditUserMetricsByIDsBucket1DayParams) ([]GetRedditUserMetricsByIDsBucket1DayRow, error) {
+	rows, err := q.db.Query(ctx, getRedditUserMetricsByIDsBucket1Day, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRedditUserMetricsByIDsBucket1DayRow
+	for rows.Next() {
+		var i GetRedditUserMetricsByIDsBucket1DayRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRedditUserMetricsByIDsBucket1Hr = `-- name: GetRedditUserMetricsByIDsBucket1Hr :many
+SELECT id, bucket, value, 'reddit.user.awardee_karma' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(karma::REAL) AS value
+	FROM reddit_user_awardee_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.user.awarder_karma' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(karma::REAL) AS value
+	FROM reddit_user_awarder_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.user.comment_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_comment_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.user.link_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_link_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.user.total_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_total_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetRedditUserMetricsByIDsBucket1HrParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditUserMetricsByIDsBucket1HrRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetRedditUserMetricsByIDsBucket1Hr(ctx context.Context, arg GetRedditUserMetricsByIDsBucket1HrParams) ([]GetRedditUserMetricsByIDsBucket1HrRow, error) {
+	rows, err := q.db.Query(ctx, getRedditUserMetricsByIDsBucket1Hr, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRedditUserMetricsByIDsBucket1HrRow
+	for rows.Next() {
+		var i GetRedditUserMetricsByIDsBucket1HrRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRedditUserMetricsByIDsBucket8Hr = `-- name: GetRedditUserMetricsByIDsBucket8Hr :many
+SELECT id, bucket, value, 'reddit.user.awardee_karma' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS bucket,
+	    MAX(karma::REAL) AS value
+	FROM reddit_user_awardee_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.user.awarder_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_awarder_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.user.comment_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_comment_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.user.link_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_link_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+UNION ALL
+SELECT id, bucket, value, 'reddit.user.total_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_total_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY($1::VARCHAR[]) AND
+    tab.bucket >= $2::TIMESTAMPTZ AND
+    tab.bucket <= $3::TIMESTAMPTZ
+`
+
+type GetRedditUserMetricsByIDsBucket8HrParams struct {
+	Ids     []string           `json:"ids"`
+	TsStart pgtype.Timestamptz `json:"ts_start"`
+	TsEnd   pgtype.Timestamptz `json:"ts_end"`
+}
+
+type GetRedditUserMetricsByIDsBucket8HrRow struct {
+	ID     string      `json:"id"`
+	Bucket interface{} `json:"bucket"`
+	Value  interface{} `json:"value"`
+	Metric string      `json:"metric"`
+}
+
+func (q *Queries) GetRedditUserMetricsByIDsBucket8Hr(ctx context.Context, arg GetRedditUserMetricsByIDsBucket8HrParams) ([]GetRedditUserMetricsByIDsBucket8HrRow, error) {
+	rows, err := q.db.Query(ctx, getRedditUserMetricsByIDsBucket8Hr, arg.Ids, arg.TsStart, arg.TsEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRedditUserMetricsByIDsBucket8HrRow
+	for rows.Next() {
+		var i GetRedditUserMetricsByIDsBucket8HrRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Bucket,
+			&i.Value,
+			&i.Metric,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertRedditCommentControversiality = `-- name: InsertRedditCommentControversiality :exec
 INSERT INTO reddit_comment_controversiality (id, ts, controversiality)
 VALUES ($1, NOW()::TIMESTAMPTZ, $2)
@@ -1118,5 +1670,80 @@ type InsertRedditSubredditSubscribersParams struct {
 
 func (q *Queries) InsertRedditSubredditSubscribers(ctx context.Context, arg InsertRedditSubredditSubscribersParams) error {
 	_, err := q.db.Exec(ctx, insertRedditSubredditSubscribers, arg.ID, arg.Subscribers)
+	return err
+}
+
+const insertRedditUserAwardeeKarma = `-- name: InsertRedditUserAwardeeKarma :exec
+INSERT INTO reddit_user_awardee_karma (id, ts, karma)
+VALUES ($1, NOW()::TIMESTAMPTZ, $2)
+`
+
+type InsertRedditUserAwardeeKarmaParams struct {
+	ID    string `json:"id"`
+	Karma int32  `json:"karma"`
+}
+
+func (q *Queries) InsertRedditUserAwardeeKarma(ctx context.Context, arg InsertRedditUserAwardeeKarmaParams) error {
+	_, err := q.db.Exec(ctx, insertRedditUserAwardeeKarma, arg.ID, arg.Karma)
+	return err
+}
+
+const insertRedditUserAwarderKarma = `-- name: InsertRedditUserAwarderKarma :exec
+INSERT INTO reddit_user_awarder_karma (id, ts, karma)
+VALUES ($1, NOW()::TIMESTAMPTZ, $2)
+`
+
+type InsertRedditUserAwarderKarmaParams struct {
+	ID    string `json:"id"`
+	Karma int32  `json:"karma"`
+}
+
+func (q *Queries) InsertRedditUserAwarderKarma(ctx context.Context, arg InsertRedditUserAwarderKarmaParams) error {
+	_, err := q.db.Exec(ctx, insertRedditUserAwarderKarma, arg.ID, arg.Karma)
+	return err
+}
+
+const insertRedditUserCommentKarma = `-- name: InsertRedditUserCommentKarma :exec
+INSERT INTO reddit_user_comment_karma (id, ts, karma)
+VALUES ($1, NOW()::TIMESTAMPTZ, $2)
+`
+
+type InsertRedditUserCommentKarmaParams struct {
+	ID    string `json:"id"`
+	Karma int32  `json:"karma"`
+}
+
+func (q *Queries) InsertRedditUserCommentKarma(ctx context.Context, arg InsertRedditUserCommentKarmaParams) error {
+	_, err := q.db.Exec(ctx, insertRedditUserCommentKarma, arg.ID, arg.Karma)
+	return err
+}
+
+const insertRedditUserLinkKarma = `-- name: InsertRedditUserLinkKarma :exec
+INSERT INTO reddit_user_link_karma (id, ts, karma)
+VALUES ($1, NOW()::TIMESTAMPTZ, $2)
+`
+
+type InsertRedditUserLinkKarmaParams struct {
+	ID    string `json:"id"`
+	Karma int32  `json:"karma"`
+}
+
+func (q *Queries) InsertRedditUserLinkKarma(ctx context.Context, arg InsertRedditUserLinkKarmaParams) error {
+	_, err := q.db.Exec(ctx, insertRedditUserLinkKarma, arg.ID, arg.Karma)
+	return err
+}
+
+const insertRedditUserTotalKarma = `-- name: InsertRedditUserTotalKarma :exec
+INSERT INTO reddit_user_total_karma (id, ts, karma)
+VALUES ($1, NOW()::TIMESTAMPTZ, $2)
+`
+
+type InsertRedditUserTotalKarmaParams struct {
+	ID    string `json:"id"`
+	Karma int32  `json:"karma"`
+}
+
+func (q *Queries) InsertRedditUserTotalKarma(ctx context.Context, arg InsertRedditUserTotalKarmaParams) error {
+	_, err := q.db.Exec(ctx, insertRedditUserTotalKarma, arg.ID, arg.Karma)
 	return err
 }

@@ -30,11 +30,11 @@ Let's say you want to start tracking Twitch metrics. Here's how you'd go about i
 - You'll need to inspect the response body for each of these. If the API documentation is good, you can do this on the docs page, otherwise you'll need to use your favorite HTTP client (e.g., curl, Bruno, etc), and manually make requests against the API to get some sample data. Then you can take the sample data and drop it into https://play.jmespath.org/ or something similar and determine the correct path to extract the quantity of interest (e.g., data[0].view_count).
 
 - Add the payload structs to the server API.
-- Open your Go code and open the `temporal/handlers_[metadata|metrics].go` files and add support to BOTH for extracting the 1) the metadata param(s) and 2) the metric(s) you want to track. Note that the metadata workflow and the long polling workflow _may_ pass different types of response bodies to their respective handlers! Typically they'll be the same, but in some cases (i.e., Twitch streaming and "recent" metrics), the responses are different.
+- Open your Go code and open the `temporal/handlers_[metadata|metrics].go` files and add support to BOTH for extracting the 1) the metadata param(s) and 2) the metric(s) you want to track. Note that the metadata workflow and the long polling workflow _may_ pass different types of response bodies to their respective handlers! Typically they'll be the same, but in some cases (i.e., Twitch streaming and "recent" metrics), the metadata responses are different from the metric responses.
 - Add `RequestKindTwitchClips` and so on for each resource.
 - Update `prepareRequest` to handle the new request kinds.
 - Update `UploadMetadata` and `UploadMetrics` to handle the new request kinds.
 - Write and apply migrations for the new tables
-- Write and generate the queries for the new metrics (particularly insertion, and getting bucketed)
+- Write and generate the queries for the new metrics (particularly insertion, and getting bucketed timeseries).
 - Add the handlers to serve the metrics
 - Update the schedule handler to perform the actual requests

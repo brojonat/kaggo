@@ -248,29 +248,6 @@ func getRouter(
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
 
-	// youtube video metrics
-	mux.HandleFunc("GET /youtube/video", stools.AdaptHandler(
-		handleYouTubeVideoMetricsGet(l, q),
-		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
-	))
-	mux.HandleFunc("POST /youtube/video", stools.AdaptHandler(
-		handleYouTubeVideoMetricsPost(l, q),
-		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
-	))
-	// youtube channel metrics
-	mux.HandleFunc("GET /youtube/channel", stools.AdaptHandler(
-		handleYouTubeChannelMetricsGet(l, q),
-		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
-	))
-	mux.HandleFunc("POST /youtube/channel", stools.AdaptHandler(
-		handleYouTubeChannelMetricsPost(l, q),
-		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
-	))
-
 	// kaggle notebook metrics
 	mux.HandleFunc("GET /kaggle/notebook", stools.AdaptHandler(
 		handleKaggleNotebookMetricsGet(l, q),
@@ -291,6 +268,30 @@ func getRouter(
 	))
 	mux.HandleFunc("POST /kaggle/dataset", stools.AdaptHandler(
 		handleKaggleDatasetPost(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+
+	// youtube video metrics
+	mux.HandleFunc("GET /youtube/video", stools.AdaptHandler(
+		handleYouTubeVideoMetricsGet(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+	mux.HandleFunc("POST /youtube/video", stools.AdaptHandler(
+		handleYouTubeVideoMetricsPost(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+
+	// youtube channel metrics
+	mux.HandleFunc("GET /youtube/channel", stools.AdaptHandler(
+		handleYouTubeChannelMetricsGet(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+	mux.HandleFunc("POST /youtube/channel", stools.AdaptHandler(
+		handleYouTubeChannelMetricsPost(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
@@ -327,6 +328,18 @@ func getRouter(
 	))
 	mux.HandleFunc("POST /reddit/subreddit", stools.AdaptHandler(
 		handleRedditSubredditMetricsPost(l, q, pms),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+
+	// reddit user metrics
+	mux.HandleFunc("GET /reddit/subreddit", stools.AdaptHandler(
+		handleRedditUserMetricsGet(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+	))
+	mux.HandleFunc("POST /reddit/user", stools.AdaptHandler(
+		handleRedditUserMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
