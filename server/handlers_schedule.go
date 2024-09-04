@@ -84,13 +84,14 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 		// Optionally skip the metadata query. Some clients don't need to run
 		// the metadata workflow (e.g., if they're (re)uploading schedules that
 		// were deleted). By default, the metadata operation will run and block.
-		skip_metadata := false
-		smb, err := strconv.ParseBool((r.URL.Query().Get("skip-metadata")))
-		// throws error by default on empty string input
+		run_metadata := true
+		skip, err := strconv.ParseBool((r.URL.Query().Get("skip-metadata")))
+		// ParseBool returns error by default on empty string input, in which
+		// case, we should just no-op and stick with running the metadata query.
 		if err == nil {
-			skip_metadata = smb
+			run_metadata = !skip
 		}
-		if !skip_metadata {
+		if run_metadata {
 			we, err := tc.ExecuteWorkflow(
 				r.Context(),
 				workflowOptions,
@@ -108,9 +109,9 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 			}
 		}
 
-		// probably should validate this...but we're the only ones authed for this API and
-		// at present we're only using the same fixed schedule, so implement validation
-		// later if it's actually needed.
+		// probably should validate this...but we're the only ones authed for
+		// this API and at present we're only using the same fixed schedule, so
+		// implement validation later if it's actually needed.
 		sched := body.Schedule
 
 		// prepare the request to pass to the polling workflow
@@ -124,7 +125,8 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 			return
 		}
 
-		// Create the schedule.
+		// Create the schedule. Currently we rely on the unique [rk id hash] schedule
+		// id to debounce duplicate schedules.
 		_, err = tc.ScheduleClient().Create(
 			r.Context(),
 			client.ScheduleOptions{
