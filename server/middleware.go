@@ -125,7 +125,7 @@ func withPromCounter(pm *prometheus.CounterVec) stools.HandlerAdapter {
 		return func(w http.ResponseWriter, r *http.Request) {
 			nwr := negroni.NewResponseWriter(w)
 			hf(nwr, r)
-			name := fmt.Sprintf("%s %s", r.Method, r.URL)
+			name := fmt.Sprintf("%s %s", r.Method, r.URL.Path)
 			sc := fmt.Sprintf("%d", nwr.Status())
 			pm.With(prometheus.Labels{"name": name, "code": sc}).Inc()
 		}

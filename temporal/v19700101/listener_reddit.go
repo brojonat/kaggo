@@ -123,10 +123,10 @@ func (a *ActivityRedditListener) Run(ctx context.Context, r RedditSubActRequest)
 	l := activity.GetLogger(ctx)
 
 	cfg := reddit.BotConfig{
-		Agent: os.Getenv("REDDIT_USER_AGENT"),
+		Agent: os.Getenv("GRAW_USER_AGENT"),
 		App: reddit.App{
-			ID:       os.Getenv("REDDIT_CLIENT_ID"),
-			Secret:   os.Getenv("REDDIT_CLIENT_SECRET"),
+			ID:       os.Getenv("GRAW_CLIENT_ID"),
+			Secret:   os.Getenv("GRAW_CLIENT_SECRET"),
 			Username: os.Getenv("REDDIT_USERNAME"),
 			Password: os.Getenv("REDDIT_PASSWORD"),
 		},

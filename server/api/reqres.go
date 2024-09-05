@@ -49,6 +49,7 @@ type GenericScheduleRequestPayload struct {
 	RequestKind string              `json:"request_kind"`
 	ID          string              `json:"id"`
 	Schedule    client.ScheduleSpec `json:"schedule_spec,omitempty"`
+	Monitor     bool                `json:"monitor,omitempty"`
 }
 
 // Contains arbitrary data that metric (or metadata) handlers want to pass back to the server.

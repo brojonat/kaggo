@@ -284,6 +284,23 @@ func (a *ActivityRequester) handleRedditPostMetadata(l log.Logger, status int, b
 	}
 	author := iface.(string)
 
+	// nsfw
+	iface, err = jmespath.Search("data.children[0].data.over_18", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting over_18: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting over_18; over_18 is nil")
+	}
+	nsfw := iface.(bool)
+
+	// tags
+	tags := []string{}
+
+	if nsfw {
+		tags = append(tags, "NSFW")
+	}
+
 	// upload the metadata to the server
 	payload := api.MetricMetadataPayload{
 		ID:          id,
@@ -293,6 +310,7 @@ func (a *ActivityRequester) handleRedditPostMetadata(l log.Logger, status int, b
 			Link:  "https://www.reddit.com" + permalink,
 			Title: title,
 			Owner: author,
+			Tags:  tags,
 		},
 		InternalData: internalData,
 	}
@@ -396,6 +414,23 @@ func (a *ActivityRequester) handleRedditSubredditMetadata(l log.Logger, status i
 	}
 	id := iface.(string)
 
+	// nsfw
+	iface, err = jmespath.Search("data.over18", data) // not a typo, astounding
+	if err != nil {
+		return nil, fmt.Errorf("error extracting over_18: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting over_18; over_18 is nil")
+	}
+	nsfw := iface.(bool)
+
+	// tags
+	tags := []string{}
+
+	if nsfw {
+		tags = append(tags, "NSFW")
+	}
+
 	// upload the metadata to the server
 	payload := api.MetricMetadataPayload{
 		ID:          id,
@@ -403,6 +438,7 @@ func (a *ActivityRequester) handleRedditSubredditMetadata(l log.Logger, status i
 		Data: jsonb.MetadataJSON{
 			ID:   id,
 			Link: "https://www.reddit.com/r/" + id,
+			Tags: tags,
 		},
 		InternalData: internalData,
 	}
@@ -459,6 +495,23 @@ func (a *ActivityRequester) handleRedditUserMetadata(l log.Logger, status int, b
 	}
 	desc := iface.(string)
 
+	// nsfw
+	iface, err = jmespath.Search("data.subreddit.over_18", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting over_18: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting over_18; over_18 is nil")
+	}
+	nsfw := iface.(bool)
+
+	// tags
+	tags := []string{}
+
+	if nsfw {
+		tags = append(tags, "NSFW")
+	}
+
 	// upload the metadata to the server
 	payload := api.MetricMetadataPayload{
 		ID:          name, // name is our internal id for users
@@ -469,6 +522,7 @@ func (a *ActivityRequester) handleRedditUserMetadata(l log.Logger, status int, b
 			Description: desc,
 			TSCreated:   int(ts_created),
 			UserID:      fmt.Sprintf("t2_%s", id),
+			Tags:        tags,
 		},
 		InternalData: internalData,
 	}

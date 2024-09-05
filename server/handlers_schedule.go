@@ -150,6 +150,28 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 			writeInternalError(l, w, err)
 			return
 		}
+
+		// finally, for certain request types, we can opt to monitor the id for
+		// new submissions (reddit.users can be monitored for posts and youtube.channels
+		// can be monitored for videos).
+		if body.Monitor {
+			switch body.RequestKind {
+			case kt.RequestKindYouTubeChannel:
+				err = q.InsertYouTubeChannelSubscription(r.Context(), body.ID)
+			case kt.RequestKindRedditUser:
+				err = q.InsertYouTubeChannelSubscription(r.Context(), body.ID)
+			default:
+				err = fmt.Errorf("RequestKind %s doesn't have monitoring support", body.RequestKind)
+			}
+			if err != nil {
+				l.Error(
+					"error setting up monitoring",
+					"request_kind", body.RequestKind,
+					"id", body.ID,
+					"error", err.Error(),
+				)
+			}
+		}
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(api.DefaultJSONResponse{Message: "ok"})
 	}
