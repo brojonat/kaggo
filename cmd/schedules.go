@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/brojonat/kaggo/server"
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/urfave/cli/v2"
 	"go.temporal.io/sdk/client"
@@ -181,7 +182,7 @@ func load_schedules(ctx *cli.Context) error {
 func create_schedule(ctx *cli.Context) error {
 	rk := ctx.String("request-kind")
 	id := ctx.String("id")
-	sched := api.GetDefaultScheduleSpec(rk, id)
+	sched := server.GetDefaultScheduleSpec(rk, id)
 	payload := api.GenericScheduleRequestPayload{
 		RequestKind: rk,
 		ID:          id,

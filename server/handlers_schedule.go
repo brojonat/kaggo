@@ -18,6 +18,38 @@ import (
 	"go.temporal.io/sdk/temporal"
 )
 
+func GetDefaultScheduleSpec(rk, id string) client.ScheduleSpec {
+	var s client.ScheduleSpec
+	switch rk {
+	case kt.RequestKindYouTubeChannel, kt.RequestKindYouTubeVideo:
+		// do youtube queries every 10 minutes; high res isn't super necessary
+		s = client.ScheduleSpec{
+			Calendars: []client.ScheduleCalendarSpec{
+				{
+					Second:  []client.ScheduleRange{{Start: 0}},
+					Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 10}},
+					Hour:    []client.ScheduleRange{{Start: 0, End: 23}},
+					Comment: "every 10 minutes",
+				},
+			},
+			Jitter: 10 * 60000000000,
+		}
+	default:
+		s = client.ScheduleSpec{
+			Calendars: []client.ScheduleCalendarSpec{
+				{
+					Second:  []client.ScheduleRange{{Start: 0}},
+					Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 5}},
+					Hour:    []client.ScheduleRange{{Start: 0, End: 23}},
+					Comment: "every 5 minutes",
+				},
+			},
+			Jitter: 5 * 60000000000,
+		}
+	}
+	return s
+}
+
 func handleGetSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		rk := r.URL.Query().Get("request_kind")

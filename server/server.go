@@ -228,6 +228,14 @@ func getRouter(
 		withPromCounter(prcounter),
 	))
 
+	// listener subscriptions
+	mux.HandleFunc("POST /add-listener-sub", stools.AdaptHandler(
+		handleAddListenerSub(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		withPromCounter(prcounter),
+	))
+
 	// workflow schedule routes
 	mux.Handle("GET /schedule", stools.AdaptHandler(
 		handleGetSchedule(l, tc),

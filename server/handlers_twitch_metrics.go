@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/dbgen"
@@ -62,6 +63,8 @@ func setTwitchPromMetrics(l *slog.Logger, data api.MetricQueryInternalData, labe
 				l.Error(fmt.Sprintf("failed to parse %s float from %s", mk, data.RatelimitReset))
 				continue
 			}
+			// this values is actually the timestamp of the reset, so subtract current time
+			val = val - float64(time.Now().Unix())
 		}
 
 		c.Set(val)

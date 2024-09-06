@@ -104,7 +104,8 @@ func run_metadata_wf(ctx *cli.Context) error {
 			ids = append(ids, s.ID)
 		}
 	} else {
-		ids = []string{id}
+		// construct the ID as if it came back from the temporal server
+		ids = []string{fmt.Sprintf("%s %s", rk, id)}
 	}
 
 	// range over ids and kick off the metadata workflow

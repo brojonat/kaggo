@@ -63,11 +63,11 @@ deploy-worker:
 	kubectl apply -f -
 	kubectl rollout restart deployment kaggo-treq-worker
 
-initialize-lurkers:
+initialize-listeners:
 	$(call setup_env, server/.env)
 	@$(MAKE) build-cli
-	./cli admin workflow initiate-reddit-listener --endpoint https://api.kaggo.brojonat.com
-	./cli admin workflow initiate-youtube-listener --endpoint https://api.kaggo.brojonat.com
+	./cli admin listener initiate-reddit-listener --endpoint https://api.kaggo.brojonat.com
+	./cli admin listener initiate-youtube-listener --endpoint https://api.kaggo.brojonat.com
 
 deploy-all:
 	# server
@@ -75,5 +75,5 @@ deploy-all:
 	# worker
 	@$(MAKE) deploy-worker
 	# kick off long lived processes
-	@$(MAKE) initialize-lurkers
+	@$(MAKE) initialize-listeners
 

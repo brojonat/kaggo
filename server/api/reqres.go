@@ -6,21 +6,6 @@ import (
 	"go.temporal.io/sdk/client"
 )
 
-func GetDefaultScheduleSpec(rk, id string) client.ScheduleSpec {
-	s := client.ScheduleSpec{
-		Calendars: []client.ScheduleCalendarSpec{
-			{
-				Second:  []client.ScheduleRange{{Start: 0}},
-				Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 5}},
-				Hour:    []client.ScheduleRange{{Start: 0, End: 23}},
-				Comment: "every 5 minutes",
-			},
-		},
-		Jitter: 300000000000,
-	}
-	return s
-}
-
 type DefaultJSONResponse struct {
 	Message string `json:"message,omitempty"`
 	Error   string `json:"error,omitempty"`
@@ -50,6 +35,11 @@ type GenericScheduleRequestPayload struct {
 	ID          string              `json:"id"`
 	Schedule    client.ScheduleSpec `json:"schedule_spec,omitempty"`
 	Monitor     bool                `json:"monitor,omitempty"`
+}
+
+type AddListenerSubPayload struct {
+	RequestKind string `json:"request_kind"`
+	ID          string `json:"id"`
 }
 
 // Contains arbitrary data that metric (or metadata) handlers want to pass back to the server.
