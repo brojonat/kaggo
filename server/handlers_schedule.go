@@ -79,6 +79,13 @@ func handleGetSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 // create a schedule to query an external api based on the user submitted data
 func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
+		claims, ok := r.Context().Value(jwtCtxKey).(*authJWTClaims)
+		if !ok {
+			writeInternalError(l, w, fmt.Errorf("could not extract user email"))
+			return
+		}
+
 		// parse body
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -181,6 +188,21 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 			}
 			writeInternalError(l, w, err)
 			return
+		}
+
+		// add the metric to the user
+		p := dbgen.GrantMetricToUserParams{
+			Email:       claims.Email,
+			RequestKind: body.RequestKind,
+			ID:          body.ID,
+		}
+		if err = q.GrantMetricToUser(r.Context(), p); err != nil {
+			l.Error(
+				"unable to grant metric to user",
+				"email", claims.Email,
+				"request_kind", body.RequestKind,
+				"id", body.ID,
+			)
 		}
 
 		// finally, for certain request types, we can opt to monitor the id for

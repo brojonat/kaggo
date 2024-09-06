@@ -169,6 +169,7 @@ func getRouter(
 	mux.Handle("GET /ping", stools.AdaptHandler(
 		handlePing(l, p),
 		withPromCounter(prcounter),
+		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
 	))
 	mux.Handle("POST /token", handleIssueToken())
 
