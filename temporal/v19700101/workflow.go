@@ -60,7 +60,7 @@ func RunRedditListenerWF(ctx workflow.Context, r RunRedditListenerWFRequest) err
 		MaximumAttempts:    100,
 	}
 	activityOptions = workflow.ActivityOptions{
-		StartToCloseTimeout: 10 * time.Minute,
+		StartToCloseTimeout: 60 * time.Minute,
 		RetryPolicy:         &rp,
 		HeartbeatTimeout:    60 * time.Second,
 	}

@@ -2,7 +2,10 @@ package server
 
 import (
 	"context"
+	"embed"
 	"fmt"
+	"html/template"
+	"io/fs"
 	"log/slog"
 	"maps"
 	"net/http"
@@ -18,6 +21,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.temporal.io/sdk/client"
 )
+
+//go:embed static
+var static embed.FS
 
 // These are prometheus metric keys; handlers may depend on the existence of
 // these keys, so any collection, so as a general rule, if you're supplying your
@@ -141,7 +147,7 @@ func getRouter(
 	// new router
 	mux := http.NewServeMux()
 
-	// max body size
+	// max body size, other parsing params
 	maxBytes := int64(1048576)
 
 	// parse and transform the comma separated envs that configure CORS
@@ -159,73 +165,107 @@ func getRouter(
 	methods := normalizeCORSParams(ms)
 	origins := normalizeCORSParams(ogs)
 
+	// prometheus setup
 	prcounter, ok := pms[PromMetricHandlerRequestCounter].(*prometheus.CounterVec)
 	if !ok {
 		return nil, fmt.Errorf("error with prom metric %s", PromMetricHandlerRequestCounter)
 	}
 
-	// admin/auth handlers
-	mux.Handle("/metrics", promhttp.Handler())
+	// static files and template parsing
+	plotTmpl = template.Must(template.ParseFS(static, "static/templates/plots/plot.tmpl"))
+	jsFS, err := fs.Sub(static, "static")
+	if err != nil {
+		return nil, fmt.Errorf("startup: failed to setup js static file server: %w", err)
+	}
+	fsJS := http.FileServer(http.FS(jsFS))
+	mux.Handle("GET /static/", http.StripPrefix("/static/", fsJS))
+
+	// All route definitions follow; this defines the API surface
+
+	// smoke test/boot handlers
 	mux.Handle("GET /ping", stools.AdaptHandler(
 		handlePing(l, p),
 		withPromCounter(prcounter),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(
+			bearerAuthorizerCtxSetToken(getSecretKey),
+			basicAuthorizerCtxSetEmail(getSecretKey),
+		),
 	))
-	mux.Handle("POST /token", handleIssueToken())
+
+	// returns a Bearer token; basic auth protected
+	mux.Handle("POST /token", stools.AdaptHandler(
+		handleIssueToken(l),
+		atLeastOneAuth(basicAuthorizerCtxSetEmail(getSecretKey)),
+	))
+	// serves the static file that will asynchronously fetch the plot data;
+	// basic auth protected
+	mux.Handle("GET /plots", stools.AdaptHandler(
+		handlePlot(l, q),
+		atLeastOneAuth(basicAuthorizerCtxSetEmail(getSecretKey)),
+	))
+	// serves the data to the plot static file; Bearer token protected
+	mux.Handle("GET /plot-data", stools.AdaptHandler(
+		handlePlotData(l, q),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
+	))
+	// prometheus metric handler
+	mux.Handle("/metrics", stools.AdaptHandler(
+		handlePromMetrics(promhttp.Handler()),
+		atLeastOneAuth(
+			bearerAuthorizerCtxSetToken(getSecretKey),
+			basicAuthorizerCtxSetEmail(getSecretKey),
+		),
+	))
 
 	// users
 	mux.HandleFunc("GET /users", stools.AdaptHandler(
 		handleGetUsers(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
-
 	mux.HandleFunc("POST /users", stools.AdaptHandler(
 		handleAddUser(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
-
 	mux.HandleFunc("DELETE /users", stools.AdaptHandler(
 		handleDeleteUser(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
-
 	mux.HandleFunc("GET /users/metrics", stools.AdaptHandler(
 		handleGetUserMetrics(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
-
 	mux.HandleFunc("POST /users/metrics", stools.AdaptHandler(
 		handleUserMetricOperation(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 
-	// metadata
+	// metadata by metrics
 	mux.HandleFunc("GET /metadata", stools.AdaptHandler(
 		handleGetMetricMetadata(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /metadata", stools.AdaptHandler(
 		handlePostMetricMetadata(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /metadata/run-workflow", stools.AdaptHandler(
 		handleRunMetadataWF(l, q, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 
@@ -233,7 +273,7 @@ func getRouter(
 	mux.HandleFunc("POST /add-listener-sub", stools.AdaptHandler(
 		handleAddListenerSub(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 
@@ -241,31 +281,31 @@ func getRouter(
 	mux.Handle("GET /schedule", stools.AdaptHandler(
 		handleGetSchedule(l, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.Handle("POST /schedule", stools.AdaptHandler(
 		handleCreateSchedule(l, q, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.Handle("PUT /schedule", stools.AdaptHandler(
 		handleUpdateSchedule(l, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.Handle("DELETE /schedule", stools.AdaptHandler(
 		handleCancelSchedule(l, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.Handle("POST /schedule/trigger", stools.AdaptHandler(
 		handleTriggerSchedule(l, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 
@@ -273,19 +313,19 @@ func getRouter(
 	mux.HandleFunc("GET /internal/generate", stools.AdaptHandler(
 		handleInternalMetricsGenerate(l),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("GET /internal/metrics", stools.AdaptHandler(
 		handleInternalMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /internal/metrics", stools.AdaptHandler(
 		handleInternalMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 
@@ -293,13 +333,13 @@ func getRouter(
 	mux.HandleFunc("GET /kaggle/notebook", stools.AdaptHandler(
 		handleKaggleNotebookMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /kaggle/notebook", stools.AdaptHandler(
 		handleKaggleNotebookPost(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 
@@ -307,13 +347,13 @@ func getRouter(
 	mux.HandleFunc("GET /kaggle/dataset", stools.AdaptHandler(
 		handleKaggleDatasetMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /kaggle/dataset", stools.AdaptHandler(
 		handleKaggleDatasetPost(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 
@@ -321,13 +361,13 @@ func getRouter(
 	mux.HandleFunc("GET /youtube/video", stools.AdaptHandler(
 		handleYouTubeVideoMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /youtube/video", stools.AdaptHandler(
 		handleYouTubeVideoMetricsPost(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 
@@ -335,13 +375,13 @@ func getRouter(
 	mux.HandleFunc("GET /youtube/channel", stools.AdaptHandler(
 		handleYouTubeChannelMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /youtube/channel", stools.AdaptHandler(
 		handleYouTubeChannelMetricsPost(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 
@@ -349,13 +389,13 @@ func getRouter(
 	mux.HandleFunc("GET /reddit/post", stools.AdaptHandler(
 		handleRedditPostMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /reddit/post", stools.AdaptHandler(
 		handleRedditPostMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 
@@ -363,13 +403,13 @@ func getRouter(
 	mux.HandleFunc("GET /reddit/comment", stools.AdaptHandler(
 		handleRedditCommentMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /reddit/comment", stools.AdaptHandler(
 		handleRedditCommentMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 
@@ -377,13 +417,13 @@ func getRouter(
 	mux.HandleFunc("GET /reddit/subreddit", stools.AdaptHandler(
 		handleRedditSubredditMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /reddit/subreddit", stools.AdaptHandler(
 		handleRedditSubredditMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 
@@ -391,13 +431,13 @@ func getRouter(
 	mux.HandleFunc("GET /reddit/user", stools.AdaptHandler(
 		handleRedditUserMetricsGet(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /reddit/user", stools.AdaptHandler(
 		handleRedditUserMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 
@@ -405,7 +445,7 @@ func getRouter(
 	mux.HandleFunc("POST /twitch/clip", stools.AdaptHandler(
 		handleTwitchClipMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 
@@ -413,7 +453,7 @@ func getRouter(
 	mux.HandleFunc("POST /twitch/video", stools.AdaptHandler(
 		handleTwitchVideoMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 
@@ -421,7 +461,7 @@ func getRouter(
 	mux.HandleFunc("POST /twitch/stream", stools.AdaptHandler(
 		handleTwitchStreamMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 
@@ -429,7 +469,7 @@ func getRouter(
 	mux.HandleFunc("POST /twitch/user-past-dec", stools.AdaptHandler(
 		handleTwitchUserPastDecMetricsPost(l, q, pms),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 
@@ -437,13 +477,13 @@ func getRouter(
 	mux.HandleFunc("GET /timeseries/raw", stools.AdaptHandler(
 		handleGetTimeSeriesByIDs(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("GET /timeseries/bucketed", stools.AdaptHandler(
 		handleGetTimeSeriesByIDsBucketed(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 
@@ -451,19 +491,19 @@ func getRouter(
 	mux.HandleFunc("GET /notification/reddit/targets", stools.AdaptHandler(
 		handleGetRedditListenTargets(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /notification/reddit/post", stools.AdaptHandler(
 		handleRedditPostNotification(l, q, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("POST /run-reddit-listener-wf", stools.AdaptHandler(
 		handleRunRedditListener(l, q, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 
@@ -471,7 +511,7 @@ func getRouter(
 	mux.HandleFunc("GET /notification/youtube/targets", stools.AdaptHandler(
 		handleGetYouTubeListenTargets(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 	mux.HandleFunc("GET /notification/youtube/websub", stools.AdaptHandler(
@@ -487,7 +527,7 @@ func getRouter(
 	mux.HandleFunc("POST /run-youtube-listener-wf", stools.AdaptHandler(
 		handleRunYouTubeListener(l, q, tc),
 		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizer(getSecretKey)),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
 

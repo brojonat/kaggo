@@ -27,24 +27,24 @@ func GetDefaultScheduleSpec(rk, id string) client.ScheduleSpec {
 			Calendars: []client.ScheduleCalendarSpec{
 				{
 					Second:  []client.ScheduleRange{{Start: 0}},
-					Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 10}},
-					Hour:    []client.ScheduleRange{{Start: 0, End: 23}},
-					Comment: "every 10 minutes",
+					Minute:  []client.ScheduleRange{{Start: 0}},
+					Hour:    []client.ScheduleRange{{Start: 0, End: 23, Step: 1}},
+					Comment: "every 1 hour",
 				},
 			},
-			Jitter: 10 * 60000000000,
+			Jitter: 60 * 6e9,
 		}
 	default:
 		s = client.ScheduleSpec{
 			Calendars: []client.ScheduleCalendarSpec{
 				{
 					Second:  []client.ScheduleRange{{Start: 0}},
-					Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 5}},
+					Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 15}},
 					Hour:    []client.ScheduleRange{{Start: 0, End: 23}},
-					Comment: "every 5 minutes",
+					Comment: "every 15 minutes",
 				},
 			},
-			Jitter: 5 * 60000000000,
+			Jitter: 15 * 6e9,
 		}
 	}
 	return s
@@ -80,7 +80,7 @@ func handleGetSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		claims, ok := r.Context().Value(jwtCtxKey).(*authJWTClaims)
+		claims, ok := r.Context().Value(ctxKeyJWT).(*authJWTClaims)
 		if !ok {
 			writeInternalError(l, w, fmt.Errorf("could not extract user email"))
 			return

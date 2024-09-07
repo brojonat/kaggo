@@ -53,16 +53,11 @@ func handlePing(l *slog.Logger, p *pgxpool.Pool) http.HandlerFunc {
 }
 
 // handleGetToken returns a token
-func handleIssueToken() http.HandlerFunc {
+func handleIssueToken(l *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		email, pwd, ok := r.BasicAuth()
+		email, ok := r.Context().Value(ctxKeyEmail).(string)
 		if !ok {
-			writeBadRequestError(w, fmt.Errorf("bad credentials"))
-			return
-		}
-		if pwd != getSecretKey() {
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(api.DefaultJSONResponse{Error: "not authorized"})
+			writeInternalError(l, w, fmt.Errorf("missing context key for basic auth email"))
 			return
 		}
 		sc := jwt.StandardClaims{
@@ -75,5 +70,12 @@ func handleIssueToken() http.HandlerFunc {
 		token, _ := generateAccessToken(c)
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(api.DefaultJSONResponse{Message: token})
+	}
+}
+
+// wrapper HandlerFunc for serving prometheus metrics
+func handlePromMetrics(h http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTP(w, r)
 	}
 }
