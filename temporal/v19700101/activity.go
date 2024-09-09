@@ -17,10 +17,10 @@ import (
 
 const (
 	RequestKindInternalRandom    = "internal.random"
-	RequestKindYouTubeVideo      = "youtube.video"
-	RequestKindYouTubeChannel    = "youtube.channel"
 	RequestKindKaggleNotebook    = "kaggle.notebook"
 	RequestKindKaggleDataset     = "kaggle.dataset"
+	RequestKindYouTubeVideo      = "youtube.video"
+	RequestKindYouTubeChannel    = "youtube.channel"
 	RequestKindRedditPost        = "reddit.post"
 	RequestKindRedditComment     = "reddit.comment"
 	RequestKindRedditSubreddit   = "reddit.subreddit"
@@ -30,6 +30,24 @@ const (
 	RequestKindTwitchStream      = "twitch.stream"
 	RequestKindTwitchUserPastDec = "twitch.user-past-dec"
 )
+
+func GetSupportedRequestKinds() []string {
+	return []string{
+		RequestKindInternalRandom,
+		RequestKindKaggleNotebook,
+		RequestKindKaggleDataset,
+		RequestKindYouTubeVideo,
+		RequestKindYouTubeChannel,
+		RequestKindRedditPost,
+		RequestKindRedditComment,
+		RequestKindRedditSubreddit,
+		RequestKindRedditUser,
+		RequestKindTwitchClip,
+		RequestKindTwitchVideo,
+		RequestKindTwitchStream,
+		RequestKindTwitchUserPastDec,
+	}
+}
 
 type ActivityRedditListener struct{}
 type ActivityYouTubeListener struct{}

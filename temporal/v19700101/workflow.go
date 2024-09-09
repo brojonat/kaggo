@@ -14,10 +14,11 @@ import (
 func RunYouTubeListenerWF(ctx workflow.Context, r RunYouTubeListenerWFRequest) error {
 	var a *ActivityYouTubeListener
 
-	// get the targets to listen on from the database
+	// Get the targets to listen on from the database. This could fail if we
+	// happen to be redeploying; this should retry a bunch
 	activityOptions := workflow.ActivityOptions{
-		ScheduleToCloseTimeout: 20 * time.Second,
-		RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 1},
+		StartToCloseTimeout: 20 * time.Second,
+		RetryPolicy:         &temporal.RetryPolicy{MaximumAttempts: 20},
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
 	var ar YouTubeChannelSubActRequest
@@ -26,24 +27,26 @@ func RunYouTubeListenerWF(ctx workflow.Context, r RunYouTubeListenerWFRequest) e
 		return err
 	}
 
-	// send all the requests to the websub hub
+	// Send all the requests to the websub hub. This should be fairly quick because
+	// it's just sending a bunch of requests to the pubsubhubbub endpoint.
 	activityOptions = workflow.ActivityOptions{
-		ScheduleToCloseTimeout: 10 * time.Minute,
-		RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 1},
-		HeartbeatTimeout:       60 * time.Second,
+		StartToCloseTimeout: 60 * time.Second,
+		RetryPolicy:         &temporal.RetryPolicy{MaximumAttempts: 5},
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
 	return workflow.ExecuteActivity(ctx, a.Subscribe, ar).Get(ctx, nil)
-	// FIXME: eventually we'll handle problematic IDs better
+	// FIXME: eventually we'll handle the case where some IDs were successfully
+	// subscribed to and some were not, but that seems like a rare edge case.
 }
 
 func RunRedditListenerWF(ctx workflow.Context, r RunRedditListenerWFRequest) error {
 	var a *ActivityRedditListener
 
-	// get the targets to listen on from the database
+	// Get the targets to listen on from the database. This could fail if we
+	// happen to be redeploying; this should retry a bunch
 	activityOptions := workflow.ActivityOptions{
-		ScheduleToCloseTimeout: 20 * time.Second,
-		RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 1},
+		StartToCloseTimeout: 20 * time.Second,
+		RetryPolicy:         &temporal.RetryPolicy{MaximumAttempts: 20},
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
 	var ar RedditSubActRequest
@@ -52,7 +55,7 @@ func RunRedditListenerWF(ctx workflow.Context, r RunRedditListenerWFRequest) err
 		return err
 	}
 
-	// run the long lived monitoring activity
+	// Run the long lived monitoring activity
 	rp := temporal.RetryPolicy{
 		InitialInterval:    time.Second,
 		BackoffCoefficient: 5.0,
@@ -85,11 +88,10 @@ func DoMetadataRequestWF(ctx workflow.Context, r DoMetadataRequestWFRequest) err
 	var a *ActivityRequester
 
 	// Do a single query to fetch the external data that contains the metadata.
-	// Retry this a couple times because we're only doing this once and if
-	// we error out then it'll look like a service error.
+	// Retry this a couple times because we're only doing this once.
 	activityOptions := workflow.ActivityOptions{
-		ScheduleToCloseTimeout: 20 * time.Second,
-		RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 5},
+		StartToCloseTimeout: 30 * time.Second,
+		RetryPolicy:         &temporal.RetryPolicy{MaximumAttempts: 10, BackoffCoefficient: 5},
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
 	drp := DoRequestActRequest(r)
@@ -102,11 +104,12 @@ func DoMetadataRequestWF(ctx workflow.Context, r DoMetadataRequestWFRequest) err
 			drr.StatusCode, http.StatusText(drr.StatusCode), drr.Body)
 	}
 
-	// Upload the response to our server. Don't retry; if the request doesn't go
-	// through, we'll want to fail fast and loud.
+	// Upload the response to our server. This should also have a bunch of
+	// retries associated with it, since we're only doing this once and our
+	// server could be down for any number of reasons
 	activityOptions = workflow.ActivityOptions{
-		ScheduleToCloseTimeout: 20 * time.Second,
-		RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 1},
+		StartToCloseTimeout: 30 * time.Second,
+		RetryPolicy:         &temporal.RetryPolicy{MaximumAttempts: 10, BackoffCoefficient: 5},
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
 	var urr api.DefaultJSONResponse
@@ -127,8 +130,8 @@ func DoPollingRequestWF(ctx workflow.Context, r DoPollingRequestWFRequest) error
 	// it's better to miss some window of data than risk spamming the external
 	// server with retries.
 	activityOptions := workflow.ActivityOptions{
-		ScheduleToCloseTimeout: 20 * time.Second,
-		RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 1},
+		StartToCloseTimeout: 30 * time.Second,
+		RetryPolicy:         &temporal.RetryPolicy{MaximumAttempts: 1},
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
 	drp := DoRequestActRequest(r)
@@ -142,10 +145,13 @@ func DoPollingRequestWF(ctx workflow.Context, r DoPollingRequestWFRequest) error
 	}
 
 	// Upload the response to our server. Don't retry; if the request doesn't go
-	// through, we'll want to fail fast and loud.
+	// through, we'll want to fail fast and loud. We can retry a couple times in
+	// case our server is offline/rebooting, but there's no need to spend a lot
+	// of time on this. There will be another polling loop anyway, we can drop
+	// some data points here and there.
 	activityOptions = workflow.ActivityOptions{
-		ScheduleToCloseTimeout: 20 * time.Second,
-		RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 1},
+		StartToCloseTimeout: 20 * time.Second,
+		RetryPolicy:         &temporal.RetryPolicy{MaximumAttempts: 5, BackoffCoefficient: 5},
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
 	var urr api.DefaultJSONResponse

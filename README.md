@@ -38,3 +38,10 @@ Let's say you want to start tracking Twitch metrics. Here's how you'd go about i
 - Write and generate the queries for the new metrics (particularly insertion, and getting bucketed timeseries).
 - Add the handlers to serve the metrics
 - Update the schedule handler to perform the actual requests
+
+### Visibility, Telemetry, Metrics
+
+Internal metrics are surfaced in a couple different ways. First, there is a `/metrics` endpoint that serves Prometheus metrics. Pretty self explanatory. This is protected by basic authentication.
+
+There's also a `/plots` endpoint that serves a HTML document. Depending on the `id` query parameter,
+different plots will be served. This is also protected by basic authentication. Additionally, the data for the plots is loaded asynchronously; it is fetched from the backend by passing the `kaggo-auth-token` local storage variable as the bearer token (note that the name of this localStorage key is configurable via the `LOCAL_STORAGE_AUTH_TOKEN_KEY` env).

@@ -32,20 +32,22 @@ SELECT ycs.id, "data"->>'title'
 FROM youtube_channel_subscriptions ycs
 LEFT JOIN metadata m ON ycs.id = m.id;
 
-SELECT id, ym."data" ->> 'title'
-FROM youtube_video_views yvv 
-LEFT JOIN metadata ym
-ON yvv.id = ym.id
-GROUP BY id
+
 
 SELECT * FROM metadata m 
-WHERE request_kind = 'youtube.video' AND m."data" ->> 'owner' = 'dota2';
+WHERE request_kind = 'reddit.subreddit';
 
 -- find all nsfw tagged entities
 SELECT * FROM metadata m 
-WHERE (m."data" -> 'tags')::JSONB ? 'NSFW';
+WHERE (m."data" ->> 'tags')::JSONB ? 'NSFW';
 
-SELECT * FROM metadata m WHERE request_kind = 'youtube.video' AND id = 'vZ081OaRK_4';
+-- find all nsfw tagged entities
+SELECT m."data" ->>'owner' FROM metadata m
+WHERE request_kind = 'reddit.post';
 
-SELECT * from
+SELECT * FROM reddit_post_score
+WHERE id = '1fafkp7';
+
+
+
 
