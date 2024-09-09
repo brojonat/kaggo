@@ -18,6 +18,38 @@ import (
 	"go.temporal.io/sdk/temporal"
 )
 
+func GetDefaultScheduleSpec(rk, id string) client.ScheduleSpec {
+	var s client.ScheduleSpec
+	switch rk {
+	case kt.RequestKindYouTubeChannel, kt.RequestKindYouTubeVideo:
+		// do youtube queries every 10 minutes; high res isn't super necessary
+		s = client.ScheduleSpec{
+			Calendars: []client.ScheduleCalendarSpec{
+				{
+					Second:  []client.ScheduleRange{{Start: 0}},
+					Minute:  []client.ScheduleRange{{Start: 0}},
+					Hour:    []client.ScheduleRange{{Start: 0, End: 23, Step: 1}},
+					Comment: "every 1 hour",
+				},
+			},
+			Jitter: 60 * 6e9,
+		}
+	default:
+		s = client.ScheduleSpec{
+			Calendars: []client.ScheduleCalendarSpec{
+				{
+					Second:  []client.ScheduleRange{{Start: 0}},
+					Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 15}},
+					Hour:    []client.ScheduleRange{{Start: 0, End: 23}},
+					Comment: "every 15 minutes",
+				},
+			},
+			Jitter: 15 * 6e9,
+		}
+	}
+	return s
+}
+
 func handleGetSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		rk := r.URL.Query().Get("request_kind")
@@ -47,6 +79,13 @@ func handleGetSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 // create a schedule to query an external api based on the user submitted data
 func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
+		claims, ok := r.Context().Value(ctxKeyJWT).(*authJWTClaims)
+		if !ok {
+			writeInternalError(l, w, fmt.Errorf("could not extract user email"))
+			return
+		}
+
 		// parse body
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -84,13 +123,14 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 		// Optionally skip the metadata query. Some clients don't need to run
 		// the metadata workflow (e.g., if they're (re)uploading schedules that
 		// were deleted). By default, the metadata operation will run and block.
-		skip_metadata := false
-		smb, err := strconv.ParseBool((r.URL.Query().Get("skip-metadata")))
-		// throws error by default on empty string input
+		run_metadata := true
+		skip, err := strconv.ParseBool((r.URL.Query().Get("skip-metadata")))
+		// ParseBool returns error by default on empty string input, in which
+		// case, we should just no-op and stick with running the metadata query.
 		if err == nil {
-			skip_metadata = smb
+			run_metadata = !skip
 		}
-		if !skip_metadata {
+		if run_metadata {
 			we, err := tc.ExecuteWorkflow(
 				r.Context(),
 				workflowOptions,
@@ -108,9 +148,9 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 			}
 		}
 
-		// probably should validate this...but we're the only ones authed for this API and
-		// at present we're only using the same fixed schedule, so implement validation
-		// later if it's actually needed.
+		// probably should validate this...but we're the only ones authed for
+		// this API and at present we're only using the same fixed schedule, so
+		// implement validation later if it's actually needed.
 		sched := body.Schedule
 
 		// prepare the request to pass to the polling workflow
@@ -124,7 +164,8 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 			return
 		}
 
-		// Create the schedule.
+		// Create the schedule. Currently we rely on the unique [rk id hash] schedule
+		// id to debounce duplicate schedules.
 		_, err = tc.ScheduleClient().Create(
 			r.Context(),
 			client.ScheduleOptions{
@@ -147,6 +188,43 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 			}
 			writeInternalError(l, w, err)
 			return
+		}
+
+		// add the metric to the user
+		p := dbgen.GrantMetricToUserParams{
+			Email:       claims.Email,
+			RequestKind: body.RequestKind,
+			ID:          body.ID,
+		}
+		if err = q.GrantMetricToUser(r.Context(), p); err != nil {
+			l.Error(
+				"unable to grant metric to user",
+				"email", claims.Email,
+				"request_kind", body.RequestKind,
+				"id", body.ID,
+			)
+		}
+
+		// finally, for certain request types, we can opt to monitor the id for
+		// new submissions (reddit.users can be monitored for posts and youtube.channels
+		// can be monitored for videos).
+		if body.Monitor {
+			switch body.RequestKind {
+			case kt.RequestKindYouTubeChannel:
+				err = q.InsertYouTubeChannelSubscription(r.Context(), body.ID)
+			case kt.RequestKindRedditUser:
+				err = q.InsertYouTubeChannelSubscription(r.Context(), body.ID)
+			default:
+				err = fmt.Errorf("RequestKind %s doesn't have monitoring support", body.RequestKind)
+			}
+			if err != nil {
+				l.Error(
+					"error setting up monitoring",
+					"request_kind", body.RequestKind,
+					"id", body.ID,
+					"error", err.Error(),
+				)
+			}
 		}
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(api.DefaultJSONResponse{Message: "ok"})

@@ -14,8 +14,9 @@ cli
 !cli/
 
 # data dumps
-data/
+data
 notebooks
+backups
 test-schema.sql
 pgdump.sql
 

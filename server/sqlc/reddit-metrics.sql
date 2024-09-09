@@ -22,6 +22,26 @@ VALUES (@id, NOW()::TIMESTAMPTZ, @subscribers);
 INSERT INTO reddit_subreddit_active_user_count (id, ts, active_user_count)
 VALUES (@id, NOW()::TIMESTAMPTZ, @active_user_count);
 
+-- name: InsertRedditUserAwardeeKarma :exec
+INSERT INTO reddit_user_awardee_karma (id, ts, karma)
+VALUES (@id, NOW()::TIMESTAMPTZ, @karma);
+
+-- name: InsertRedditUserAwarderKarma :exec
+INSERT INTO reddit_user_awarder_karma (id, ts, karma)
+VALUES (@id, NOW()::TIMESTAMPTZ, @karma);
+
+-- name: InsertRedditUserCommentKarma :exec
+INSERT INTO reddit_user_comment_karma (id, ts, karma)
+VALUES (@id, NOW()::TIMESTAMPTZ, @karma);
+
+-- name: InsertRedditUserLinkKarma :exec
+INSERT INTO reddit_user_link_karma (id, ts, karma)
+VALUES (@id, NOW()::TIMESTAMPTZ, @karma);
+
+-- name: InsertRedditUserTotalKarma :exec
+INSERT INTO reddit_user_total_karma (id, ts, karma)
+VALUES (@id, NOW()::TIMESTAMPTZ, @karma);
+
 -- name: GetRedditPostMetricsByIDs :many
 SELECT
     id AS "id",
@@ -91,9 +111,63 @@ WHERE
     r.ts >= @ts_start AND
     r.ts <= @ts_end;
 
+-- name: GetRedditUserMetricsByIDs :many
+SELECT
+    r.id AS "id",
+    r.ts AS "ts",
+    r.karma::REAL AS "value",
+    'reddit.user.awardee_karma' AS "metric"
+FROM reddit_user_awardee_karma AS r
+WHERE
+    r.id = ANY(@ids::VARCHAR[]) AND
+    r.ts >= @ts_start AND
+    r.ts <= @ts_end
+UNION ALL
+SELECT
+    r.id AS "id",
+    r.ts AS "ts",
+    r.karma::REAL AS "value",
+    'reddit.user.awarder_karma' AS "metric"
+FROM reddit_user_awarder_karma AS r
+WHERE
+    r.id = ANY(@ids::VARCHAR[]) AND
+    r.ts >= @ts_start AND
+    r.ts <= @ts_end
+UNION ALL
+SELECT
+    r.id AS "id",
+    r.ts AS "ts",
+    r.karma::REAL AS "value",
+    'reddit.user.comment_karma' AS "metric"
+FROM reddit_user_comment_karma AS r
+WHERE
+    r.id = ANY(@ids::VARCHAR[]) AND
+    r.ts >= @ts_start AND
+    r.ts <= @ts_end
+UNION ALL
+SELECT
+    r.id AS "id",
+    r.ts AS "ts",
+    r.karma::REAL AS "value",
+    'reddit.user.link_karma' AS "metric"
+FROM reddit_user_link_karma AS r
+WHERE
+    r.id = ANY(@ids::VARCHAR[]) AND
+    r.ts >= @ts_start AND
+    r.ts <= @ts_end
+UNION ALL
+SELECT
+    r.id AS "id",
+    r.ts AS "ts",
+    r.karma::REAL AS "value",
+    'reddit.user.total_karma' AS "metric"
+FROM reddit_user_total_karma AS r
+WHERE
+    r.id = ANY(@ids::VARCHAR[]) AND
+    r.ts >= @ts_start AND
+    r.ts <= @ts_end;
 
 -- Reddit Post Bucketed Metrics
-
 
 -- name: GetRedditPostMetricsByIDsBucket15Min :many
 SELECT *, 'reddit.post.score' AS "metric"
@@ -456,6 +530,309 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+
+-- Reddit User Bucketed Metrics
+
+
+-- name: GetRedditUserMetricsByIDsBucket15Min :many
+SELECT *, 'reddit.user.awardee_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_awardee_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.user.awarder_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_awarder_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.user.comment_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_comment_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.user.link_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_link_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.user.total_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '15 minutes', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_total_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+-- name: GetRedditUserMetricsByIDsBucket1Hr :many
+SELECT *, 'reddit.user.awardee_karma' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(karma::REAL) AS value
+	FROM reddit_user_awardee_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.user.awarder_karma' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS bucket,
+	    MAX(karma::REAL) AS value
+	FROM reddit_user_awarder_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.user.comment_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_comment_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.user.link_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_link_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.user.total_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 hour', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_total_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+-- name: GetRedditUserMetricsByIDsBucket8Hr :many
+SELECT *, 'reddit.user.awardee_karma' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS bucket,
+	    MAX(karma::REAL) AS value
+	FROM reddit_user_awardee_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.user.awarder_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_awarder_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.user.comment_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_comment_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.user.link_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_link_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.user.total_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '8 hours', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_total_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ;
+
+-- name: GetRedditUserMetricsByIDsBucket1Day :many
+SELECT *, 'reddit.user.awardee_karma' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(karma::REAL) AS value
+	FROM reddit_user_awardee_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.user.awarder_karma' AS metric
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS bucket,
+	    MAX(karma::REAL) AS value
+	FROM reddit_user_awarder_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+	UNION ALL
+SELECT *, 'reddit.user.comment_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_comment_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.user.link_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_link_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
+    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.bucket >= @ts_start::TIMESTAMPTZ AND
+    tab.bucket <= @ts_end::TIMESTAMPTZ
+UNION ALL
+SELECT *, 'reddit.user.total_karma' AS "metric"
+FROM (
+	SELECT
+		id,
+	    time_bucket(INTERVAL '1 day', ts) AS "bucket",
+	    MAX(karma::REAL) AS "value"
+	FROM reddit_user_total_karma
+	GROUP BY id, bucket
+	ORDER BY id, bucket
+) AS tab
+WHERE
     tab.id = ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;

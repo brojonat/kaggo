@@ -284,6 +284,23 @@ func (a *ActivityRequester) handleRedditPostMetadata(l log.Logger, status int, b
 	}
 	author := iface.(string)
 
+	// nsfw
+	iface, err = jmespath.Search("data.children[0].data.over_18", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting over_18: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting over_18; over_18 is nil")
+	}
+	nsfw := iface.(bool)
+
+	// tags
+	tags := []string{}
+
+	if nsfw {
+		tags = append(tags, "NSFW")
+	}
+
 	// upload the metadata to the server
 	payload := api.MetricMetadataPayload{
 		ID:          id,
@@ -293,6 +310,7 @@ func (a *ActivityRequester) handleRedditPostMetadata(l log.Logger, status int, b
 			Link:  "https://www.reddit.com" + permalink,
 			Title: title,
 			Owner: author,
+			Tags:  tags,
 		},
 		InternalData: internalData,
 	}
@@ -396,6 +414,23 @@ func (a *ActivityRequester) handleRedditSubredditMetadata(l log.Logger, status i
 	}
 	id := iface.(string)
 
+	// nsfw
+	iface, err = jmespath.Search("data.over18", data) // not a typo, astounding
+	if err != nil {
+		return nil, fmt.Errorf("error extracting over_18: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting over_18; over_18 is nil")
+	}
+	nsfw := iface.(bool)
+
+	// tags
+	tags := []string{}
+
+	if nsfw {
+		tags = append(tags, "NSFW")
+	}
+
 	// upload the metadata to the server
 	payload := api.MetricMetadataPayload{
 		ID:          id,
@@ -403,6 +438,91 @@ func (a *ActivityRequester) handleRedditSubredditMetadata(l log.Logger, status i
 		Data: jsonb.MetadataJSON{
 			ID:   id,
 			Link: "https://www.reddit.com/r/" + id,
+			Tags: tags,
+		},
+		InternalData: internalData,
+	}
+	b, err = json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
+	}
+	return uploadMetadata(l, b)
+}
+
+// Handle RequestKindRedditUser requests
+func (a *ActivityRequester) handleRedditUserMetadata(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+	var data interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		return nil, fmt.Errorf("error deserializing response: %w", err)
+	}
+	// id
+	iface, err := jmespath.Search("data.name", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting name: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting name; name is nil")
+	}
+	name := iface.(string)
+
+	// user_id
+	iface, err = jmespath.Search("data.id", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting id: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting id; id is nil")
+	}
+	id := iface.(string)
+
+	// created
+	iface, err = jmespath.Search("data.created", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting created: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting created; created is nil")
+	}
+	ts_created := iface.(float64)
+
+	// desc
+	iface, err = jmespath.Search("data.subreddit.public_description", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting description: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting description; description is nil")
+	}
+	desc := iface.(string)
+
+	// nsfw
+	iface, err = jmespath.Search("data.subreddit.over_18", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting over_18: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting over_18; over_18 is nil")
+	}
+	nsfw := iface.(bool)
+
+	// tags
+	tags := []string{}
+
+	if nsfw {
+		tags = append(tags, "NSFW")
+	}
+
+	// upload the metadata to the server
+	payload := api.MetricMetadataPayload{
+		ID:          name, // name is our internal id for users
+		RequestKind: RequestKindRedditUser,
+		Data: jsonb.MetadataJSON{
+			ID:          id,
+			Link:        "https://www.reddit.com/user/" + name,
+			Description: desc,
+			TSCreated:   int(ts_created),
+			UserID:      fmt.Sprintf("t2_%s", id),
+			Tags:        tags,
 		},
 		InternalData: internalData,
 	}

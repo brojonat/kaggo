@@ -41,6 +41,9 @@ func handleGetTimeSeriesByIDsBucketed(l *slog.Logger, q *dbgen.Queries) http.Han
 		case kt.RequestKindRedditSubreddit:
 			handleGetRedditSubredditTimeSeriesByIDsBucketed(l, q)(w, r)
 			return
+		case kt.RequestKindRedditUser:
+			handleGetRedditUserTimeSeriesByIDsBucketed(l, q)(w, r)
+			return
 		case kt.RequestKindTwitchClip:
 			handleGetTwitchClipTimeSeriesByIDsBucketed(l, q)(w, r)
 			return
@@ -122,6 +125,18 @@ func handleGetTimeSeriesByIDs(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc
 			}
 		case kt.RequestKindRedditComment:
 			rows, err = getRedditCommentTimeSeries(r.Context(), l, q, ids, ts_start, time.Now())
+			if err != nil {
+				writeInternalError(l, w, err)
+				return
+			}
+		case kt.RequestKindRedditSubreddit:
+			rows, err = getRedditSubredditTimeSeries(r.Context(), l, q, ids, ts_start, time.Now())
+			if err != nil {
+				writeInternalError(l, w, err)
+				return
+			}
+		case kt.RequestKindRedditUser:
+			rows, err = getRedditUserTimeSeries(r.Context(), l, q, ids, ts_start, time.Now())
 			if err != nil {
 				writeInternalError(l, w, err)
 				return
@@ -251,6 +266,21 @@ func getRedditSubredditTimeSeries(
 	ts_end time.Time,
 ) (interface{}, error) {
 	return q.GetRedditSubredditMetricsByIDs(ctx, dbgen.GetRedditSubredditMetricsByIDsParams{
+		Ids:     ids,
+		TsStart: pgtype.Timestamptz{Time: ts_start, Valid: true},
+		TsEnd:   pgtype.Timestamptz{Time: ts_end, Valid: true},
+	})
+}
+
+func getRedditUserTimeSeries(
+	ctx context.Context,
+	l *slog.Logger,
+	q *dbgen.Queries,
+	ids []string,
+	ts_start time.Time,
+	ts_end time.Time,
+) (interface{}, error) {
+	return q.GetRedditUserMetricsByIDs(ctx, dbgen.GetRedditUserMetricsByIDsParams{
 		Ids:     ids,
 		TsStart: pgtype.Timestamptz{Time: ts_start, Valid: true},
 		TsEnd:   pgtype.Timestamptz{Time: ts_end, Valid: true},

@@ -167,6 +167,69 @@ func main() {
 						},
 					},
 					{
+						Name:  "listener",
+						Usage: "Listener operations",
+						Subcommands: []*cli.Command{
+							{
+								Name:  "add-listener-subscription",
+								Usage: "Send a POST request to initiate a workflow that listens to Reddit",
+								Flags: []cli.Flag{
+									&cli.StringFlag{
+										Name:     "endpoint",
+										Aliases:  []string{"end", "e"},
+										Required: true,
+										Usage:    "Kaggo server endpoint",
+									},
+									&cli.StringFlag{
+										Name:     "request-kind",
+										Aliases:  []string{"rk", "r"},
+										Required: true,
+										Usage:    "Type to lurk; must be either youtube.channel or reddit.user",
+									},
+									&cli.StringFlag{
+										Name:     "id",
+										Aliases:  []string{"i"},
+										Required: true,
+										Usage:    "Identifier of thing to lurk",
+									},
+								},
+								Action: func(ctx *cli.Context) error {
+									return add_listener_subscription(ctx)
+								},
+							},
+							{
+								Name:  "initiate-reddit-listener",
+								Usage: "Send a POST request to initiate a workflow that listens to Reddit",
+								Flags: []cli.Flag{
+									&cli.StringFlag{
+										Name:     "endpoint",
+										Aliases:  []string{"end", "e"},
+										Required: true,
+										Usage:    "Kaggo server endpoint",
+									},
+								},
+								Action: func(ctx *cli.Context) error {
+									return initiate_reddit_listener(ctx)
+								},
+							},
+							{
+								Name:  "initiate-youtube-listener",
+								Usage: "Send a POST request to initiate a workflow that listens to YouTube",
+								Flags: []cli.Flag{
+									&cli.StringFlag{
+										Name:     "endpoint",
+										Aliases:  []string{"end", "e"},
+										Required: true,
+										Usage:    "Kaggo server endpoint",
+									},
+								},
+								Action: func(ctx *cli.Context) error {
+									return initiate_youtube_listener(ctx)
+								},
+							},
+						},
+					},
+					{
 						Name:  "schedule",
 						Usage: "Schedule operations",
 						Subcommands: []*cli.Command{
@@ -191,6 +254,11 @@ func main() {
 										Aliases:  []string{"i"},
 										Required: true,
 										Usage:    "Identifier for the schedule",
+									},
+									&cli.BoolFlag{
+										Name:    "monitor",
+										Aliases: []string{"m"},
+										Usage:   "Monitor this id for new submissions (only applies to youtube.channel and reddit.user)",
 									},
 								},
 								Action: func(ctx *cli.Context) error {
@@ -310,36 +378,6 @@ func main() {
 								},
 								Action: func(ctx *cli.Context) error {
 									return run_metadata_wf(ctx)
-								},
-							},
-							{
-								Name:  "initiate-reddit-listener",
-								Usage: "Send a POST request to initiate a workflow that listens to Reddit",
-								Flags: []cli.Flag{
-									&cli.StringFlag{
-										Name:     "endpoint",
-										Aliases:  []string{"end", "e"},
-										Required: true,
-										Usage:    "Kaggo server endpoint",
-									},
-								},
-								Action: func(ctx *cli.Context) error {
-									return initiate_reddit_listener(ctx)
-								},
-							},
-							{
-								Name:  "initiate-youtube-listener",
-								Usage: "Send a POST request to initiate a workflow that listens to YouTube",
-								Flags: []cli.Flag{
-									&cli.StringFlag{
-										Name:     "endpoint",
-										Aliases:  []string{"end", "e"},
-										Required: true,
-										Usage:    "Kaggo server endpoint",
-									},
-								},
-								Action: func(ctx *cli.Context) error {
-									return initiate_youtube_listener(ctx)
 								},
 							},
 							{

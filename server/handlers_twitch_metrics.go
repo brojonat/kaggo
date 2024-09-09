@@ -37,7 +37,7 @@ func setTwitchPromMetrics(l *slog.Logger, data api.MetricQueryInternalData, labe
 
 		var val float64
 
-		// NOTE: twitch deviates a little from how these are conventially supplied,
+		// NOTE: twitch deviates a little from how these are conventionally supplied,
 		// but we're fudging them a bit here to reduce the number of metrics and keep
 		// things simple on our end. The main things are that Twitch ratelimit headers
 		// don't have the `X-` prefix, and the first one is Limit rather than Used.

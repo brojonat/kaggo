@@ -509,6 +509,94 @@ func (a *ActivityRequester) handleRedditSubredditMetrics(l log.Logger, status in
 	return uploadMetrics(l, "/reddit/subreddit", b)
 }
 
+// Handle RequestKindRedditUser requests
+func (a *ActivityRequester) handleRedditUserMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+	var data interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		return nil, fmt.Errorf("error deserializing response: %w", err)
+	}
+	// name
+	iface, err := jmespath.Search("data.name", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting name: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting name; name is nil")
+	}
+	name := iface.(string)
+
+	// awardee karma
+	iface, err = jmespath.Search("data.awardee_karma", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting awardee_karma: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting awardee_karma; awardee_karma is nil")
+	}
+	awardee_karma := iface.(float64)
+
+	// awarder karma
+	iface, err = jmespath.Search("data.awarder_karma", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting awarder_karma: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting awarder_karma; awarder_karma is nil")
+	}
+	awarder_karma := iface.(float64)
+
+	// comment karma
+	iface, err = jmespath.Search("data.comment_karma", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting comment_karma: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting comment_karma; comment_karma is nil")
+	}
+	comment_karma := iface.(float64)
+
+	// link karma
+	iface, err = jmespath.Search("data.link_karma", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting link_karma: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting link_karma; link_karma is nil")
+	}
+	link_karma := iface.(float64)
+
+	// total karma
+	iface, err = jmespath.Search("data.total_karma", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting total_karma: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting total_karma; name is nil")
+	}
+	total_karma := iface.(float64)
+
+	// upload the metrics to the server
+	payload := api.RedditUserMetricPayload{
+		ID:              name, // name is our internal id for reddit users
+		SetAwardeeKarma: true,
+		AwardeeKarma:    int(awardee_karma),
+		SetAwarderKarma: true,
+		AwarderKarma:    int(awarder_karma),
+		SetCommentKarma: true,
+		CommentKarma:    int(comment_karma),
+		SetLinkKarma:    true,
+		LinkKarma:       int(link_karma),
+		SetTotalKarma:   true,
+		TotalKarma:      int(total_karma),
+		InternalData:    internalData,
+	}
+	b, err = json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
+	}
+	return uploadMetrics(l, "/reddit/user", b)
+}
+
 // Handle RequestKindTwitchClip requests
 func (a *ActivityRequester) handleTwitchClipMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
 	var data interface{}

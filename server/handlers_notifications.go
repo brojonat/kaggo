@@ -87,7 +87,7 @@ func handleRedditPostNotification(l *slog.Logger, q *dbgen.Queries, tc client.Cl
 
 		// we want to follow this post for some nominal amount of time
 		l.Info("got new reddit post to follow", "rk", "reddit.post", "id", id, "title", rb.Post.Title, "user", rb.Post.Author)
-		sched := api.GetDefaultScheduleSpec("reddit.post", id)
+		sched := GetDefaultScheduleSpec("reddit.post", id)
 		sched.EndAt = time.Now().Add(7 * 24 * time.Hour) // 1 week
 		payload := api.GenericScheduleRequestPayload{
 			RequestKind: rk,
@@ -221,7 +221,7 @@ func handleYouTubeVideoWebSubNotification(l *slog.Logger, q *dbgen.Queries) http
 		l.Info("got new youtube video to monitor", "id", vid)
 		// we want to follow this post for some nominal amount of time
 		rk := "youtube.video"
-		sched := api.GetDefaultScheduleSpec(rk, vid)
+		sched := GetDefaultScheduleSpec(rk, vid)
 		sched.EndAt = time.Now().Add(21 * 24 * time.Hour) // 3 weeks
 		payload := api.GenericScheduleRequestPayload{
 			RequestKind: rk,

@@ -85,8 +85,38 @@ type RedditSubredditSubscription struct {
 	Name string `json:"name"`
 }
 
+type RedditUserAwardeeKarma struct {
+	ID    string             `json:"id"`
+	Ts    pgtype.Timestamptz `json:"ts"`
+	Karma int32              `json:"karma"`
+}
+
+type RedditUserAwarderKarma struct {
+	ID    string             `json:"id"`
+	Ts    pgtype.Timestamptz `json:"ts"`
+	Karma int32              `json:"karma"`
+}
+
+type RedditUserCommentKarma struct {
+	ID    string             `json:"id"`
+	Ts    pgtype.Timestamptz `json:"ts"`
+	Karma int32              `json:"karma"`
+}
+
+type RedditUserLinkKarma struct {
+	ID    string             `json:"id"`
+	Ts    pgtype.Timestamptz `json:"ts"`
+	Karma int32              `json:"karma"`
+}
+
 type RedditUserSubscription struct {
 	Name string `json:"name"`
+}
+
+type RedditUserTotalKarma struct {
+	ID    string             `json:"id"`
+	Ts    pgtype.Timestamptz `json:"ts"`
+	Karma int32              `json:"karma"`
 }
 
 type TwitchClipView struct {

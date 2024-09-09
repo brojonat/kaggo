@@ -6,21 +6,6 @@ import (
 	"go.temporal.io/sdk/client"
 )
 
-func GetDefaultScheduleSpec(rk, id string) client.ScheduleSpec {
-	s := client.ScheduleSpec{
-		Calendars: []client.ScheduleCalendarSpec{
-			{
-				Second:  []client.ScheduleRange{{Start: 0}},
-				Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 5}},
-				Hour:    []client.ScheduleRange{{Start: 0, End: 23}},
-				Comment: "every 5 minutes",
-			},
-		},
-		Jitter: 300000000000,
-	}
-	return s
-}
-
 type DefaultJSONResponse struct {
 	Message string `json:"message,omitempty"`
 	Error   string `json:"error,omitempty"`
@@ -49,6 +34,12 @@ type GenericScheduleRequestPayload struct {
 	RequestKind string              `json:"request_kind"`
 	ID          string              `json:"id"`
 	Schedule    client.ScheduleSpec `json:"schedule_spec,omitempty"`
+	Monitor     bool                `json:"monitor,omitempty"`
+}
+
+type AddListenerSubPayload struct {
+	RequestKind string `json:"request_kind"`
+	ID          string `json:"id"`
 }
 
 // Contains arbitrary data that metric (or metadata) handlers want to pass back to the server.
@@ -145,6 +136,21 @@ type RedditSubredditMetricPayload struct {
 	SetActiveUserCount bool                    `json:"set_active_user_count"`
 	ActiveUserCount    int                     `json:"active_user_count"`
 	InternalData       MetricQueryInternalData `json:"internal_data"`
+}
+
+type RedditUserMetricPayload struct {
+	ID              string                  `json:"id"`
+	SetAwardeeKarma bool                    `json:"set_awardee_karma"`
+	AwardeeKarma    int                     `json:"awardee_karma"`
+	SetAwarderKarma bool                    `json:"set_awarder_karma"`
+	AwarderKarma    int                     `json:"awarder_karma"`
+	SetCommentKarma bool                    `json:"set_comment_karma"`
+	CommentKarma    int                     `json:"comment_karma"`
+	SetLinkKarma    bool                    `json:"set_like_karma"`
+	LinkKarma       int                     `json:"like_karma"`
+	SetTotalKarma   bool                    `json:"set_total_karma"`
+	TotalKarma      int                     `json:"total_karma"`
+	InternalData    MetricQueryInternalData `json:"internal_data"`
 }
 
 type TwitchClipMetricPayload struct {

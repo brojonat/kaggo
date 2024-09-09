@@ -84,6 +84,26 @@ func (q *Queries) GetYouTubeChannelSubscriptions(ctx context.Context) ([]string,
 	return items, nil
 }
 
+const insertRedditUserSubscription = `-- name: InsertRedditUserSubscription :exec
+INSERT INTO reddit_user_subscriptions (name)
+VALUES ($1)
+`
+
+func (q *Queries) InsertRedditUserSubscription(ctx context.Context, name string) error {
+	_, err := q.db.Exec(ctx, insertRedditUserSubscription, name)
+	return err
+}
+
+const insertYouTubeChannelSubscription = `-- name: InsertYouTubeChannelSubscription :exec
+INSERT INTO youtube_channel_subscriptions (id)
+VALUES ($1)
+`
+
+func (q *Queries) InsertYouTubeChannelSubscription(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, insertYouTubeChannelSubscription, id)
+	return err
+}
+
 const youTubeChannelSubscriptionExists = `-- name: YouTubeChannelSubscriptionExists :one
 SELECT 1 AS "exists"
 FROM youtube_channel_subscriptions

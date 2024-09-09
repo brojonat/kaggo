@@ -138,6 +138,41 @@ CREATE TABLE IF NOT EXISTS reddit_subreddit_active_user_count (
     active_user_count INTEGER NOT NULL
 );
 
+-- reddit user awardee karma
+CREATE TABLE IF NOT EXISTS reddit_user_awardee_karma (
+    id VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    karma INTEGER NOT NULL
+);
+
+-- reddit user awarder karma
+CREATE TABLE IF NOT EXISTS reddit_user_awarder_karma (
+    id VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    karma INTEGER NOT NULL
+);
+
+-- reddit user comment karma
+CREATE TABLE IF NOT EXISTS reddit_user_comment_karma (
+    id VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    karma INTEGER NOT NULL
+);
+
+-- reddit user link karma
+CREATE TABLE IF NOT EXISTS reddit_user_link_karma (
+    id VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    karma INTEGER NOT NULL
+);
+
+-- reddit user total karma
+CREATE TABLE IF NOT EXISTS reddit_user_total_karma (
+    id VARCHAR(255) NOT NULL,
+    ts TIMESTAMPTZ NOT NULL,
+    karma INTEGER NOT NULL
+);
+
 -- twitch clip views
 CREATE TABLE IF NOT EXISTS twitch_clip_views (
     id VARCHAR(255) NOT NULL,

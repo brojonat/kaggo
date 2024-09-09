@@ -123,12 +123,12 @@ func (a *ActivityRedditListener) Run(ctx context.Context, r RedditSubActRequest)
 	l := activity.GetLogger(ctx)
 
 	cfg := reddit.BotConfig{
-		Agent: os.Getenv("REDDIT_USER_AGENT"),
+		Agent: os.Getenv("REDDIT_LISTENER_USER_AGENT"),
 		App: reddit.App{
-			ID:       os.Getenv("REDDIT_CLIENT_ID"),
-			Secret:   os.Getenv("REDDIT_CLIENT_SECRET"),
-			Username: os.Getenv("REDDIT_USERNAME"),
-			Password: os.Getenv("REDDIT_PASSWORD"),
+			ID:       os.Getenv("REDDIT_LISTENER_CLIENT_ID"),
+			Secret:   os.Getenv("REDDIT_LISTENER_CLIENT_SECRET"),
+			Username: os.Getenv("REDDIT_LISTENER_USERNAME"),
+			Password: os.Getenv("REDDIT_LISTENER_PASSWORD"),
 		},
 		Rate: 5 * time.Second,
 	}
@@ -146,11 +146,17 @@ func (a *ActivityRedditListener) Run(ctx context.Context, r RedditSubActRequest)
 	errC := make(chan error)
 	var wait func() error
 	go func() {
+		tstart := time.Now()
 		_, wait, err = graw.Run(&redditHandler{}, bot, lcfg)
 		if err != nil {
 			errC <- err
 		}
-		l.Info("starting reddit listener", "subreddits", r.Subreddits, "users", r.Users)
+		l.Info(
+			"started reddit listener",
+			"setup_duration", time.Since(tstart).String(),
+			"n_subreddits", len(r.Subreddits),
+			"n_users", len(r.Users),
+		)
 		errC <- nil
 	}()
 	doLoop := true

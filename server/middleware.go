@@ -12,13 +12,16 @@ import (
 	"github.com/brojonat/server-tools/stools"
 	"github.com/golang-jwt/jwt"
 	"github.com/gorilla/handlers"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/urfave/negroni"
 )
 
 const FirebaseJWTHeader = "Firebase-JWT"
 
 type contextKey int
 
-var jwtCtxKey contextKey = 1
+var ctxKeyJWT contextKey = 1
+var ctxKeyEmail contextKey = 2
 
 // Convenience middleware that applies commonly used middleware to the wrapped
 // handler. This will make the handler gracefully handle panics, sets the
@@ -79,8 +82,24 @@ func setMaxBytesReader(mb int64) stools.HandlerAdapter {
 	}
 }
 
-func bearerAuthorizer(gsk func() string) func(*http.Request) bool {
-	return func(r *http.Request) bool {
+func basicAuthorizerCtxSetEmail(gsk func() string) func(http.ResponseWriter, *http.Request) bool {
+	return func(w http.ResponseWriter, r *http.Request) bool {
+		w.Header().Set("WWW-Authenticate", `Basic realm="mydomain"`)
+		email, pwd, ok := r.BasicAuth()
+		if !ok {
+			return false
+		}
+		if pwd != gsk() {
+			return false
+		}
+		ctx := context.WithValue(r.Context(), ctxKeyEmail, email)
+		*r = *r.WithContext(ctx)
+		return true
+	}
+}
+
+func bearerAuthorizerCtxSetToken(gsk func() string) func(http.ResponseWriter, *http.Request) bool {
+	return func(w http.ResponseWriter, r *http.Request) bool {
 		var claims authJWTClaims
 		ts := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 		if ts == "" {
@@ -93,7 +112,7 @@ func bearerAuthorizer(gsk func() string) func(*http.Request) bool {
 		if err != nil || !token.Valid {
 			return false
 		}
-		ctx := context.WithValue(r.Context(), jwtCtxKey, token.Claims)
+		ctx := context.WithValue(r.Context(), ctxKeyJWT, token.Claims)
 		*r = *r.WithContext(ctx)
 		return true
 	}
@@ -101,11 +120,11 @@ func bearerAuthorizer(gsk func() string) func(*http.Request) bool {
 
 // Iterates over the supplied authorizers and if at least one passes, then the
 // next handler is called, otherwise an unauthorized response is written.
-func atLeastOneAuth(authorizers ...func(*http.Request) bool) stools.HandlerAdapter {
+func atLeastOneAuth(authorizers ...func(http.ResponseWriter, *http.Request) bool) stools.HandlerAdapter {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			for _, a := range authorizers {
-				if !a(r) {
+				if !a(w, r) {
 					continue
 				}
 				next(w, r)
@@ -113,6 +132,19 @@ func atLeastOneAuth(authorizers ...func(*http.Request) bool) stools.HandlerAdapt
 			}
 			w.WriteHeader(http.StatusUnauthorized)
 			json.NewEncoder(w).Encode(api.DefaultJSONResponse{Error: "unauthorized"})
+		}
+	}
+}
+
+// Increment a prometheus counter for each request
+func withPromCounter(pm *prometheus.CounterVec) stools.HandlerAdapter {
+	return func(hf http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			nwr := negroni.NewResponseWriter(w)
+			hf(nwr, r)
+			name := fmt.Sprintf("%s %s", r.Method, r.URL.Path)
+			sc := fmt.Sprintf("%d", nwr.Status())
+			pm.With(prometheus.Labels{"name": name, "code": sc}).Inc()
 		}
 	}
 }

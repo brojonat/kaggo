@@ -108,3 +108,29 @@ func handlePostMetricMetadata(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc
 		writeOK(w)
 	}
 }
+
+func handleAddListenerSub(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var data api.AddListenerSubPayload
+		err := stools.DecodeJSONBody(r, &data)
+		if err != nil {
+			writeBadRequestError(w, err)
+			return
+		}
+		switch data.RequestKind {
+		case kt.RequestKindYouTubeChannel:
+			err = q.InsertYouTubeChannelSubscription(r.Context(), data.ID)
+		case kt.RequestKindRedditUser:
+			err = q.InsertRedditUserSubscription(r.Context(), data.ID)
+		default:
+			writeBadRequestError(w, fmt.Errorf("unsupported request_kind %s", data.RequestKind))
+			return
+
+		}
+		if err != nil {
+			writeInternalError(l, w, err)
+			return
+		}
+		writeOK(w)
+	}
+}

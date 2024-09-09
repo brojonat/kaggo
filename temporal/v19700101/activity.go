@@ -17,18 +17,37 @@ import (
 
 const (
 	RequestKindInternalRandom    = "internal.random"
-	RequestKindYouTubeVideo      = "youtube.video"
-	RequestKindYouTubeChannel    = "youtube.channel"
 	RequestKindKaggleNotebook    = "kaggle.notebook"
 	RequestKindKaggleDataset     = "kaggle.dataset"
+	RequestKindYouTubeVideo      = "youtube.video"
+	RequestKindYouTubeChannel    = "youtube.channel"
 	RequestKindRedditPost        = "reddit.post"
 	RequestKindRedditComment     = "reddit.comment"
 	RequestKindRedditSubreddit   = "reddit.subreddit"
+	RequestKindRedditUser        = "reddit.user"
 	RequestKindTwitchClip        = "twitch.clip"
 	RequestKindTwitchVideo       = "twitch.video"
 	RequestKindTwitchStream      = "twitch.stream"
 	RequestKindTwitchUserPastDec = "twitch.user-past-dec"
 )
+
+func GetSupportedRequestKinds() []string {
+	return []string{
+		RequestKindInternalRandom,
+		RequestKindKaggleNotebook,
+		RequestKindKaggleDataset,
+		RequestKindYouTubeVideo,
+		RequestKindYouTubeChannel,
+		RequestKindRedditPost,
+		RequestKindRedditComment,
+		RequestKindRedditSubreddit,
+		RequestKindRedditUser,
+		RequestKindTwitchClip,
+		RequestKindTwitchVideo,
+		RequestKindTwitchStream,
+		RequestKindTwitchUserPastDec,
+	}
+}
 
 type ActivityRedditListener struct{}
 type ActivityYouTubeListener struct{}
@@ -43,7 +62,10 @@ type ActivityRequester struct {
 // This is a hook to update requests without updating the originally scheduled
 // http.Request. This parses the supplied request and perform any finishing
 // touches like setting auth tokens and whatnot. For example, requests to Reddit
-// need to have a short lived access token set in the Authorization header.
+// need to have a short lived access token set in the Authorization header. This
+// sort frequently changing parameter should not set on the original request
+// because the original is hashed to create a unique identifier and prevent
+// duplicate schedules.
 func (a *ActivityRequester) prepareRequest(drp DoRequestActRequest) (*http.Request, error) {
 	buf := bufio.NewReader(bytes.NewReader(drp.Serial))
 	r, err := http.ReadRequest(buf)
@@ -58,37 +80,40 @@ func (a *ActivityRequester) prepareRequest(drp DoRequestActRequest) (*http.Reque
 		return nil, fmt.Errorf("error parsing request URL: %s", r.RequestURI)
 	}
 
-	r.Header.Add("Accept", "application/json")
+	r.Header.Set("Accept", "application/json")
 
 	r.URL = u
 	r.RequestURI = ""
 
 	switch drp.RequestKind {
 	case RequestKindInternalRandom:
-		// nothing to do
+		// for internal requests, just set the authorization token
+		r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("AUTH_TOKEN")))
+	case RequestKindKaggleNotebook, RequestKindKaggleDataset:
+		// basic auth
+		r.SetBasicAuth(os.Getenv("KAGGLE_USERNAME"), os.Getenv("KAGGLE_API_KEY"))
 	case RequestKindYouTubeVideo, RequestKindYouTubeChannel:
-		// re-set the api key
+		// for youtube requests, set the non-identifier query params
 		q := r.URL.Query()
-		q.Del("key")
+		q.Set("part", "snippet,contentDetails,statistics")
 		q.Set("key", os.Getenv("YOUTUBE_API_KEY"))
 		r.URL.RawQuery = q.Encode()
-	case RequestKindKaggleNotebook:
-		// nothing to do
-	case RequestKindKaggleDataset:
-		// nothing to do
-	case RequestKindRedditPost, RequestKindRedditComment, RequestKindRedditSubreddit:
+
+	case RequestKindRedditPost, RequestKindRedditComment, RequestKindRedditSubreddit, RequestKindRedditUser:
 		// refresh key and set bearer
 		err = a.ensureValidRedditToken(time.Duration(60 * time.Second))
 		if err != nil {
 			return nil, err
 		}
-		r.Header.Add("Authorization", "bearer "+a.RedditAuthToken)
+		r.Header.Set("User-Agent", os.Getenv("REDDIT_USER_AGENT"))
+		r.Header.Set("Authorization", "bearer "+a.RedditAuthToken)
 	case RequestKindTwitchClip, RequestKindTwitchVideo, RequestKindTwitchStream, RequestKindTwitchUserPastDec:
 		err = a.ensureValidTwitchToken(time.Duration(60 * time.Second))
 		if err != nil {
 			return nil, err
 		}
-		r.Header.Add("Authorization", "Bearer "+a.TwitchAuthToken)
+		r.Header.Set("Client-Id", os.Getenv("TWITCH_CLIENT_ID"))
+		r.Header.Set("Authorization", "Bearer "+a.TwitchAuthToken)
 	default:
 		return nil, fmt.Errorf("unsupported RequestKind %s", drp.RequestKind)
 	}
@@ -148,6 +173,8 @@ func (a *ActivityRequester) UploadMetadata(ctx context.Context, drr UploadMetada
 		return a.handleRedditCommentMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindRedditSubreddit:
 		return a.handleRedditSubredditMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+	case RequestKindRedditUser:
+		return a.handleRedditUserMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindTwitchClip:
 		return a.handleTwitchClipMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindTwitchVideo:
@@ -181,6 +208,8 @@ func (a *ActivityRequester) UploadMetrics(ctx context.Context, drr UploadMetrics
 		return a.handleRedditCommentMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindRedditSubreddit:
 		return a.handleRedditSubredditMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+	case RequestKindRedditUser:
+		return a.handleRedditUserMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindTwitchClip:
 		return a.handleTwitchClipMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindTwitchVideo:
