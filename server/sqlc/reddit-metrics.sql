@@ -104,7 +104,7 @@ SELECT
     r.id AS "id",
     r.ts AS "ts",
     r.active_user_count::REAL AS "value",
-    'reddit.subreddit.active_user_count' AS "metric"
+    'reddit.subreddit.active-user-count' AS "metric"
 FROM reddit_subreddit_active_user_count AS r
 WHERE
     r.id = ANY(@ids::VARCHAR[]) AND
@@ -116,7 +116,7 @@ SELECT
     r.id AS "id",
     r.ts AS "ts",
     r.karma::REAL AS "value",
-    'reddit.user.awardee_karma' AS "metric"
+    'reddit.user.awardee-karma' AS "metric"
 FROM reddit_user_awardee_karma AS r
 WHERE
     r.id = ANY(@ids::VARCHAR[]) AND
@@ -127,7 +127,7 @@ SELECT
     r.id AS "id",
     r.ts AS "ts",
     r.karma::REAL AS "value",
-    'reddit.user.awarder_karma' AS "metric"
+    'reddit.user.awarder-karma' AS "metric"
 FROM reddit_user_awarder_karma AS r
 WHERE
     r.id = ANY(@ids::VARCHAR[]) AND
@@ -138,7 +138,7 @@ SELECT
     r.id AS "id",
     r.ts AS "ts",
     r.karma::REAL AS "value",
-    'reddit.user.comment_karma' AS "metric"
+    'reddit.user.comment-karma' AS "metric"
 FROM reddit_user_comment_karma AS r
 WHERE
     r.id = ANY(@ids::VARCHAR[]) AND
@@ -149,7 +149,7 @@ SELECT
     r.id AS "id",
     r.ts AS "ts",
     r.karma::REAL AS "value",
-    'reddit.user.link_karma' AS "metric"
+    'reddit.user.link-karma' AS "metric"
 FROM reddit_user_link_karma AS r
 WHERE
     r.id = ANY(@ids::VARCHAR[]) AND
@@ -160,7 +160,7 @@ SELECT
     r.id AS "id",
     r.ts AS "ts",
     r.karma::REAL AS "value",
-    'reddit.user.total_karma' AS "metric"
+    'reddit.user.total-karma' AS "metric"
 FROM reddit_user_total_karma AS r
 WHERE
     r.id = ANY(@ids::VARCHAR[]) AND
@@ -431,7 +431,7 @@ WHERE
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
-SELECT *, 'reddit.subreddit.active_user_count' AS "metric"
+SELECT *, 'reddit.subreddit.active-user-count' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -461,7 +461,7 @@ FROM (
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
-SELECT *, 'reddit.subreddit.active_user_count' AS metric
+SELECT *, 'reddit.subreddit.active-user-count' AS metric
 FROM (
 	SELECT
 		id,
@@ -490,7 +490,7 @@ FROM (
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
-SELECT *, 'reddit.subreddit.active_user_count' AS "metric"
+SELECT *, 'reddit.subreddit.active-user-count' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -520,7 +520,7 @@ FROM (
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
-SELECT *, 'reddit.subreddit.active_user_count' AS metric
+SELECT *, 'reddit.subreddit.active-user-count' AS metric
 FROM (
 	SELECT
 		id,
@@ -539,7 +539,7 @@ FROM (
 
 
 -- name: GetRedditUserMetricsByIDsBucket15Min :many
-SELECT *, 'reddit.user.awardee_karma' AS "metric"
+SELECT *, 'reddit.user.awardee-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -554,7 +554,7 @@ WHERE
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
-SELECT *, 'reddit.user.awarder_karma' AS "metric"
+SELECT *, 'reddit.user.awarder-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -569,7 +569,7 @@ WHERE
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
-SELECT *, 'reddit.user.comment_karma' AS "metric"
+SELECT *, 'reddit.user.comment-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -584,7 +584,7 @@ WHERE
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
-SELECT *, 'reddit.user.link_karma' AS "metric"
+SELECT *, 'reddit.user.link-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -599,7 +599,7 @@ WHERE
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
-SELECT *, 'reddit.user.total_karma' AS "metric"
+SELECT *, 'reddit.user.total-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -615,7 +615,7 @@ WHERE
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
 -- name: GetRedditUserMetricsByIDsBucket1Hr :many
-SELECT *, 'reddit.user.awardee_karma' AS metric
+SELECT *, 'reddit.user.awardee-karma' AS metric
 FROM (
 	SELECT
 		id,
@@ -629,7 +629,7 @@ FROM (
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
-SELECT *, 'reddit.user.awarder_karma' AS metric
+SELECT *, 'reddit.user.awarder-karma' AS metric
 FROM (
 	SELECT
 		id,
@@ -643,7 +643,7 @@ FROM (
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
-SELECT *, 'reddit.user.comment_karma' AS "metric"
+SELECT *, 'reddit.user.comment-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -658,7 +658,7 @@ WHERE
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
-SELECT *, 'reddit.user.link_karma' AS "metric"
+SELECT *, 'reddit.user.link-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -673,7 +673,7 @@ WHERE
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
-SELECT *, 'reddit.user.total_karma' AS "metric"
+SELECT *, 'reddit.user.total-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -689,7 +689,7 @@ WHERE
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
 -- name: GetRedditUserMetricsByIDsBucket8Hr :many
-SELECT *, 'reddit.user.awardee_karma' AS metric
+SELECT *, 'reddit.user.awardee-karma' AS metric
 FROM (
 	SELECT
 		id,
@@ -703,7 +703,7 @@ FROM (
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
-SELECT *, 'reddit.user.awarder_karma' AS "metric"
+SELECT *, 'reddit.user.awarder-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -718,7 +718,7 @@ WHERE
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
-SELECT *, 'reddit.user.comment_karma' AS "metric"
+SELECT *, 'reddit.user.comment-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -733,7 +733,7 @@ WHERE
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
-SELECT *, 'reddit.user.link_karma' AS "metric"
+SELECT *, 'reddit.user.link-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -748,7 +748,7 @@ WHERE
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
-SELECT *, 'reddit.user.total_karma' AS "metric"
+SELECT *, 'reddit.user.total-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -764,7 +764,7 @@ WHERE
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
 -- name: GetRedditUserMetricsByIDsBucket1Day :many
-SELECT *, 'reddit.user.awardee_karma' AS metric
+SELECT *, 'reddit.user.awardee-karma' AS metric
 FROM (
 	SELECT
 		id,
@@ -778,7 +778,7 @@ FROM (
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
-SELECT *, 'reddit.user.awarder_karma' AS metric
+SELECT *, 'reddit.user.awarder-karma' AS metric
 FROM (
 	SELECT
 		id,
@@ -792,7 +792,7 @@ FROM (
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 	UNION ALL
-SELECT *, 'reddit.user.comment_karma' AS "metric"
+SELECT *, 'reddit.user.comment-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -807,7 +807,7 @@ WHERE
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
-SELECT *, 'reddit.user.link_karma' AS "metric"
+SELECT *, 'reddit.user.link-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -822,7 +822,7 @@ WHERE
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
-SELECT *, 'reddit.user.total_karma' AS "metric"
+SELECT *, 'reddit.user.total-karma' AS "metric"
 FROM (
 	SELECT
 		id,

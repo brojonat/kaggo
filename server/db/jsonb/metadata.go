@@ -2,9 +2,10 @@ package jsonb
 
 type MetadataJSON struct {
 	// these fields should always be set
-	ID   string   `json:"id"`
-	Link string   `json:"link"`
-	Tags []string `json:"tags"`
+	ID         string   `json:"id"`
+	HumanLabel string   `json:"human_label"`
+	Link       string   `json:"link"`
+	Tags       []string `json:"tags"`
 	// the remaining fields may or may not be set in the JSON read from the DB,
 	// and may or may not be present in the JSON written to a client.
 	Owner       string `json:"owner,omitempty"`

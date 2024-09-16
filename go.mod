@@ -88,6 +88,7 @@ require (
 require (
 	github.com/MetalBlueberry/go-plotly v0.7.0
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/brojonat/graw v0.0.0-20240910175442-9c974b261ecb
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/gorilla/handlers v1.5.2
@@ -95,7 +96,6 @@ require (
 	github.com/prometheus/client_model v0.5.0 // indirect
 	github.com/prometheus/common v0.48.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
-	github.com/turnage/graw v0.0.0-20201204201853-a177df1b5c91
 	github.com/urfave/cli/v2 v2.27.3
 	golang.org/x/sys v0.23.0 // indirect
 	gonum.org/v1/gonum v0.15.1

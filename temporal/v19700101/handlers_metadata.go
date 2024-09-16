@@ -62,9 +62,13 @@ func (a *ActivityRequester) handleInternalRandomMetadata(l log.Logger, status in
 	id := iface.(string)
 
 	payload := api.MetricMetadataPayload{
-		ID:           id,
-		RequestKind:  RequestKindInternalRandom,
-		Data:         jsonb.MetadataJSON{ID: id, Link: "https://api.kaggo.brojonat.com/internal/metrics?id=" + id},
+		ID:          id,
+		RequestKind: RequestKindInternalRandom,
+		Data: jsonb.MetadataJSON{
+			ID:         id,
+			HumanLabel: id,
+			Link:       "https://api.kaggo.brojonat.com/internal/metrics?id=" + id,
+		},
 		InternalData: internalData,
 	}
 	b, err = json.Marshal(payload)
@@ -94,8 +98,9 @@ func (a *ActivityRequester) handleKaggleNotebookMetadata(l log.Logger, status in
 		ID:          id,
 		RequestKind: RequestKindKaggleNotebook,
 		Data: jsonb.MetadataJSON{
-			ID:   id,
-			Link: fmt.Sprintf("https://www.kaggle.com/code/%s", id),
+			ID:         id,
+			HumanLabel: id,
+			Link:       fmt.Sprintf("https://www.kaggle.com/code/%s", id),
 		},
 		InternalData: internalData,
 	}
@@ -127,8 +132,9 @@ func (a *ActivityRequester) handleKaggleDatasetMetadata(l log.Logger, status int
 		ID:          id,
 		RequestKind: RequestKindKaggleDataset,
 		Data: jsonb.MetadataJSON{
-			ID:   id,
-			Link: fmt.Sprintf("https://www.kaggle.com/datasets/%s", id),
+			ID:         id,
+			HumanLabel: id,
+			Link:       fmt.Sprintf("https://www.kaggle.com/datasets/%s", id),
 		},
 		InternalData: internalData,
 	}
@@ -179,10 +185,11 @@ func (a *ActivityRequester) handleYouTubeVideoMetadata(l log.Logger, status int,
 		ID:          id,
 		RequestKind: RequestKindYouTubeVideo,
 		Data: jsonb.MetadataJSON{
-			ID:    id,
-			Link:  fmt.Sprintf("https://www.youtube.com/watch?v=%s", id),
-			Title: title,
-			Owner: channelTitle,
+			ID:         id,
+			HumanLabel: title,
+			Link:       fmt.Sprintf("https://www.youtube.com/watch?v=%s", id),
+			Title:      title,
+			Owner:      channelTitle,
 		},
 		InternalData: internalData,
 	}
@@ -223,9 +230,10 @@ func (a *ActivityRequester) handleYouTubeChannelMetadata(l log.Logger, status in
 		ID:          id,
 		RequestKind: RequestKindYouTubeChannel,
 		Data: jsonb.MetadataJSON{
-			ID:    id,
-			Link:  fmt.Sprintf("https://www.youtube.com/channel/%s", id),
-			Title: title,
+			ID:         id,
+			HumanLabel: title,
+			Link:       fmt.Sprintf("https://www.youtube.com/channel/%s", id),
+			Title:      title,
 		},
 		InternalData: internalData,
 	}
@@ -306,11 +314,12 @@ func (a *ActivityRequester) handleRedditPostMetadata(l log.Logger, status int, b
 		ID:          id,
 		RequestKind: RequestKindRedditPost,
 		Data: jsonb.MetadataJSON{
-			ID:    id,
-			Link:  "https://www.reddit.com" + permalink,
-			Title: title,
-			Owner: author,
-			Tags:  tags,
+			ID:         id,
+			HumanLabel: title,
+			Link:       "https://www.reddit.com" + permalink,
+			Title:      title,
+			Owner:      author,
+			Tags:       tags,
 		},
 		InternalData: internalData,
 	}
@@ -383,11 +392,12 @@ func (a *ActivityRequester) handleRedditCommentMetadata(l log.Logger, status int
 		ID:          id,
 		RequestKind: RequestKindRedditComment,
 		Data: jsonb.MetadataJSON{
-			ID:        id,
-			Owner:     author,
-			Comment:   text,
-			Link:      "https://www.reddit.com" + permalink,
-			Subreddit: subreddit,
+			ID:         id,
+			HumanLabel: fmt.Sprintf("Comment %s by /u/%s", id, author),
+			Owner:      author,
+			Comment:    text,
+			Link:       "https://www.reddit.com" + permalink,
+			Subreddit:  subreddit,
 		},
 		InternalData: internalData,
 	}
@@ -436,9 +446,10 @@ func (a *ActivityRequester) handleRedditSubredditMetadata(l log.Logger, status i
 		ID:          id,
 		RequestKind: RequestKindRedditSubreddit,
 		Data: jsonb.MetadataJSON{
-			ID:   id,
-			Link: "https://www.reddit.com/r/" + id,
-			Tags: tags,
+			ID:         id,
+			HumanLabel: id,
+			Link:       "https://www.reddit.com/r/" + id,
+			Tags:       tags,
 		},
 		InternalData: internalData,
 	}
@@ -517,7 +528,8 @@ func (a *ActivityRequester) handleRedditUserMetadata(l log.Logger, status int, b
 		ID:          name, // name is our internal id for users
 		RequestKind: RequestKindRedditUser,
 		Data: jsonb.MetadataJSON{
-			ID:          id,
+			ID:          name,
+			HumanLabel:  name,
 			Link:        "https://www.reddit.com/user/" + name,
 			Description: desc,
 			TSCreated:   int(ts_created),
@@ -615,6 +627,7 @@ func (a *ActivityRequester) handleTwitchClipMetadata(l log.Logger, status int, b
 		RequestKind: RequestKindTwitchClip,
 		Data: jsonb.MetadataJSON{
 			ID:          id,
+			HumanLabel:  title,
 			Link:        url,
 			Broadcaster: broadcaster_name,
 			Owner:       creator_name,
@@ -682,10 +695,11 @@ func (a *ActivityRequester) handleTwitchVideoMetadata(l log.Logger, status int, 
 		ID:          id,
 		RequestKind: RequestKindTwitchVideo,
 		Data: jsonb.MetadataJSON{
-			ID:    id,
-			Owner: user_name,
-			Title: title,
-			Link:  url,
+			ID:         id,
+			HumanLabel: title,
+			Owner:      user_name,
+			Title:      title,
+			Link:       url,
 		},
 		InternalData: internalData,
 	}
@@ -740,6 +754,7 @@ func (a *ActivityRequester) handleTwitchStreamMetadata(l log.Logger, status int,
 		RequestKind: RequestKindTwitchStream,
 		Data: jsonb.MetadataJSON{
 			ID:          user_login,
+			HumanLabel:  display_name,
 			Owner:       user_login,
 			Link:        "https://twitch.tv/" + user_login,
 			DisplayName: display_name,
@@ -799,6 +814,7 @@ func (a *ActivityRequester) handleTwitchUserPastDecMetadata(l log.Logger, status
 		RequestKind: RequestKindTwitchUserPastDec,
 		Data: jsonb.MetadataJSON{
 			ID:          user_login,
+			HumanLabel:  display_name,
 			Owner:       user_login,
 			Link:        "https://twitch.tv/" + user_login,
 			DisplayName: display_name,

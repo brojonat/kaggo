@@ -329,6 +329,33 @@ func main() {
 								},
 							},
 							{
+								Name:  "reupload-schedules",
+								Usage: "Delete and reupload schedules of the supplied type.",
+								Flags: []cli.Flag{
+									&cli.StringFlag{
+										Name:     "endpoint",
+										Aliases:  []string{"end", "e"},
+										Required: true,
+										Usage:    "Kaggo server endpoint",
+									},
+									&cli.StringFlag{
+										Name:     "file",
+										Aliases:  []string{"f"},
+										Required: true,
+										Usage:    "Input file location",
+									},
+									&cli.StringFlag{
+										Name:     "request-kind",
+										Aliases:  []string{"rk", "r"},
+										Required: true,
+										Usage:    "Request kind to reupload",
+									},
+								},
+								Action: func(ctx *cli.Context) error {
+									return reupload_schedules(ctx)
+								},
+							},
+							{
 								Name:  "delete-all-schedules",
 								Usage: "Delete all schedules. Be sure to dump a backup first!",
 								Flags: []cli.Flag{

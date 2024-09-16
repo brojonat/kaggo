@@ -205,7 +205,7 @@ func getRouter(
 	))
 	// serves the data to the plot static file; Bearer token protected
 	mux.Handle("GET /plot-data", stools.AdaptHandler(
-		handlePlotData(l, q, tc),
+		handleGetPlotData(l, q, tc),
 		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 	))
 	// prometheus metric handler

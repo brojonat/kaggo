@@ -706,7 +706,7 @@ SELECT
     r.id AS "id",
     r.ts AS "ts",
     r.active_user_count::REAL AS "value",
-    'reddit.subreddit.active_user_count' AS "metric"
+    'reddit.subreddit.active-user-count' AS "metric"
 FROM reddit_subreddit_active_user_count AS r
 WHERE
     r.id = ANY($1::VARCHAR[]) AND
@@ -770,7 +770,7 @@ WHERE
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
-SELECT id, bucket, value, 'reddit.subreddit.active_user_count' AS "metric"
+SELECT id, bucket, value, 'reddit.subreddit.active-user-count' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -840,7 +840,7 @@ FROM (
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
-SELECT id, bucket, value, 'reddit.subreddit.active_user_count' AS metric
+SELECT id, bucket, value, 'reddit.subreddit.active-user-count' AS metric
 FROM (
 	SELECT
 		id,
@@ -908,7 +908,7 @@ FROM (
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
-SELECT id, bucket, value, 'reddit.subreddit.active_user_count' AS metric
+SELECT id, bucket, value, 'reddit.subreddit.active-user-count' AS metric
 FROM (
 	SELECT
 		id,
@@ -976,7 +976,7 @@ FROM (
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
-SELECT id, bucket, value, 'reddit.subreddit.active_user_count' AS "metric"
+SELECT id, bucket, value, 'reddit.subreddit.active-user-count' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -1035,7 +1035,7 @@ SELECT
     r.id AS "id",
     r.ts AS "ts",
     r.karma::REAL AS "value",
-    'reddit.user.awardee_karma' AS "metric"
+    'reddit.user.awardee-karma' AS "metric"
 FROM reddit_user_awardee_karma AS r
 WHERE
     r.id = ANY($1::VARCHAR[]) AND
@@ -1046,7 +1046,7 @@ SELECT
     r.id AS "id",
     r.ts AS "ts",
     r.karma::REAL AS "value",
-    'reddit.user.awarder_karma' AS "metric"
+    'reddit.user.awarder-karma' AS "metric"
 FROM reddit_user_awarder_karma AS r
 WHERE
     r.id = ANY($1::VARCHAR[]) AND
@@ -1057,7 +1057,7 @@ SELECT
     r.id AS "id",
     r.ts AS "ts",
     r.karma::REAL AS "value",
-    'reddit.user.comment_karma' AS "metric"
+    'reddit.user.comment-karma' AS "metric"
 FROM reddit_user_comment_karma AS r
 WHERE
     r.id = ANY($1::VARCHAR[]) AND
@@ -1068,7 +1068,7 @@ SELECT
     r.id AS "id",
     r.ts AS "ts",
     r.karma::REAL AS "value",
-    'reddit.user.link_karma' AS "metric"
+    'reddit.user.link-karma' AS "metric"
 FROM reddit_user_link_karma AS r
 WHERE
     r.id = ANY($1::VARCHAR[]) AND
@@ -1079,7 +1079,7 @@ SELECT
     r.id AS "id",
     r.ts AS "ts",
     r.karma::REAL AS "value",
-    'reddit.user.total_karma' AS "metric"
+    'reddit.user.total-karma' AS "metric"
 FROM reddit_user_total_karma AS r
 WHERE
     r.id = ANY($1::VARCHAR[]) AND
@@ -1128,7 +1128,7 @@ func (q *Queries) GetRedditUserMetricsByIDs(ctx context.Context, arg GetRedditUs
 const getRedditUserMetricsByIDsBucket15Min = `-- name: GetRedditUserMetricsByIDsBucket15Min :many
 
 
-SELECT id, bucket, value, 'reddit.user.awardee_karma' AS "metric"
+SELECT id, bucket, value, 'reddit.user.awardee-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -1143,7 +1143,7 @@ WHERE
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
-SELECT id, bucket, value, 'reddit.user.awarder_karma' AS "metric"
+SELECT id, bucket, value, 'reddit.user.awarder-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -1158,7 +1158,7 @@ WHERE
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
-SELECT id, bucket, value, 'reddit.user.comment_karma' AS "metric"
+SELECT id, bucket, value, 'reddit.user.comment-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -1173,7 +1173,7 @@ WHERE
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
-SELECT id, bucket, value, 'reddit.user.link_karma' AS "metric"
+SELECT id, bucket, value, 'reddit.user.link-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -1188,7 +1188,7 @@ WHERE
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
-SELECT id, bucket, value, 'reddit.user.total_karma' AS "metric"
+SELECT id, bucket, value, 'reddit.user.total-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -1244,7 +1244,7 @@ func (q *Queries) GetRedditUserMetricsByIDsBucket15Min(ctx context.Context, arg 
 }
 
 const getRedditUserMetricsByIDsBucket1Day = `-- name: GetRedditUserMetricsByIDsBucket1Day :many
-SELECT id, bucket, value, 'reddit.user.awardee_karma' AS metric
+SELECT id, bucket, value, 'reddit.user.awardee-karma' AS metric
 FROM (
 	SELECT
 		id,
@@ -1258,7 +1258,7 @@ FROM (
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
-SELECT id, bucket, value, 'reddit.user.awarder_karma' AS metric
+SELECT id, bucket, value, 'reddit.user.awarder-karma' AS metric
 FROM (
 	SELECT
 		id,
@@ -1272,7 +1272,7 @@ FROM (
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 	UNION ALL
-SELECT id, bucket, value, 'reddit.user.comment_karma' AS "metric"
+SELECT id, bucket, value, 'reddit.user.comment-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -1287,7 +1287,7 @@ WHERE
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
-SELECT id, bucket, value, 'reddit.user.link_karma' AS "metric"
+SELECT id, bucket, value, 'reddit.user.link-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -1302,7 +1302,7 @@ WHERE
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
-SELECT id, bucket, value, 'reddit.user.total_karma' AS "metric"
+SELECT id, bucket, value, 'reddit.user.total-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -1357,7 +1357,7 @@ func (q *Queries) GetRedditUserMetricsByIDsBucket1Day(ctx context.Context, arg G
 }
 
 const getRedditUserMetricsByIDsBucket1Hr = `-- name: GetRedditUserMetricsByIDsBucket1Hr :many
-SELECT id, bucket, value, 'reddit.user.awardee_karma' AS metric
+SELECT id, bucket, value, 'reddit.user.awardee-karma' AS metric
 FROM (
 	SELECT
 		id,
@@ -1371,7 +1371,7 @@ FROM (
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
-SELECT id, bucket, value, 'reddit.user.awarder_karma' AS metric
+SELECT id, bucket, value, 'reddit.user.awarder-karma' AS metric
 FROM (
 	SELECT
 		id,
@@ -1385,7 +1385,7 @@ FROM (
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
-SELECT id, bucket, value, 'reddit.user.comment_karma' AS "metric"
+SELECT id, bucket, value, 'reddit.user.comment-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -1400,7 +1400,7 @@ WHERE
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
-SELECT id, bucket, value, 'reddit.user.link_karma' AS "metric"
+SELECT id, bucket, value, 'reddit.user.link-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -1415,7 +1415,7 @@ WHERE
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
-SELECT id, bucket, value, 'reddit.user.total_karma' AS "metric"
+SELECT id, bucket, value, 'reddit.user.total-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -1470,7 +1470,7 @@ func (q *Queries) GetRedditUserMetricsByIDsBucket1Hr(ctx context.Context, arg Ge
 }
 
 const getRedditUserMetricsByIDsBucket8Hr = `-- name: GetRedditUserMetricsByIDsBucket8Hr :many
-SELECT id, bucket, value, 'reddit.user.awardee_karma' AS metric
+SELECT id, bucket, value, 'reddit.user.awardee-karma' AS metric
 FROM (
 	SELECT
 		id,
@@ -1484,7 +1484,7 @@ FROM (
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
-SELECT id, bucket, value, 'reddit.user.awarder_karma' AS "metric"
+SELECT id, bucket, value, 'reddit.user.awarder-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -1499,7 +1499,7 @@ WHERE
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
-SELECT id, bucket, value, 'reddit.user.comment_karma' AS "metric"
+SELECT id, bucket, value, 'reddit.user.comment-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -1514,7 +1514,7 @@ WHERE
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
-SELECT id, bucket, value, 'reddit.user.link_karma' AS "metric"
+SELECT id, bucket, value, 'reddit.user.link-karma' AS "metric"
 FROM (
 	SELECT
 		id,
@@ -1529,7 +1529,7 @@ WHERE
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
-SELECT id, bucket, value, 'reddit.user.total_karma' AS "metric"
+SELECT id, bucket, value, 'reddit.user.total-karma' AS "metric"
 FROM (
 	SELECT
 		id,

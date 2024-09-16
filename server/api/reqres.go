@@ -1,8 +1,8 @@
 package api
 
 import (
+	"github.com/brojonat/graw/reddit"
 	"github.com/brojonat/kaggo/server/db/jsonb"
-	"github.com/turnage/graw/reddit"
 	"go.temporal.io/sdk/client"
 )
 

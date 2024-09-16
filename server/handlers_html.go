@@ -17,7 +17,10 @@ import (
 	"go.temporal.io/sdk/client"
 )
 
-const PlotKindWorkflowCountProjection string = "workflow-count-projection"
+const (
+	PlotKindScheduleCount    string = "schedule-count"
+	PlotKindScheduleTimeline string = "schedule-timeline"
+)
 
 var plotTmpl *template.Template
 
@@ -28,10 +31,10 @@ type templateData struct {
 	LocalStorageAuthTokenKey string
 }
 
-func handlePlotData(l *slog.Logger, q *dbgen.Queries, tc client.Client) http.HandlerFunc {
+func handleGetPlotData(l *slog.Logger, q *dbgen.Queries, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Query().Get("id") {
-		case PlotKindWorkflowCountProjection:
+		case PlotKindScheduleCount:
 
 			ss, err := tc.ScheduleClient().List(r.Context(), client.ScheduleListOptions{})
 			if err != nil {
@@ -134,6 +137,102 @@ func handlePlotData(l *slog.Logger, q *dbgen.Queries, tc client.Client) http.Han
 			json.NewEncoder(w).Encode(fig)
 			return
 
+		case PlotKindScheduleTimeline:
+			ss, err := tc.ScheduleClient().List(r.Context(), client.ScheduleListOptions{})
+			if err != nil {
+				writeInternalError(l, w, err)
+				return
+			}
+
+			type schedule struct {
+				ID      string
+				Nexts   []time.Time
+				Jitter  time.Duration
+				Comment string
+			}
+			schedules := []schedule{}
+
+			for {
+				if !ss.HasNext() {
+					break
+				}
+				s, err := ss.Next()
+				if err != nil {
+					break
+				}
+				parts := strings.Split(s.ID, " ")
+				id := fmt.Sprintf("%s %s", parts[0], parts[1])
+				nexts := getNextActionTimesNoJitter(s.Spec, 3)
+				i := schedule{
+					ID:      id,
+					Nexts:   nexts,
+					Jitter:  s.Spec.Jitter,
+					Comment: s.Spec.Calendars[0].Comment,
+				}
+				schedules = append(schedules, i)
+			}
+
+			// construct the traces
+			traces := []types.Trace{}
+			for _, s := range schedules {
+
+				xs := []time.Time{}
+				xls := []time.Time{}
+				ys := []string{}
+
+				for _, n := range s.Nexts {
+					if n.Before(time.Now()) {
+						continue
+					}
+					xs = append(xs, n)
+					xls = append(xls, n.Add(s.Jitter))
+					ys = append(ys, s.ID)
+				}
+
+				xs = xs[0:10]
+				xls = xls[0:10]
+				ys = ys[0:10]
+
+				traces = append(traces, &grob.Scatter{
+					Marker:      &grob.ScatterMarker{Size: types.ArrayOKValue(types.N(20))},
+					X:           types.DataArray(xs),
+					Y:           types.DataArray(ys),
+					Name:        types.S(s.ID),
+					Legendgroup: types.S(s.ID),
+					Mode:        grob.ScatterModeMarkers,
+				})
+				traces = append(traces, &grob.Scatter{
+					Marker: &grob.ScatterMarker{
+						Color:  types.ArrayOKValue(types.UseColor(types.C("black"))),
+						Symbol: types.ArrayOKValue(grob.ScatterMarkerSymbolCircleXOpen), Size: types.ArrayOKValue(types.N(10))},
+					X:           types.DataArray(xls),
+					Y:           types.DataArray(ys),
+					Name:        types.S(s.ID),
+					Legendgroup: types.S(s.ID),
+					Showlegend:  types.False,
+					Mode:        grob.ScatterModeMarkers,
+				})
+
+			}
+
+			fig := &grob.Fig{
+				Data: traces,
+				Layout: &grob.Layout{
+					PlotBgcolor: "whitesmoke",
+					Height:      types.N(20000),
+					Margin:      &grob.LayoutMargin{Autoexpand: types.True, L: types.N(500)},
+					Xaxis:       &grob.LayoutXaxis{Title: &grob.LayoutXaxisTitle{Text: types.S("Time")}},
+					Yaxis:       &grob.LayoutYaxis{Title: &grob.LayoutYaxisTitle{Text: types.S("Schedule")}},
+					Title: &grob.LayoutTitle{
+						Text: types.S("When will schedules be running?"),
+					},
+					Legend: &grob.LayoutLegend{},
+				},
+			}
+
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(fig)
+
 		default:
 			writeBadRequestError(w, fmt.Errorf("must supply id"))
 			return
@@ -145,7 +244,8 @@ func handlePlot(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		pk := r.URL.Query().Get("id")
 		switch pk {
-		case PlotKindWorkflowCountProjection:
+		// pretty much all plots should be served by this same template
+		case PlotKindScheduleCount, PlotKindScheduleTimeline:
 			data := templateData{
 				Endpoint:                 os.Getenv("KAGGO_ENDPOINT"),
 				PlotKind:                 pk,
@@ -163,4 +263,42 @@ func handlePlot(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 		}
 
 	}
+}
+
+// This is a broken but useful helper function. This assumes there's one
+// calendar with one schedule range, no skips, and that every day has the same
+// schedule. This is sufficient for now but ultimately will need to be improved
+// to handle more complicated schedules. Ideally temporal would expose this
+// functionality but alas.
+func getNextActionTimesNoJitter(s *client.ScheduleSpec, ndays int) []time.Time {
+
+	seconds := []int{}
+	minutes := []int{}
+	hours := []int{}
+
+	for t := s.Calendars[0].Second[0].Start; t <= s.Calendars[0].Second[0].End; t += s.Calendars[0].Second[0].Step {
+		seconds = append(seconds, t)
+	}
+	for t := s.Calendars[0].Minute[0].Start; t <= s.Calendars[0].Minute[0].End; t += s.Calendars[0].Minute[0].Step {
+		minutes = append(minutes, t)
+	}
+	for t := s.Calendars[0].Hour[0].Start; t <= s.Calendars[0].Hour[0].End; t += s.Calendars[0].Hour[0].Step {
+		hours = append(hours, t)
+	}
+
+	// for the next 5 days, get all the scheduled runs
+	now := time.Now()
+	nexts := []time.Time{}
+	for nday := range ndays {
+		for _, h := range hours {
+			for _, m := range minutes {
+				for _, sec := range seconds {
+					date := now.AddDate(0, 0, nday)
+					itert := time.Date(date.Year(), date.Month(), date.Day(), h, m, sec, 0, date.Location())
+					nexts = append(nexts, itert)
+				}
+			}
+		}
+	}
+	return nexts
 }

@@ -5,15 +5,15 @@
 SELECT * FROM reddit_user_subscriptions;
 -- insert
 INSERT INTO reddit_user_subscriptions (name)
-VALUES ('Francis_Star');
+VALUES ('smartastic');
 -- delete
-DELETE  FROM reddit_user_subscriptions WHERE name = 'miaipanema';
+DELETE  FROM reddit_user_subscriptions WHERE name = 'smartastic';
 
 
 -- get
 SELECT * FROM reddit_subreddit_subscriptions;
 -- insert
-INSERT INTO reddit_subreddit_subscriptions (name) 
+INSERT INTO reddit_subreddit_subscriptions (name)
 VALUES ('orangecounty');
 -- delete
 DELETE FROM reddit_subreddit_subscriptions WHERE name = ANY('{"golang","orangecounty"}'::VARCHAR[]);
@@ -34,11 +34,11 @@ LEFT JOIN metadata m ON ycs.id = m.id;
 
 
 
-SELECT * FROM metadata m 
+SELECT * FROM metadata m
 WHERE request_kind = 'reddit.subreddit';
 
 -- find all nsfw tagged entities
-SELECT * FROM metadata m 
+SELECT * FROM metadata m
 WHERE (m."data" ->> 'tags')::JSONB ? 'NSFW';
 
 -- find all nsfw tagged entities
@@ -46,7 +46,7 @@ SELECT m."data" ->>'owner' FROM metadata m
 WHERE request_kind = 'reddit.post';
 
 SELECT * FROM reddit_post_score
-WHERE id = '1fafkp7';
+WHERE id = 'foo';
 
 
 

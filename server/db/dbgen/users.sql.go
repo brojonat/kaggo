@@ -96,6 +96,7 @@ SELECT u.email, m.id, m.request_kind
 FROM users u
 CROSS JOIN metadata m
 WHERE u.email = $1 AND m.request_kind = $2
+ON CONFLICT DO NOTHING
 `
 
 type GrantMetricGroupToUserParams struct {

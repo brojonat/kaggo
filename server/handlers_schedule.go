@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/dbgen"
@@ -20,33 +21,97 @@ import (
 
 func GetDefaultScheduleSpec(rk, id string) client.ScheduleSpec {
 	var s client.ScheduleSpec
+
+	// first switch over request kinds to get the base schedule
 	switch rk {
+	case kt.RequestKindInternalRandom:
+		// internal queries are frequent since they're cheap
+		s = client.ScheduleSpec{
+			Calendars: []client.ScheduleCalendarSpec{
+				{
+					Second:  []client.ScheduleRange{{Start: 0, End: 59, Step: 30}},
+					Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 1}},
+					Hour:    []client.ScheduleRange{{Start: 0, End: 23, Step: 1}},
+					Comment: "every 30 seconds, no jitter",
+				},
+			},
+		}
 	case kt.RequestKindYouTubeChannel, kt.RequestKindYouTubeVideo:
-		// do youtube queries every 10 minutes; high res isn't super necessary
+		// do youtube queries every 10 minutes; high res isn't super necessary,
+		// we have a lot of IDs to query, and the rate limit is pretty much fixed.
 		s = client.ScheduleSpec{
 			Calendars: []client.ScheduleCalendarSpec{
 				{
 					Second:  []client.ScheduleRange{{Start: 0}},
 					Minute:  []client.ScheduleRange{{Start: 0}},
 					Hour:    []client.ScheduleRange{{Start: 0, End: 23, Step: 1}},
-					Comment: "every 1 hour",
+					Comment: "every hour, with an hour of jitter",
 				},
 			},
-			Jitter: 60 * 6e9,
+			Jitter: 60 * 60 * 1e9,
+		}
+	case kt.RequestKindTwitchStream:
+		// do twitch stream queries every minute
+		s = client.ScheduleSpec{
+			Calendars: []client.ScheduleCalendarSpec{
+				{
+					Second:  []client.ScheduleRange{{Start: 0}},
+					Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 1}},
+					Hour:    []client.ScheduleRange{{Start: 0, End: 23, Step: 1}},
+					Comment: "every minute, with a minute of jitter",
+				},
+			},
+			Jitter: 60 * 1e9,
 		}
 	default:
+		// default to every 15 minutes
 		s = client.ScheduleSpec{
 			Calendars: []client.ScheduleCalendarSpec{
 				{
 					Second:  []client.ScheduleRange{{Start: 0}},
 					Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 15}},
 					Hour:    []client.ScheduleRange{{Start: 0, End: 23}},
-					Comment: "every 15 minutes",
+					Comment: "every 15 minutes with 15 minutes of jitter",
 				},
 			},
-			Jitter: 15 * 6e9,
+			Jitter: 15 * 60 * 1e9,
 		}
 	}
+
+	// now apply the EndAt depending on the RequestKind
+	switch rk {
+	case
+		// these schedules should run indefinitely; this is the default behavior
+		kt.RequestKindInternalRandom,
+		kt.RequestKindKaggleNotebook,
+		kt.RequestKindKaggleDataset,
+		kt.RequestKindRedditSubreddit,
+		kt.RequestKindRedditUser,
+		kt.RequestKindYouTubeChannel,
+		kt.RequestKindTwitchStream,
+		kt.RequestKindTwitchUserPastDec:
+		// this is a no-op
+
+	case
+		// these schedules should run for an intermediate amount of time
+		kt.RequestKindRedditPost,
+		kt.RequestKindYouTubeVideo,
+		kt.RequestKindTwitchVideo:
+		// run for 4 weeks
+		s.EndAt = time.Now().Add(4 * 7 * 24 * time.Hour)
+
+	case
+		// these schedules are relatively short lived and should terminate after
+		// a relatively short time
+		kt.RequestKindRedditComment,
+		kt.RequestKindTwitchClip:
+		// run for 1 week
+		s.EndAt = time.Now().Add(7 * 24 * time.Hour)
+
+	default:
+		// this is a no-op
+	}
+
 	return s
 }
 

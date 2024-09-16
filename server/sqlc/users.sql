@@ -13,7 +13,8 @@ INSERT INTO users_metadata_through (email, id, request_kind)
 SELECT u.email, m.id, m.request_kind
 FROM users u
 CROSS JOIN metadata m
-WHERE u.email = @email AND m.request_kind = @request_kind;
+WHERE u.email = @email AND m.request_kind = @request_kind
+ON CONFLICT DO NOTHING;
 
 -- name: RemoveMetricGroupFromUser :exec
 DELETE FROM users_metadata_through

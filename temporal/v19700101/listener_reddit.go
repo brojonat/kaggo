@@ -10,9 +10,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/brojonat/graw"
+	"github.com/brojonat/graw/reddit"
 	"github.com/brojonat/kaggo/server/api"
-	"github.com/turnage/graw"
-	"github.com/turnage/graw/reddit"
 	"go.temporal.io/sdk/activity"
 )
 
