@@ -5,7 +5,15 @@ meta {
 }
 
 get {
-  url: {{ENDPOINT}}/plot-data
+  url: {{ENDPOINT}}/plot-data?id=schedule-timeline
   body: none
   auth: none
+}
+
+query {
+  id: schedule-timeline
+}
+
+headers {
+  Authorization: Bearer {{AUTH_TOKEN}}
 }

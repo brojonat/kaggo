@@ -42,11 +42,13 @@ SELECT * FROM metadata m
 WHERE (m."data" ->> 'tags')::JSONB ? 'NSFW';
 
 -- find all nsfw tagged entities
-SELECT m."data" ->>'owner' FROM metadata m
-WHERE request_kind = 'reddit.post';
+SELECT m."data" ->> 'link' FROM metadata m
+WHERE m."data" ->>'owner' LIKE 'smart%';
 
 SELECT * FROM reddit_post_score
 WHERE id = 'foo';
+
+SELECT * FROM metadata m WHERE request_kind = 'reddit.user';
 
 
 
