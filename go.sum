@@ -793,6 +793,8 @@ github.com/brojonat/graw v0.0.0-20240910175442-9c974b261ecb h1:/LSgQn1nkNlNJTgZJ
 github.com/brojonat/graw v0.0.0-20240910175442-9c974b261ecb/go.mod h1:Cvdhci6UFcmk78su5TGXXMiR1MERBhpucxjKHTue1Lc=
 github.com/brojonat/graw v0.0.0-20240917192301-df9dca8d1f54 h1:cnfmiFkVPP5HHoMBbeTnVvQLWyP1xCb/N1N5subj83E=
 github.com/brojonat/graw v0.0.0-20240917192301-df9dca8d1f54/go.mod h1:a/YfeQTihDOFI3eTgWZw3h2TLXRwk4PWnUCxUSghWMg=
+github.com/brojonat/graw v0.0.0-20240917213640-d1f52194c634 h1:e6BtwTzGfmt7V303F2+8wVomaafh9QTuS6M7NZ5Ai1k=
+github.com/brojonat/graw v0.0.0-20240917213640-d1f52194c634/go.mod h1:a/YfeQTihDOFI3eTgWZw3h2TLXRwk4PWnUCxUSghWMg=
 github.com/brojonat/server-tools v0.0.0-20240812021007-f5910cb00682 h1:z0ZWFJ5dJ3mUflATRbkZoaApP5OHRRpjmlzXceeU6mo=
 github.com/brojonat/server-tools v0.0.0-20240812021007-f5910cb00682/go.mod h1:mYIWUqMgk+oCQas/Zmh0tARu7vxgFLah2Vbo78ssSJ8=
 github.com/brojonat/websocket v0.0.0-20240410014128-3a433ef1c057 h1:GFnV7x+cL65RvivDWmjTU5Pkw//oetVOzSjLryltfvA=

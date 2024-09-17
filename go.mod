@@ -88,7 +88,7 @@ require (
 require (
 	github.com/MetalBlueberry/go-plotly v0.7.0
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/brojonat/graw v0.0.0-20240917192301-df9dca8d1f54
+	github.com/brojonat/graw v0.0.0-20240917213640-d1f52194c634
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/gorilla/handlers v1.5.2
