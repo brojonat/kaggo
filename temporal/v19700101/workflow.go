@@ -39,6 +39,12 @@ func RunYouTubeListenerWF(ctx workflow.Context, r RunYouTubeListenerWFRequest) e
 	// subscribed to and some were not, but that seems like a rare edge case.
 }
 
+// FIXME: GRAW is (for some unknown reason) not receiving updates from all the users
+// that I subscribe to. When I first implemented this with GRAW, I thought it was
+// a good idea because it avoided long polling. Well, under the hood it's just doing
+// long polling! It's completely unnecessary and makes things like rate limit
+// monitoring difficult. We can already long poll using Temporal abstractions, so
+// let's just do that.
 func RunRedditListenerWF(ctx workflow.Context, r RunRedditListenerWFRequest) error {
 	var a *ActivityRedditListener
 
@@ -54,7 +60,6 @@ func RunRedditListenerWF(ctx workflow.Context, r RunRedditListenerWFRequest) err
 	if err != nil {
 		return err
 	}
-
 	// Run the long lived monitoring activity
 	rp := temporal.RetryPolicy{
 		InitialInterval:    time.Second,
