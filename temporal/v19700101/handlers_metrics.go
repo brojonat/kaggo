@@ -108,7 +108,6 @@ func uploadMonitorPosts(l log.Logger, b []byte) error {
 		}
 		return fmt.Errorf("bad response (%d) uploading post: %s", res.StatusCode, b)
 	}
-	// return a dummy response indicating all good
 	return nil
 }
 
