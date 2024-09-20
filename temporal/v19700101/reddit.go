@@ -12,7 +12,7 @@ import (
 )
 
 func (a *ActivityRequester) ensureValidRedditToken(minDur time.Duration) error {
-	// reddit@reddit-VirtualBox:~$ curl -X POST -d 'grant_type=password&username=reddit_bot&password=snoo' --user 'p-jcoLKBynTLew:gko_LXELoV07ZBNUXrvWZfzE3aI' https://www.reddit.com/api/v1/access_token
+	// reddit@reddit-VirtualBox:~$ curl -X POST -d 'grant_type=password&username=reddit_bot&password=snoo' --user 'dummy-cid-stuff:dummy-secret-stuff' https://www.reddit.com/api/v1/access_token
 	// {
 	// 	"access_token": "some.jwt.thing",
 	// 	"expires_in": 3600,
@@ -68,7 +68,7 @@ func (a *ActivityRequester) ensureValidRedditToken(minDur time.Duration) error {
 }
 
 func (a *ActivityRequester) ensureValidRedditListenerToken(minDur time.Duration) error {
-	// reddit@reddit-VirtualBox:~$ curl -X POST -d 'grant_type=password&username=reddit_bot&password=snoo' --user 'p-jcoLKBynTLew:gko_LXELoV07ZBNUXrvWZfzE3aI' https://www.reddit.com/api/v1/access_token
+	// reddit@reddit-VirtualBox:~$ curl -X POST -d 'grant_type=password&username=reddit_bot&password=snoo' --user 'dummy-cid-stuff:dummy-secret-stuff' https://www.reddit.com/api/v1/access_token
 	// {
 	// 	"access_token": "some.jwt.thing",
 	// 	"expires_in": 3600,
