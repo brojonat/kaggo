@@ -86,7 +86,11 @@ func uploadMonitorPosts(l log.Logger, b []byte) error {
 			if iface == nil {
 				return fmt.Errorf("error extracting stickied for post %d: nil stickied", i)
 			}
-			stickied := iface.(bool)
+			stickied, ok := iface.(bool)
+			if !ok {
+				l.Error("sticked assertion error", "stickied", iface)
+				stickied = false
+			}
 			iface, err = jmespath.Search(fmt.Sprintf("data.children[%d].data.pinned", i), data)
 			if err != nil {
 				return fmt.Errorf("error extracting pinned for post %d: %w", i, err)
@@ -94,7 +98,11 @@ func uploadMonitorPosts(l log.Logger, b []byte) error {
 			if iface == nil {
 				return fmt.Errorf("error extracting pinned for post %d: nil pinned", i)
 			}
-			pinned := iface.(bool)
+			pinned, ok := iface.(bool)
+			if !ok {
+				l.Error("pinned assertion error", "pinned", iface)
+				pinned = false
+			}
 			if stickied && !pinned {
 				return nil
 			}
