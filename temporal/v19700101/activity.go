@@ -131,6 +131,9 @@ func (a *ActivityRequester) prepareRequest(drp DoRequestActRequest) (*http.Reque
 		}
 		r.Header.Set("User-Agent", os.Getenv("REDDIT_LISTENER_USER_AGENT"))
 		r.Header.Set("Authorization", "bearer "+a.RedditListenerAuthToken)
+		// FIXME: we should set the `after` param here, but we'd need to stick
+		// a db cursor onto this struct and start tracking the last monitored
+		// post for users and subreddits. Not worth it at the moment.
 	case RequestKindTwitchClip, RequestKindTwitchVideo, RequestKindTwitchStream, RequestKindTwitchUserPastDec:
 		err = a.ensureValidTwitchToken(time.Duration(60 * time.Second))
 		if err != nil {

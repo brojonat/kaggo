@@ -74,12 +74,38 @@ func uploadMonitorPosts(l log.Logger, b []byte) error {
 	var errg errgroup.Group
 	for i := range count {
 		errg.Go(func() error {
+			// Skip posts that are stickied but not pinned. We want to track
+			// pinned posts, because users will often pin (and sticky) new posts
+			// to the top of their profiles. We want to track these. Subreddits
+			// will sticky posts as a welcome message, and we don't want to
+			// track these.
+			iface, err = jmespath.Search(fmt.Sprintf("data.children[%d].data.stickied", i), data)
+			if err != nil {
+				return fmt.Errorf("error extracting stickied for post %d: %w", i, err)
+			}
+			if iface == nil {
+				return fmt.Errorf("error extracting stickied for post %d: nil stickied", i)
+			}
+			stickied := iface.(bool)
+			iface, err = jmespath.Search(fmt.Sprintf("data.children[%d].data.pinned", i), data)
+			if err != nil {
+				return fmt.Errorf("error extracting pinned for post %d: %w", i, err)
+			}
+			if iface == nil {
+				return fmt.Errorf("error extracting pinned for post %d: nil pinned", i)
+			}
+			pinned := iface.(bool)
+			if stickied && !pinned {
+				return nil
+			}
+
+			// post id
 			iface, err = jmespath.Search(fmt.Sprintf("data.children[%d].data.id", i), data)
 			if err != nil {
 				return fmt.Errorf("error extracting id for post %d: %w", i, err)
 			}
 			if iface == nil {
-				return fmt.Errorf("error extracting id for post %d: nil post", i)
+				return fmt.Errorf("error extracting id for post %d: nil id", i)
 			}
 			id := iface.(string)
 			sched := GetDefaultScheduleSpec(RequestKindRedditPost, id)
@@ -582,6 +608,12 @@ func (a *ActivityRequester) handleRedditSubredditMetrics(l log.Logger, status in
 }
 
 func (a *ActivityRequester) handleRedditSubredditMonitorMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+	l.Info(
+		"reddit monitor client debug info",
+		"remaining", internalData.XRatelimitRemaining,
+		"used", internalData.XRatelimitUsed,
+		"reset", internalData.XRatelimitReset,
+	)
 	err := uploadMonitorPosts(l, b)
 	if err != nil {
 		return nil, fmt.Errorf("error doing subreddit monitor upload: %w", err)

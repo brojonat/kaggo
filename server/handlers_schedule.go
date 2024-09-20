@@ -70,7 +70,30 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 			return
 		}
 
-		// prepare the request to pass to the metadata workflow
+		// FIXME: cache this so we don't have to hit the temporal service for this info
+		// First check if this schedule already exists. Below, Describe will
+		// return an error if the schedule does not exist; if it returns a nil
+		// error, then the schedule exists and we need to short circuit and
+		// return a 409.
+		_, _, id, err := makeExternalRequest(q, body.RequestKind, body.ID, false)
+		if err != nil {
+			if errors.Is(err, errUnsupportedRequestKind) {
+				writeBadRequestError(w, fmt.Errorf("%w: %s", err, body.RequestKind))
+				return
+			}
+			writeInternalError(l, w, err)
+			return
+		}
+		_, err = tc.ScheduleClient().GetHandle(r.Context(), id).Describe(r.Context())
+		if err == nil {
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(api.DefaultJSONResponse{Error: "schedule already running"})
+			return
+		}
+
+		// Execute a workflow that will fetch the metadata and post it back to the server.
+		// this will be a good litmus test for whether or not the client submitted a "good"
+		// entity that we can query before the long polling workflow starts running.
 		_, serialReq, id, err := makeExternalRequest(q, body.RequestKind, body.ID, true)
 		if err != nil {
 			if errors.Is(err, errUnsupportedRequestKind) {
@@ -80,10 +103,6 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 			writeInternalError(l, w, err)
 			return
 		}
-
-		// Execute a workflow that will fetch the metadata and post it back to the server.
-		// this will be a good litmus test for whether or not the client submitted a "good"
-		// entity that we can query before the "scheduled" workflow starts running.
 		workflowOptions := client.StartWorkflowOptions{
 			ID:          id,
 			TaskQueue:   os.Getenv("TEMPORAL_TASK_QUEUE"),
