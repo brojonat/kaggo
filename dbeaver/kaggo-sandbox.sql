@@ -35,7 +35,12 @@ LEFT JOIN metadata m ON ycs.id = m.id;
 
 
 SELECT * FROM metadata m
-WHERE request_kind = 'reddit.subreddit';
+WHERE request_kind = 'reddit.post' AND id = '14fmxgo';
+
+SELECT * FROM users_metadata_through umt WHERE request_kind  = 'reddit.post' AND id = '14fmxgo';
+
+DELETE FROM metadata WHERE request_kind = 'reddit.user-monitor';
+
 
 -- find all nsfw tagged entities
 SELECT * FROM metadata m

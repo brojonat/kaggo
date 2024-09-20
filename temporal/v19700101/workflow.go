@@ -64,10 +64,9 @@ func DoMetadataRequestWF(ctx workflow.Context, r DoMetadataRequestWFRequest) err
 
 	// Upload the response to our server. This should also have a bunch of
 	// retries associated with it, since we're only doing this once and our
-	// server could be down for any number of reasons. Also, for the monitoring
-	// request kinds, we need to hit POST /schedule a bunch of times.
+	// server could be down for any number of reasons.
 	activityOptions = workflow.ActivityOptions{
-		StartToCloseTimeout: 2 * time.Minute,
+		StartToCloseTimeout: 1. * time.Minute,
 		RetryPolicy:         &temporal.RetryPolicy{MaximumAttempts: 10, BackoffCoefficient: 5},
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
@@ -103,13 +102,15 @@ func DoPollingRequestWF(ctx workflow.Context, r DoPollingRequestWFRequest) error
 			drr.StatusCode, http.StatusText(drr.StatusCode), drr.Body)
 	}
 
-	// Upload the response to our server. Don't retry; if the request doesn't go
-	// through, we'll want to fail fast and loud. We can retry a couple times in
-	// case our server is offline/rebooting, but there's no need to spend a lot
-	// of time on this. There will be another polling loop anyway, we can drop
-	// some data points here and there.
+	// Upload the response to our server. We can retry a couple times over a
+	// minute or two in case our server is offline/rebooting, but there's no
+	// need to spend a lot of time on this. There will be another polling loop
+	// anyway, we can drop some data points here and there. Note that the
+	// StartToCloseTimeout needs to accommodate the "monitor" request kinds,
+	// which (concurrently) creates a bunch of schedules; this takes a bit
+	// because schedule creation is blocked by the initial metadata workflow.
 	activityOptions = workflow.ActivityOptions{
-		StartToCloseTimeout: 20 * time.Second,
+		StartToCloseTimeout: 1 * time.Minute,
 		RetryPolicy:         &temporal.RetryPolicy{MaximumAttempts: 5, BackoffCoefficient: 5},
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)

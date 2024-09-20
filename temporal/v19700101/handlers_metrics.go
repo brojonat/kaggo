@@ -105,11 +105,11 @@ func uploadMonitorPosts(l log.Logger, b []byte) error {
 			if err != nil {
 				return fmt.Errorf("error doing create schedule request: %w", err)
 			}
+			defer res.Body.Close()
 			// either 200 or 409 means we're good to proceed, short circuit and return early
 			if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusConflict {
 				return nil
 			}
-			defer res.Body.Close()
 			b, err = io.ReadAll(res.Body)
 			if err != nil {
 				return fmt.Errorf("error reading response body for post %s: %w", id, err)

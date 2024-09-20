@@ -40,6 +40,7 @@ func add_listener_subscription(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("bad response from server: %s", res.Status)
 	}

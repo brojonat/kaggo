@@ -26,10 +26,10 @@ func dump_schedules(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("bad response from server: %s", res.Status)
 	}
-	defer res.Body.Close()
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
 		return err
@@ -55,10 +55,10 @@ func delete_all_schedules(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("bad response from server: %s", res.Status)
 	}
-	defer res.Body.Close()
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
 		return err
