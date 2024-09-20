@@ -64,9 +64,10 @@ func DoMetadataRequestWF(ctx workflow.Context, r DoMetadataRequestWFRequest) err
 
 	// Upload the response to our server. This should also have a bunch of
 	// retries associated with it, since we're only doing this once and our
-	// server could be down for any number of reasons
+	// server could be down for any number of reasons. Also, for the monitoring
+	// request kinds, we need to hit POST /schedule a bunch of times.
 	activityOptions = workflow.ActivityOptions{
-		StartToCloseTimeout: 30 * time.Second,
+		StartToCloseTimeout: 2 * time.Minute,
 		RetryPolicy:         &temporal.RetryPolicy{MaximumAttempts: 10, BackoffCoefficient: 5},
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)

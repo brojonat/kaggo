@@ -15,6 +15,7 @@ import (
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/jmespath/go-jmespath"
 	"go.temporal.io/sdk/log"
+	"golang.org/x/sync/errgroup"
 	"gonum.org/v1/gonum/stat"
 )
 
@@ -66,49 +67,57 @@ func uploadMonitorPosts(l log.Logger, b []byte) error {
 
 	// iterate over the posts and create a schedule for each post. We expect the
 	// server to return 409 for most posts, but that's fine it simply means
-	// we're already following that post, so just continue on.
+	// we're already following that post, so just continue on. These run
+	// concurrently; as it stands these are taking a sufficiently long time to
+	// run serially that it's causing the activity to fail due to start to close
+	// timeout errors.
+	var errg errgroup.Group
 	for i := range count {
-		iface, err = jmespath.Search(fmt.Sprintf("data.children[%d].data.id", i), data)
-		if err != nil {
-			return fmt.Errorf("error extracting id for post %d: %w", i, err)
-		}
-		if iface == nil {
-			return fmt.Errorf("error extracting id for post %d: nil post", i)
-		}
-		id := iface.(string)
-		payload := api.GenericScheduleRequestPayload{
-			RequestKind: RequestKindRedditPost,
-			ID:          id,
-		}
-		b, err := json.Marshal(payload)
-		if err != nil {
-			return fmt.Errorf("error serializing body for post %s: %w", id, err)
-		}
-		r, err := http.NewRequest(
-			http.MethodPost,
-			os.Getenv("KAGGO_ENDPOINT")+"/schedule",
-			bytes.NewReader(b),
-		)
-		if err != nil {
-			return fmt.Errorf("error creating create schedule request: %w", err)
-		}
-		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("AUTH_TOKEN")))
-		res, err := http.DefaultClient.Do(r)
-		if err != nil {
-			return fmt.Errorf("error doing create schedule request: %w", err)
-		}
-		// either 200 or 409 means we're good to proceed
-		if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusConflict {
-			continue
-		}
-		defer res.Body.Close()
-		b, err = io.ReadAll(res.Body)
-		if err != nil {
-			return fmt.Errorf("error reading response body for post %s: %w", id, err)
-		}
-		return fmt.Errorf("bad response (%d) uploading post: %s", res.StatusCode, b)
+		errg.Go(func() error {
+			iface, err = jmespath.Search(fmt.Sprintf("data.children[%d].data.id", i), data)
+			if err != nil {
+				return fmt.Errorf("error extracting id for post %d: %w", i, err)
+			}
+			if iface == nil {
+				return fmt.Errorf("error extracting id for post %d: nil post", i)
+			}
+			id := iface.(string)
+			sched := GetDefaultScheduleSpec(RequestKindRedditPost, id)
+			payload := api.GenericScheduleRequestPayload{
+				RequestKind: RequestKindRedditPost,
+				ID:          id,
+				Schedule:    sched,
+			}
+			b, err := json.Marshal(payload)
+			if err != nil {
+				return fmt.Errorf("error serializing body for post %s: %w", id, err)
+			}
+			r, err := http.NewRequest(
+				http.MethodPost,
+				os.Getenv("KAGGO_ENDPOINT")+"/schedule",
+				bytes.NewReader(b),
+			)
+			if err != nil {
+				return fmt.Errorf("error creating create schedule request: %w", err)
+			}
+			r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("AUTH_TOKEN")))
+			res, err := http.DefaultClient.Do(r)
+			if err != nil {
+				return fmt.Errorf("error doing create schedule request: %w", err)
+			}
+			// either 200 or 409 means we're good to proceed, short circuit and return early
+			if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusConflict {
+				return nil
+			}
+			defer res.Body.Close()
+			b, err = io.ReadAll(res.Body)
+			if err != nil {
+				return fmt.Errorf("error reading response body for post %s: %w", id, err)
+			}
+			return fmt.Errorf("bad response (%d) uploading post: %s", res.StatusCode, b)
+		})
 	}
-	return nil
+	return errg.Wait()
 }
 
 // Handle RequestKindInternalRandom requests

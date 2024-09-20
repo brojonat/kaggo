@@ -3,7 +3,7 @@ module github.com/brojonat/kaggo
 go 1.23.0
 
 require (
-	github.com/brojonat/server-tools v0.0.0-20240812021007-f5910cb00682
+	github.com/brojonat/server-tools v0.0.0-20240920030209-e23e4a79a3ed
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/prometheus/client_golang v1.19.1
 	github.com/urfave/negroni v1.0.0

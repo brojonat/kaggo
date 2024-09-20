@@ -64,7 +64,11 @@ func makeExternalRequest(q *dbgen.Queries, rk, id string, isMeta bool) (*http.Re
 			return nil, nil, "", err
 		}
 	case kt.RequestKindRedditSubredditMonitor:
-		rwf, err = makeExternalRequestRedditSubredditMonitor(id)
+		if isMeta {
+			rwf, err = makeExternalRequestRedditSubredditMonitorMeta(id)
+		} else {
+			rwf, err = makeExternalRequestRedditSubredditMonitor(id)
+		}
 		if err != nil {
 			return nil, nil, "", err
 		}
@@ -74,7 +78,11 @@ func makeExternalRequest(q *dbgen.Queries, rk, id string, isMeta bool) (*http.Re
 			return nil, nil, "", err
 		}
 	case kt.RequestKindRedditUserMonitor:
-		rwf, err = makeExternalRequestRedditUserMonitor(id)
+		if isMeta {
+			rwf, err = makeExternalRequestRedditUserMonitorMeta(id)
+		} else {
+			rwf, err = makeExternalRequestRedditUserMonitor(id)
+		}
 		if err != nil {
 			return nil, nil, "", err
 		}
@@ -232,6 +240,14 @@ func makeExternalRequestRedditSubreddit(id string) (*http.Request, error) {
 	return r, nil
 }
 
+func makeExternalRequestRedditSubredditMonitorMeta(id string) (*http.Request, error) {
+	r, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://oauth.reddit.com/r/%s/about.json", id), nil)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
 func makeExternalRequestRedditSubredditMonitor(id string) (*http.Request, error) {
 	r, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://oauth.reddit.com/r/%s.json", id), nil)
 	if err != nil {
@@ -241,6 +257,14 @@ func makeExternalRequestRedditSubredditMonitor(id string) (*http.Request, error)
 }
 
 func makeExternalRequestRedditUser(id string) (*http.Request, error) {
+	r, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://oauth.reddit.com/user/%s/about.json", id), nil)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func makeExternalRequestRedditUserMonitorMeta(id string) (*http.Request, error) {
 	r, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://oauth.reddit.com/user/%s/about.json", id), nil)
 	if err != nil {
 		return nil, err

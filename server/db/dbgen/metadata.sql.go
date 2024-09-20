@@ -37,6 +37,24 @@ func (q *Queries) GetMetadataByIDs(ctx context.Context, ids []string) ([]Metadat
 	return items, nil
 }
 
+const getMetadatum = `-- name: GetMetadatum :one
+SELECT id, request_kind, data
+FROM metadata
+WHERE request_kind = $1 AND LOWER(id) = LOWER($2)
+`
+
+type GetMetadatumParams struct {
+	RequestKind string `json:"request_kind"`
+	ID          string `json:"id"`
+}
+
+func (q *Queries) GetMetadatum(ctx context.Context, arg GetMetadatumParams) (Metadatum, error) {
+	row := q.db.QueryRow(ctx, getMetadatum, arg.RequestKind, arg.ID)
+	var i Metadatum
+	err := row.Scan(&i.ID, &i.RequestKind, &i.Data)
+	return i, err
+}
+
 const insertMetadata = `-- name: InsertMetadata :exec
 INSERT INTO metadata (id, request_kind, data)
 VALUES ($1, $2, $3)

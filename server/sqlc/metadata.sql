@@ -8,3 +8,8 @@ SET data = EXCLUDED.data;
 SELECT id, request_kind, data
 FROM metadata
 WHERE id = ANY(@ids::VARCHAR[]);
+
+-- name: GetMetadatum :one
+SELECT id, request_kind, data
+FROM metadata
+WHERE request_kind = @request_kind AND LOWER(id) = LOWER(@id);

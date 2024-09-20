@@ -12,7 +12,6 @@ import (
 	"os"
 	"regexp"
 	"sync"
-	"time"
 
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/dbgen"
@@ -41,7 +40,7 @@ func handleRunYouTubeListener(l *slog.Logger, q *dbgen.Queries, tc client.Client
 	return func(w http.ResponseWriter, r *http.Request) {
 		wopts := client.StartWorkflowOptions{
 			ID:          "youtube.listener",
-			TaskQueue:   "kaggo",
+			TaskQueue:   os.Getenv("TEMPORAL_TASK_QUEUE"),
 			RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 1},
 		}
 		wfr := kt.RunYouTubeListenerWFRequest{}
@@ -113,8 +112,7 @@ func handleYouTubeVideoWebSubNotification(l *slog.Logger, q *dbgen.Queries) http
 		l.Info("got new youtube video to monitor", "id", vid)
 		// we want to follow this post for some nominal amount of time
 		rk := "youtube.video"
-		sched := GetDefaultScheduleSpec(rk, vid)
-		sched.EndAt = time.Now().Add(21 * 24 * time.Hour) // 3 weeks
+		sched := kt.GetDefaultScheduleSpec(rk, vid)
 		payload := api.GenericScheduleRequestPayload{
 			RequestKind: rk,
 			ID:          vid,

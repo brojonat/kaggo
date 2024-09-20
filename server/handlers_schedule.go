@@ -7,131 +7,18 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/dbgen"
 	kt "github.com/brojonat/kaggo/temporal/v19700101"
+	"github.com/brojonat/server-tools/stools"
 	"go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
 )
-
-func GetDefaultScheduleSpec(rk, id string) client.ScheduleSpec {
-	var s client.ScheduleSpec
-
-	// first switch over request kinds to get the base schedule
-	switch rk {
-	case kt.RequestKindInternalRandom:
-		// internal queries are frequent since they're cheap
-		s = client.ScheduleSpec{
-			Calendars: []client.ScheduleCalendarSpec{
-				{
-					Second:  []client.ScheduleRange{{Start: 0, End: 59, Step: 30}},
-					Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 1}},
-					Hour:    []client.ScheduleRange{{Start: 0, End: 23, Step: 1}},
-					Comment: "every 30 seconds, no jitter",
-				},
-			},
-		}
-	case kt.RequestKindYouTubeChannel, kt.RequestKindYouTubeVideo:
-		// do youtube queries every 10 minutes; high res isn't super necessary,
-		// we have a lot of IDs to query, and the rate limit is pretty much fixed
-		s = client.ScheduleSpec{
-			Calendars: []client.ScheduleCalendarSpec{
-				{
-					Second:  []client.ScheduleRange{{Start: 0}},
-					Minute:  []client.ScheduleRange{{Start: 0}},
-					Hour:    []client.ScheduleRange{{Start: 0, End: 23, Step: 1}},
-					Comment: "every hour, with an hour of jitter",
-				},
-			},
-			Jitter: 60 * 60 * 1e9,
-		}
-
-	case kt.RequestKindRedditSubredditMonitor, kt.RequestKindRedditUserMonitor:
-		// do reddit monitor queries every minute; we want to find posts ASAP, this
-		// runs under a different reddit client id and we don't have a ton of ids to
-		// monitor
-		s = client.ScheduleSpec{
-			Calendars: []client.ScheduleCalendarSpec{
-				{
-					Second:  []client.ScheduleRange{{Start: 0}},
-					Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 1}},
-					Hour:    []client.ScheduleRange{{Start: 0, End: 23, Step: 1}},
-					Comment: "every minute, with a minute of jitter",
-				},
-			},
-			Jitter: 60 * 1e9,
-		}
-	case kt.RequestKindTwitchStream:
-		// do twitch stream queries every minute
-		s = client.ScheduleSpec{
-			Calendars: []client.ScheduleCalendarSpec{
-				{
-					Second:  []client.ScheduleRange{{Start: 0}},
-					Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 1}},
-					Hour:    []client.ScheduleRange{{Start: 0, End: 23, Step: 1}},
-					Comment: "every minute, with a minute of jitter",
-				},
-			},
-			Jitter: 60 * 1e9,
-		}
-	default:
-		// default to every 15 minutes
-		s = client.ScheduleSpec{
-			Calendars: []client.ScheduleCalendarSpec{
-				{
-					Second:  []client.ScheduleRange{{Start: 0}},
-					Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 15}},
-					Hour:    []client.ScheduleRange{{Start: 0, End: 23}},
-					Comment: "every 15 minutes with 15 minutes of jitter",
-				},
-			},
-			Jitter: 15 * 60 * 1e9,
-		}
-	}
-
-	// now apply the EndAt depending on the RequestKind
-	switch rk {
-	case
-		// these schedules should run indefinitely; this is the default behavior
-		kt.RequestKindInternalRandom,
-		kt.RequestKindKaggleNotebook,
-		kt.RequestKindKaggleDataset,
-		kt.RequestKindRedditSubreddit,
-		kt.RequestKindRedditSubredditMonitor,
-		kt.RequestKindRedditUser,
-		kt.RequestKindRedditUserMonitor,
-		kt.RequestKindYouTubeChannel,
-		kt.RequestKindTwitchStream,
-		kt.RequestKindTwitchUserPastDec:
-		// this is a no-op
-
-	case
-		// these schedules should run for an intermediate amount of time
-		kt.RequestKindRedditPost,
-		kt.RequestKindYouTubeVideo,
-		kt.RequestKindTwitchVideo:
-		// run for 4 weeks
-		s.EndAt = time.Now().Add(4 * 7 * 24 * time.Hour)
-
-	case
-		// these schedules are relatively short lived and should terminate after
-		// a relatively short time
-		kt.RequestKindRedditComment,
-		kt.RequestKindTwitchClip:
-		// run for 1 week
-		s.EndAt = time.Now().Add(7 * 24 * time.Hour)
-
-	default:
-		// this is a no-op
-	}
-
-	return s
-}
 
 func handleGetSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -199,7 +86,7 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 		// entity that we can query before the "scheduled" workflow starts running.
 		workflowOptions := client.StartWorkflowOptions{
 			ID:          id,
-			TaskQueue:   "kaggo",
+			TaskQueue:   os.Getenv("TEMPORAL_TASK_QUEUE"),
 			RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 3},
 		}
 
@@ -256,7 +143,7 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 				Spec: sched,
 				Action: &client.ScheduleWorkflowAction{
 					ID:        id,
-					TaskQueue: "kaggo",
+					TaskQueue: os.Getenv("TEMPORAL_TASK_QUEUE"),
 					Workflow:  kt.DoPollingRequestWF,
 					Args: []interface{}{kt.DoPollingRequestWFRequest{
 						RequestKind: body.RequestKind, Serial: serialReq}},
@@ -273,28 +160,44 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 			return
 		}
 
-		// add the metric to the user
-		p := dbgen.GrantMetricToUserParams{
-			Email:       claims.Email,
-			RequestKind: body.RequestKind,
-			ID:          body.ID,
-		}
-		if err = q.GrantMetricToUser(r.Context(), p); err != nil {
+		// the IDs are case sensitive; we need to fetch the "true" ID that was
+		// inserted, because the user could have provided a casing that the
+		// external service gracefully handled
+		m, err := q.GetMetadatum(
+			r.Context(),
+			dbgen.GetMetadatumParams{RequestKind: body.RequestKind, ID: body.ID},
+		)
+		if err != nil {
 			l.Error(
-				"unable to grant metric to user",
+				"unable to fetch metadata needed to grant metric",
+				"error", err.Error(),
 				"email", claims.Email,
 				"request_kind", body.RequestKind,
 				"id", body.ID,
 			)
+		} else {
+			// add the metric to the user; it's possible the user already has this
+			// metric granted, so check for that error
+			p := dbgen.GrantMetricToUserParams{
+				Email:       claims.Email,
+				RequestKind: body.RequestKind,
+				ID:          m.ID, // uses the "true" ID
+			}
+			err = q.GrantMetricToUser(r.Context(), p)
+			if err != nil && !stools.IsPGError(err, stools.PGErrorUniqueViolation) {
+				l.Error(
+					"unable to grant metric to user",
+					"error", err.Error(),
+					"email", claims.Email,
+					"request_kind", body.RequestKind,
+					"id", body.ID,
+				)
+			}
 		}
 
 		// finally, for certain request types, we can opt to monitor the id for
-		// new submissions (reddit.users can be monitored for posts and youtube.channels
-		// can be monitored for videos).
-		//
-		// FIXME: this is going away, we've removed this for Reddit and now the callers simply
-		// create a corresponding request kind if they wish to monitor; we'll do the same for
-		// youtube channels.
+		// new submissions (really, only youtube.channels can be monitored for
+		// videos; new videos are sent to us via RSS/WebSub).
 		if body.Monitor {
 			switch body.RequestKind {
 			case kt.RequestKindYouTubeChannel:
@@ -304,7 +207,7 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 			}
 			if err != nil {
 				l.Error(
-					"error setting up monitoring",
+					"error entering websub entry",
 					"request_kind", body.RequestKind,
 					"id", body.ID,
 					"error", err.Error(),

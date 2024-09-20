@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"log/slog"
+	"os"
 
 	kt "github.com/brojonat/kaggo/temporal/v19700101"
 	"go.temporal.io/sdk/client"
@@ -22,7 +23,7 @@ func RunWorker(ctx context.Context, l *slog.Logger, thp string) error {
 	defer c.Close()
 
 	// register workflows
-	w := worker.New(c, "kaggo", worker.Options{})
+	w := worker.New(c, os.Getenv("TEMPORAL_TASK_QUEUE"), worker.Options{})
 	w.RegisterWorkflow(kt.DoPollingRequestWF)
 	w.RegisterWorkflow(kt.DoMetadataRequestWF)
 	w.RegisterWorkflow(kt.RunYouTubeListenerWF)
