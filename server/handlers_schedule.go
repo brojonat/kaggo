@@ -38,7 +38,7 @@ func GetDefaultScheduleSpec(rk, id string) client.ScheduleSpec {
 		}
 	case kt.RequestKindYouTubeChannel, kt.RequestKindYouTubeVideo:
 		// do youtube queries every 10 minutes; high res isn't super necessary,
-		// we have a lot of IDs to query, and the rate limit is pretty much fixed.
+		// we have a lot of IDs to query, and the rate limit is pretty much fixed
 		s = client.ScheduleSpec{
 			Calendars: []client.ScheduleCalendarSpec{
 				{
@@ -49,6 +49,22 @@ func GetDefaultScheduleSpec(rk, id string) client.ScheduleSpec {
 				},
 			},
 			Jitter: 60 * 60 * 1e9,
+		}
+
+	case kt.RequestKindRedditSubredditMonitor, kt.RequestKindRedditUserMonitor:
+		// do reddit monitor queries every minute; we want to find posts ASAP, this
+		// runs under a different reddit client id and we don't have a ton of ids to
+		// monitor
+		s = client.ScheduleSpec{
+			Calendars: []client.ScheduleCalendarSpec{
+				{
+					Second:  []client.ScheduleRange{{Start: 0}},
+					Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 1}},
+					Hour:    []client.ScheduleRange{{Start: 0, End: 23, Step: 1}},
+					Comment: "every minute, with a minute of jitter",
+				},
+			},
+			Jitter: 60 * 1e9,
 		}
 	case kt.RequestKindTwitchStream:
 		// do twitch stream queries every minute
@@ -86,7 +102,9 @@ func GetDefaultScheduleSpec(rk, id string) client.ScheduleSpec {
 		kt.RequestKindKaggleNotebook,
 		kt.RequestKindKaggleDataset,
 		kt.RequestKindRedditSubreddit,
+		kt.RequestKindRedditSubredditMonitor,
 		kt.RequestKindRedditUser,
+		kt.RequestKindRedditUserMonitor,
 		kt.RequestKindYouTubeChannel,
 		kt.RequestKindTwitchStream,
 		kt.RequestKindTwitchUserPastDec:
@@ -273,11 +291,13 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 		// finally, for certain request types, we can opt to monitor the id for
 		// new submissions (reddit.users can be monitored for posts and youtube.channels
 		// can be monitored for videos).
+		//
+		// FIXME: this is going away, we've removed this for Reddit and now the callers simply
+		// create a corresponding request kind if they wish to monitor; we'll do the same for
+		// youtube channels.
 		if body.Monitor {
 			switch body.RequestKind {
 			case kt.RequestKindYouTubeChannel:
-				err = q.InsertYouTubeChannelSubscription(r.Context(), body.ID)
-			case kt.RequestKindRedditUser:
 				err = q.InsertYouTubeChannelSubscription(r.Context(), body.ID)
 			default:
 				err = fmt.Errorf("RequestKind %s doesn't have monitoring support", body.RequestKind)

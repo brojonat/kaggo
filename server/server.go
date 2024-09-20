@@ -487,29 +487,9 @@ func getRouter(
 		withPromCounter(prcounter),
 	))
 
-	// reddit notifications
-	mux.HandleFunc("GET /notification/reddit/targets", stools.AdaptHandler(
-		handleGetRedditListenTargets(l, q),
-		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
-		withPromCounter(prcounter),
-	))
-	mux.HandleFunc("POST /notification/reddit/post", stools.AdaptHandler(
-		handleRedditPostNotification(l, q, tc),
-		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
-		withPromCounter(prcounter),
-	))
-	mux.HandleFunc("POST /run-reddit-listener-wf", stools.AdaptHandler(
-		handleRunRedditListener(l, q, tc),
-		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
-		withPromCounter(prcounter),
-	))
-
 	// youtube notifications
 	mux.HandleFunc("GET /notification/youtube/targets", stools.AdaptHandler(
-		handleGetYouTubeListenTargets(l, q),
+		handleGetYouTubeWebSubTargets(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),

@@ -16,19 +16,21 @@ import (
 )
 
 const (
-	RequestKindInternalRandom    = "internal.random"
-	RequestKindKaggleNotebook    = "kaggle.notebook"
-	RequestKindKaggleDataset     = "kaggle.dataset"
-	RequestKindYouTubeVideo      = "youtube.video"
-	RequestKindYouTubeChannel    = "youtube.channel"
-	RequestKindRedditPost        = "reddit.post"
-	RequestKindRedditComment     = "reddit.comment"
-	RequestKindRedditSubreddit   = "reddit.subreddit"
-	RequestKindRedditUser        = "reddit.user"
-	RequestKindTwitchClip        = "twitch.clip"
-	RequestKindTwitchVideo       = "twitch.video"
-	RequestKindTwitchStream      = "twitch.stream"
-	RequestKindTwitchUserPastDec = "twitch.user-past-dec"
+	RequestKindInternalRandom         = "internal.random"
+	RequestKindKaggleNotebook         = "kaggle.notebook"
+	RequestKindKaggleDataset          = "kaggle.dataset"
+	RequestKindYouTubeVideo           = "youtube.video"
+	RequestKindYouTubeChannel         = "youtube.channel"
+	RequestKindRedditPost             = "reddit.post"
+	RequestKindRedditComment          = "reddit.comment"
+	RequestKindRedditSubreddit        = "reddit.subreddit"
+	RequestKindRedditSubredditMonitor = "reddit.subreddit-monitor"
+	RequestKindRedditUser             = "reddit.user"
+	RequestKindRedditUserMonitor      = "reddit.user-monitor"
+	RequestKindTwitchClip             = "twitch.clip"
+	RequestKindTwitchVideo            = "twitch.video"
+	RequestKindTwitchStream           = "twitch.stream"
+	RequestKindTwitchUserPastDec      = "twitch.user-past-dec"
 )
 
 func GetSupportedRequestKinds() []string {
@@ -41,7 +43,9 @@ func GetSupportedRequestKinds() []string {
 		RequestKindRedditPost,
 		RequestKindRedditComment,
 		RequestKindRedditSubreddit,
+		RequestKindRedditSubredditMonitor,
 		RequestKindRedditUser,
+		RequestKindRedditUserMonitor,
 		RequestKindTwitchClip,
 		RequestKindTwitchVideo,
 		RequestKindTwitchStream,
@@ -53,10 +57,12 @@ type ActivityRedditListener struct{}
 type ActivityYouTubeListener struct{}
 
 type ActivityRequester struct {
-	RedditAuthToken    string
-	RedditAuthTokenExp time.Time
-	TwitchAuthToken    string
-	TwitchAuthTokenExp time.Time
+	RedditAuthToken            string
+	RedditAuthTokenExp         time.Time
+	RedditListenerAuthToken    string
+	RedditListenerAuthTokenExp time.Time
+	TwitchAuthToken            string
+	TwitchAuthTokenExp         time.Time
 }
 
 // This is a hook to update requests without updating the originally scheduled
@@ -89,17 +95,25 @@ func (a *ActivityRequester) prepareRequest(drp DoRequestActRequest) (*http.Reque
 	case RequestKindInternalRandom:
 		// for internal requests, just set the authorization token
 		r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("AUTH_TOKEN")))
-	case RequestKindKaggleNotebook, RequestKindKaggleDataset:
+	case
+		RequestKindKaggleNotebook,
+		RequestKindKaggleDataset:
 		// basic auth
 		r.SetBasicAuth(os.Getenv("KAGGLE_USERNAME"), os.Getenv("KAGGLE_API_KEY"))
-	case RequestKindYouTubeVideo, RequestKindYouTubeChannel:
+	case
+		RequestKindYouTubeVideo,
+		RequestKindYouTubeChannel:
 		// for youtube requests, set the non-identifier query params
 		q := r.URL.Query()
 		q.Set("part", "snippet,contentDetails,statistics")
 		q.Set("key", os.Getenv("YOUTUBE_API_KEY"))
 		r.URL.RawQuery = q.Encode()
 
-	case RequestKindRedditPost, RequestKindRedditComment, RequestKindRedditSubreddit, RequestKindRedditUser:
+	case
+		RequestKindRedditPost,
+		RequestKindRedditComment,
+		RequestKindRedditSubreddit,
+		RequestKindRedditUser:
 		// refresh key and set bearer
 		err = a.ensureValidRedditToken(time.Duration(60 * time.Second))
 		if err != nil {
@@ -107,6 +121,16 @@ func (a *ActivityRequester) prepareRequest(drp DoRequestActRequest) (*http.Reque
 		}
 		r.Header.Set("User-Agent", os.Getenv("REDDIT_USER_AGENT"))
 		r.Header.Set("Authorization", "bearer "+a.RedditAuthToken)
+	case
+		RequestKindRedditSubredditMonitor,
+		RequestKindRedditUserMonitor:
+		// refresh key and set bearer
+		err = a.ensureValidRedditListenerToken(time.Duration(60 * time.Second))
+		if err != nil {
+			return nil, err
+		}
+		r.Header.Set("User-Agent", os.Getenv("REDDIT_LISTENER_USER_AGENT"))
+		r.Header.Set("Authorization", "bearer "+a.RedditListenerAuthToken)
 	case RequestKindTwitchClip, RequestKindTwitchVideo, RequestKindTwitchStream, RequestKindTwitchUserPastDec:
 		err = a.ensureValidTwitchToken(time.Duration(60 * time.Second))
 		if err != nil {
@@ -173,8 +197,12 @@ func (a *ActivityRequester) UploadMetadata(ctx context.Context, drr UploadMetada
 		return a.handleRedditCommentMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindRedditSubreddit:
 		return a.handleRedditSubredditMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+	case RequestKindRedditSubredditMonitor:
+		return a.handleRedditSubredditMonitorMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindRedditUser:
 		return a.handleRedditUserMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+	case RequestKindRedditUserMonitor:
+		return a.handleRedditUserMonitorMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindTwitchClip:
 		return a.handleTwitchClipMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindTwitchVideo:
@@ -208,8 +236,12 @@ func (a *ActivityRequester) UploadMetrics(ctx context.Context, drr UploadMetrics
 		return a.handleRedditCommentMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindRedditSubreddit:
 		return a.handleRedditSubredditMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+	case RequestKindRedditSubredditMonitor:
+		return a.handleRedditSubredditMonitorMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindRedditUser:
 		return a.handleRedditUserMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+	case RequestKindRedditUserMonitor:
+		return a.handleRedditUserMonitorMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindTwitchClip:
 		return a.handleTwitchClipMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
 	case RequestKindTwitchVideo:

@@ -16,7 +16,7 @@ func add_listener_subscription(ctx *cli.Context) error {
 	rk := ctx.String("request-kind")
 	id := ctx.String("id")
 
-	if rk != kt.RequestKindYouTubeChannel && rk != kt.RequestKindRedditUser {
+	if rk != kt.RequestKindYouTubeChannel {
 		return fmt.Errorf("unsupported request kind %s", rk)
 	}
 
@@ -28,6 +28,9 @@ func add_listener_subscription(ctx *cli.Context) error {
 		ID:          id,
 	}
 	b, err = json.Marshal(p)
+	if err != nil {
+		return fmt.Errorf("could not serialize subscription payload: %w", err)
+	}
 	r, err := http.NewRequest(http.MethodPost, ctx.String("endpoint")+"/add-listener-sub", bytes.NewReader(b))
 	if err != nil {
 		return err

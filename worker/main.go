@@ -25,7 +25,6 @@ func RunWorker(ctx context.Context, l *slog.Logger, thp string) error {
 	w := worker.New(c, "kaggo", worker.Options{})
 	w.RegisterWorkflow(kt.DoPollingRequestWF)
 	w.RegisterWorkflow(kt.DoMetadataRequestWF)
-	w.RegisterWorkflow(kt.RunRedditListenerWF)
 	w.RegisterWorkflow(kt.RunYouTubeListenerWF)
 
 	// register activities
@@ -33,10 +32,8 @@ func RunWorker(ctx context.Context, l *slog.Logger, thp string) error {
 	// or you will encounter a runtime error that prevents all of your workers
 	// from starting :O
 	a := &kt.ActivityRequester{}
-	rsub := &kt.ActivityRedditListener{}
 	ysub := &kt.ActivityYouTubeListener{}
 	w.RegisterActivity(a)
-	w.RegisterActivity(rsub)
 	w.RegisterActivity(ysub)
 	return w.Run(worker.InterruptCh())
 

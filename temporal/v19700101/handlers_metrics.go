@@ -48,6 +48,70 @@ func uploadMetrics(l log.Logger, path string, b []byte) (*api.DefaultJSONRespons
 	return &body, nil
 }
 
+func uploadMonitorPosts(l log.Logger, b []byte) error {
+	var data interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		return fmt.Errorf("error deserializing response: %w", err)
+	}
+	// get the number of posts, then iterate over them, extracting each one and
+	// creating a corresponding schedule
+	iface, err := jmespath.Search("data.children | length(@)", data)
+	if err != nil {
+		return fmt.Errorf("error extracting post count: %w", err)
+	}
+	if iface == nil {
+		return fmt.Errorf("error extracting post count: nil length")
+	}
+	count := int(math.Round(iface.(float64)))
+
+	// iterate over the posts and create a schedule for each post. We expect the
+	// server to return 409 for most posts, but that's fine it simply means
+	// we're already following that post, so just continue on.
+	for i := range count {
+		iface, err = jmespath.Search(fmt.Sprintf("data.children[%d].data.id", i), data)
+		if err != nil {
+			return fmt.Errorf("error extracting id for post %d: %w", i, err)
+		}
+		if iface == nil {
+			return fmt.Errorf("error extracting id for post %d: nil post", i)
+		}
+		id := iface.(string)
+		payload := api.GenericScheduleRequestPayload{
+			RequestKind: RequestKindRedditPost,
+			ID:          id,
+		}
+		b, err := json.Marshal(payload)
+		if err != nil {
+			return fmt.Errorf("error serializing body for post %s: %w", id, err)
+		}
+		r, err := http.NewRequest(
+			http.MethodPost,
+			os.Getenv("KAGGO_ENDPOINT")+"/schedule",
+			bytes.NewReader(b),
+		)
+		if err != nil {
+			return fmt.Errorf("error creating create schedule request: %w", err)
+		}
+		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("AUTH_TOKEN")))
+		res, err := http.DefaultClient.Do(r)
+		if err != nil {
+			return fmt.Errorf("error doing create schedule request: %w", err)
+		}
+		// either 200 or 409 means we're good to proceed
+		if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusConflict {
+			continue
+		}
+		defer res.Body.Close()
+		b, err = io.ReadAll(res.Body)
+		if err != nil {
+			return fmt.Errorf("error reading response body for post %s: %w", id, err)
+		}
+		return fmt.Errorf("bad response (%d) uploading post: %s", res.StatusCode, b)
+	}
+	// return a dummy response indicating all good
+	return nil
+}
+
 // Handle RequestKindInternalRandom requests
 func (a *ActivityRequester) handleInternalRandomMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
 	var data interface{}
@@ -509,6 +573,14 @@ func (a *ActivityRequester) handleRedditSubredditMetrics(l log.Logger, status in
 	return uploadMetrics(l, "/reddit/subreddit", b)
 }
 
+func (a *ActivityRequester) handleRedditSubredditMonitorMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+	err := uploadMonitorPosts(l, b)
+	if err != nil {
+		return nil, fmt.Errorf("error doing subreddit monitor upload: %w", err)
+	}
+	return &api.DefaultJSONResponse{Message: "ok"}, nil
+}
+
 // Handle RequestKindRedditUser requests
 func (a *ActivityRequester) handleRedditUserMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
 	var data interface{}
@@ -595,6 +667,14 @@ func (a *ActivityRequester) handleRedditUserMetrics(l log.Logger, status int, b 
 		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
 	}
 	return uploadMetrics(l, "/reddit/user", b)
+}
+
+func (a *ActivityRequester) handleRedditUserMonitorMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+	err := uploadMonitorPosts(l, b)
+	if err != nil {
+		return nil, fmt.Errorf("error doing user monitor upload: %w", err)
+	}
+	return &api.DefaultJSONResponse{Message: "ok"}, nil
 }
 
 // Handle RequestKindTwitchClip requests

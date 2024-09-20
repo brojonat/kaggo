@@ -1,7 +1,6 @@
 package temporal
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -37,52 +36,6 @@ func RunYouTubeListenerWF(ctx workflow.Context, r RunYouTubeListenerWFRequest) e
 	return workflow.ExecuteActivity(ctx, a.Subscribe, ar).Get(ctx, nil)
 	// FIXME: eventually we'll handle the case where some IDs were successfully
 	// subscribed to and some were not, but that seems like a rare edge case.
-}
-
-// FIXME: GRAW is (for some unknown reason) not receiving updates from all the users
-// that I subscribe to. When I first implemented this with GRAW, I thought it was
-// a good idea because it avoided long polling. Well, under the hood it's just doing
-// long polling! It's completely unnecessary and makes things like rate limit
-// monitoring difficult. We can already long poll using Temporal abstractions, so
-// let's just do that.
-func RunRedditListenerWF(ctx workflow.Context, r RunRedditListenerWFRequest) error {
-	var a *ActivityRedditListener
-
-	// Get the targets to listen on from the database. This could fail if we
-	// happen to be redeploying; this should retry a bunch
-	activityOptions := workflow.ActivityOptions{
-		StartToCloseTimeout: 20 * time.Second,
-		RetryPolicy:         &temporal.RetryPolicy{MaximumAttempts: 20},
-	}
-	ctx = workflow.WithActivityOptions(ctx, activityOptions)
-	var ar RedditSubActRequest
-	err := workflow.ExecuteActivity(ctx, a.GetRedditUserTargets).Get(ctx, &ar)
-	if err != nil {
-		return err
-	}
-	// Run the long lived monitoring activity
-	rp := temporal.RetryPolicy{
-		InitialInterval:    time.Second,
-		BackoffCoefficient: 5.0,
-		MaximumInterval:    time.Second * 100,
-		MaximumAttempts:    100,
-	}
-	activityOptions = workflow.ActivityOptions{
-		StartToCloseTimeout: 60 * time.Minute,
-		RetryPolicy:         &rp,
-		HeartbeatTimeout:    60 * time.Second,
-	}
-	ctx = workflow.WithActivityOptions(ctx, activityOptions)
-	err = workflow.ExecuteActivity(ctx, a.Run, ar).Get(ctx, nil)
-
-	// We expect the activity to eventually timeout; if we don't get a timeout
-	// error, then return a generic error, otherwise just restart the workflow
-	// as new.
-	var te *temporal.TimeoutError
-	if !errors.As(err, &te) {
-		return fmt.Errorf("unexpected error from activity: %w", err)
-	}
-	return workflow.NewContinueAsNewError(ctx, RunRedditListenerWF, r)
 }
 
 // Performs a request against an external API and passes the response to a

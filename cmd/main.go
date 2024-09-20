@@ -198,21 +198,6 @@ func main() {
 								},
 							},
 							{
-								Name:  "initiate-reddit-listener",
-								Usage: "Send a POST request to initiate a workflow that listens to Reddit",
-								Flags: []cli.Flag{
-									&cli.StringFlag{
-										Name:     "endpoint",
-										Aliases:  []string{"end", "e"},
-										Required: true,
-										Usage:    "Kaggo server endpoint",
-									},
-								},
-								Action: func(ctx *cli.Context) error {
-									return initiate_reddit_listener(ctx)
-								},
-							},
-							{
 								Name:  "initiate-youtube-listener",
 								Usage: "Send a POST request to initiate a workflow that listens to YouTube",
 								Flags: []cli.Flag{

@@ -66,7 +66,6 @@ deploy-worker:
 initialize-listeners:
 	$(call setup_env, server/.env)
 	@$(MAKE) build-cli
-	./cli admin listener initiate-reddit-listener --endpoint https://api.kaggo.brojonat.com
 	./cli admin listener initiate-youtube-listener --endpoint https://api.kaggo.brojonat.com
 
 deploy-all:

@@ -120,12 +120,9 @@ func handleAddListenerSub(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 		switch data.RequestKind {
 		case kt.RequestKindYouTubeChannel:
 			err = q.InsertYouTubeChannelSubscription(r.Context(), data.ID)
-		case kt.RequestKindRedditUser:
-			err = q.InsertRedditUserSubscription(r.Context(), data.ID)
 		default:
 			writeBadRequestError(w, fmt.Errorf("unsupported request_kind %s", data.RequestKind))
 			return
-
 		}
 		if err != nil {
 			writeInternalError(l, w, err)
