@@ -44,7 +44,7 @@ func RunYouTubeListenerWF(ctx workflow.Context, r RunYouTubeListenerWFRequest) e
 // of polling requests to run against this external API.
 func DoMetadataRequestWF(ctx workflow.Context, r DoMetadataRequestWFRequest) error {
 
-	a := NewActivityRequester()
+	var a *ActivityRequester
 
 	// Do a single query to fetch the external data that contains the metadata.
 	// Retry this a couple times because we're only doing this once.
@@ -84,7 +84,7 @@ func DoMetadataRequestWF(ctx workflow.Context, r DoMetadataRequestWFRequest) err
 // uploads the metrics to the kaggo server.
 func DoPollingRequestWF(ctx workflow.Context, r DoPollingRequestWFRequest) error {
 
-	a := NewActivityRequester()
+	var a *ActivityRequester
 
 	// Do the long polling request. Don't retry; these are "cheap" requests and
 	// it's better to miss some window of data than risk spamming the external

@@ -50,6 +50,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mmcloughlin/addchain v0.4.0 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/redis/go-redis/v9 v9.0.4 // indirect
 	github.com/robfig/cron v1.2.0 // indirect
@@ -61,6 +62,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/turnage/redditproto v0.0.0-20151223012412-afedf1b6eddb // indirect
+	github.com/twmb/murmur3 v1.1.5 // indirect
 	github.com/vmihailenco/go-tinylfu v0.2.2 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
@@ -96,7 +98,9 @@ require (
 	github.com/prometheus/client_model v0.5.0 // indirect
 	github.com/prometheus/common v0.48.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
+	github.com/uber-go/tally/v4 v4.1.16
 	github.com/urfave/cli/v2 v2.27.3
+	go.temporal.io/sdk/contrib/tally v0.2.0
 	golang.org/x/sys v0.25.0 // indirect
 	gonum.org/v1/gonum v0.15.1
 )

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/brojonat/kaggo/server/api"
-	"github.com/prometheus/client_golang/prometheus"
 	"go.temporal.io/sdk/activity"
 )
 
@@ -34,10 +33,10 @@ const (
 	RequestKindTwitchStream           = "twitch.stream"
 	RequestKindTwitchUserPastDec      = "twitch.user-past-dec"
 	// worker prom metrics
-	PromMetricXRatelimitLimit     = "pm-x-ratelimit-limit"
-	PromMetricXRatelimitUsed      = "pm-x-ratelimit-used"
-	PromMetricXRatelimitRemaining = "pm-x-ratelimit-remaining"
-	PromMetricXRatelimitReset     = "pm-x-ratelimit-reset"
+	MetricXRatelimitLimit     = "x-ratelimit-limit"
+	MetricXRatelimitUsed      = "x-ratelimit-used"
+	MetricXRatelimitRemaining = "x-ratelimit-remaining"
+	MetricXRatelimitReset     = "x-ratelimit-reset"
 )
 
 func GetSupportedRequestKinds() []string {
@@ -70,42 +69,6 @@ type ActivityRequester struct {
 	RedditListenerAuthTokenExp time.Time
 	TwitchAuthToken            string
 	TwitchAuthTokenExp         time.Time
-	Metrics                    map[string]prometheus.Collector
-}
-
-func NewActivityRequester() *ActivityRequester {
-	pms := map[string]prometheus.Collector{
-		PromMetricXRatelimitLimit: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "x_ratelimit_limit",
-				Help: "The X-Ratelimit-Limit header from an external server.",
-			},
-			[]string{"client"},
-		),
-		PromMetricXRatelimitUsed: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "x_ratelimit_used",
-				Help: "The X-Ratelimit-Used header from an external server.",
-			},
-			[]string{"client"},
-		),
-		PromMetricXRatelimitRemaining: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "x_ratelimit_remaining",
-				Help: "The X-Ratelimit-Remaining header from an external server.",
-			},
-			[]string{"client"},
-		),
-		PromMetricXRatelimitReset: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "x_ratelimit_reset",
-				Help: "The X-Ratelimit-Reset header from an external server.",
-			},
-			[]string{"client"},
-		),
-	}
-	a := &ActivityRequester{Metrics: pms}
-	return a
 }
 
 // This is a hook to update requests without updating the originally scheduled
@@ -192,6 +155,8 @@ func (a *ActivityRequester) prepareRequest(drp DoRequestActRequest) (*http.Reque
 
 func (a *ActivityRequester) DoRequest(ctx context.Context, drp DoRequestActRequest) (*DoRequestActResult, error) {
 	l := activity.GetLogger(ctx)
+	mh := activity.GetMetricsHandler(ctx)
+
 	r, err := a.prepareRequest(drp)
 	if err != nil {
 		return nil, err
@@ -216,22 +181,22 @@ func (a *ActivityRequester) DoRequest(ctx context.Context, drp DoRequestActReque
 		RequestKindRedditPost,
 		RequestKindRedditComment:
 		// set X-Ratelimit-Foo headers
-		labels := prometheus.Labels{"client": "reddit-poller"}
-		a.setRedditPromMetrics(l, labels, resp.Header)
+		labels := map[string]string{"polling_client": "reddit_poller"}
+		a.setRedditPromMetrics(l, mh.WithTags(labels), resp.Header)
 	case
 		RequestKindRedditSubredditMonitor,
 		RequestKindRedditUserMonitor:
 		// set X-Ratelimit-Foo headers
-		labels := prometheus.Labels{"client": "reddit-monitor"}
-		a.setRedditPromMetrics(l, labels, resp.Header)
+		labels := map[string]string{"polling_client": "reddit_monitor"}
+		a.setRedditPromMetrics(l, mh.WithTags(labels), resp.Header)
 	case
 		RequestKindTwitchClip,
 		RequestKindTwitchVideo,
 		RequestKindTwitchStream,
 		RequestKindTwitchUserPastDec:
 		// set Ratelimit-Foo headers
-		labels := prometheus.Labels{"client": "twitch"}
-		a.setTwitchPromMetrics(l, labels, resp.Header)
+		labels := map[string]string{"polling_client": "twitch"}
+		a.setTwitchPromMetrics(l, mh.WithTags(labels), resp.Header)
 	}
 
 	// return the activity result
