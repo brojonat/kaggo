@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/dbgen"
@@ -48,6 +49,7 @@ func handleGetSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 
 // create a schedule to query an external api based on the user submitted data
 func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) http.HandlerFunc {
+	seen := sync.Map{}
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		claims, ok := r.Context().Value(ctxKeyJWT).(*authJWTClaims)
@@ -70,11 +72,10 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 			return
 		}
 
-		// FIXME: cache this so we don't have to hit the temporal service for this info
-		// First check if this schedule already exists. Below, Describe will
-		// return an error if the schedule does not exist; if it returns a nil
-		// error, then the schedule exists and we need to short circuit and
-		// return a 409.
+		// We have a local cache to deal with duplicate schedule creation requests. This
+		// doesn't have to be perfect, but it'll get us 90% of the way there.
+		// The service will get restarted frequently enough that this shouldn't
+		// grow _too_ large, and we can impose limits in the future if needed.
 		_, _, id, err := makeExternalRequest(q, body.RequestKind, body.ID, false)
 		if err != nil {
 			if errors.Is(err, errUnsupportedRequestKind) {
@@ -84,12 +85,28 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 			writeInternalError(l, w, err)
 			return
 		}
-		_, err = tc.ScheduleClient().GetHandle(r.Context(), id).Describe(r.Context())
-		if err == nil {
+		// First check the cache to see if we've already debounced this schedule
+		// creation request.
+		_, ok = seen.Load(id)
+		if ok {
 			w.WriteHeader(http.StatusConflict)
 			json.NewEncoder(w).Encode(api.DefaultJSONResponse{Error: "schedule already running"})
 			return
 		}
+		// Now see if the schedule exists in the temporal server. Non-running
+		// schedules should return an error. If it does exist, err will be nil,
+		// so add it to the cache and return a StatusConflict.
+		_, err = tc.ScheduleClient().GetHandle(r.Context(), id).Describe(r.Context())
+		if err == nil {
+			seen.Store(id, struct{}{})
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(api.DefaultJSONResponse{Error: "schedule already running"})
+			return
+		}
+
+		// FIXME: in the future we can check the metadata table to see if this
+		// is a metric that was already tracked, and if so, we can return early
+		// UNLESS the user passes the appropriate flag in the body.
 
 		// Execute a workflow that will fetch the metadata and post it back to the server.
 		// this will be a good litmus test for whether or not the client submitted a "good"
@@ -210,26 +227,6 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 					"email", claims.Email,
 					"request_kind", body.RequestKind,
 					"id", body.ID,
-				)
-			}
-		}
-
-		// finally, for certain request types, we can opt to monitor the id for
-		// new submissions (really, only youtube.channels can be monitored for
-		// videos; new videos are sent to us via RSS/WebSub).
-		if body.Monitor {
-			switch body.RequestKind {
-			case kt.RequestKindYouTubeChannel:
-				err = q.InsertYouTubeChannelSubscription(r.Context(), body.ID)
-			default:
-				err = fmt.Errorf("RequestKind %s doesn't have monitoring support", body.RequestKind)
-			}
-			if err != nil {
-				l.Error(
-					"error entering websub entry",
-					"request_kind", body.RequestKind,
-					"id", body.ID,
-					"error", err.Error(),
 				)
 			}
 		}

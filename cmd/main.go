@@ -240,11 +240,6 @@ func main() {
 										Required: true,
 										Usage:    "Identifier for the schedule",
 									},
-									&cli.BoolFlag{
-										Name:    "monitor",
-										Aliases: []string{"m"},
-										Usage:   "Monitor this id for new submissions (only applies to youtube.channel and reddit.user)",
-									},
 								},
 								Action: func(ctx *cli.Context) error {
 									return create_schedule(ctx)

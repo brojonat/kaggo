@@ -53,14 +53,14 @@ func DoMetadataRequestWF(ctx workflow.Context, r DoMetadataRequestWFRequest) err
 		RetryPolicy:         &temporal.RetryPolicy{MaximumAttempts: 10, BackoffCoefficient: 5},
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
-	drp := DoRequestActRequest(r)
-	var drr DoRequestActResult
-	if err := workflow.ExecuteActivity(ctx, a.DoRequest, drp).Get(ctx, &drr); err != nil {
+	doReqActReq := DoRequestActRequest(r)
+	var doReqActRes DoRequestActResult
+	if err := workflow.ExecuteActivity(ctx, a.DoRequest, doReqActReq).Get(ctx, &doReqActRes); err != nil {
 		return err
 	}
-	if drr.StatusCode != http.StatusOK {
+	if doReqActRes.ResponseStatusCode != http.StatusOK {
 		return fmt.Errorf("non-200 response: %d (%s): %s",
-			drr.StatusCode, http.StatusText(drr.StatusCode), drr.Body)
+			doReqActRes.ResponseStatusCode, http.StatusText(doReqActRes.ResponseStatusCode), doReqActRes.ResponseBody)
 	}
 
 	// Upload the response to our server. This should also have a bunch of
@@ -70,10 +70,19 @@ func DoMetadataRequestWF(ctx workflow.Context, r DoMetadataRequestWFRequest) err
 		StartToCloseTimeout: 1. * time.Minute,
 		RetryPolicy:         &temporal.RetryPolicy{MaximumAttempts: 10, BackoffCoefficient: 5},
 	}
+
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
-	var urr api.DefaultJSONResponse
-	umr := UploadMetadataActRequest(drr)
-	if err := workflow.ExecuteActivity(ctx, a.UploadMetadata, umr).Get(ctx, &urr); err != nil {
+	var metadataUploadResponse api.DefaultJSONResponse
+	var metricsResponse api.DefaultJSONResponse
+
+	// Upload the metadata
+	if err := workflow.ExecuteActivity(ctx, a.UploadResponseMetadata, doReqActRes).Get(ctx, &metadataUploadResponse); err != nil {
+		return err
+	}
+	// Set the metrics after handling the metadata request. This can share the same
+	// activity params as above, but this should be stuff local to the host, so
+	// it shouldn't really have transient failures.
+	if err := workflow.ExecuteActivity(ctx, a.SetWorkerMetrics, doReqActRes).Get(ctx, &metricsResponse); err != nil {
 		return err
 	}
 	return nil
@@ -94,14 +103,14 @@ func DoPollingRequestWF(ctx workflow.Context, r DoPollingRequestWFRequest) error
 		RetryPolicy:         &temporal.RetryPolicy{MaximumAttempts: 1},
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
-	drp := DoRequestActRequest(r)
-	var drr DoRequestActResult
-	if err := workflow.ExecuteActivity(ctx, a.DoRequest, drp).Get(ctx, &drr); err != nil {
+	doReqActReq := DoRequestActRequest(r)
+	var doReqActRes DoRequestActResult
+	if err := workflow.ExecuteActivity(ctx, a.DoRequest, doReqActReq).Get(ctx, &doReqActRes); err != nil {
 		return err
 	}
-	if drr.StatusCode != http.StatusOK {
+	if doReqActRes.ResponseStatusCode != http.StatusOK {
 		return fmt.Errorf("non-200 response: %d (%s): %s",
-			drr.StatusCode, http.StatusText(drr.StatusCode), drr.Body)
+			doReqActRes.ResponseStatusCode, http.StatusText(doReqActRes.ResponseStatusCode), doReqActRes.ResponseBody)
 	}
 
 	// Upload the response to our server. We can retry a couple times over a
@@ -115,10 +124,19 @@ func DoPollingRequestWF(ctx workflow.Context, r DoPollingRequestWFRequest) error
 		StartToCloseTimeout: 1 * time.Minute,
 		RetryPolicy:         &temporal.RetryPolicy{MaximumAttempts: 5, BackoffCoefficient: 5},
 	}
+
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
-	var urr api.DefaultJSONResponse
-	umr := UploadMetricsActRequest(drr)
-	if err := workflow.ExecuteActivity(ctx, a.UploadMetrics, umr).Get(ctx, &urr); err != nil {
+	var dataUploadResponse api.DefaultJSONResponse
+	var metricsResponse api.DefaultJSONResponse
+
+	// Set the metrics after handling the request
+	if err := workflow.ExecuteActivity(ctx, a.UploadResponseData, doReqActRes).Get(ctx, &dataUploadResponse); err != nil {
+		return err
+	}
+	// Set the metrics after handling the metadata request. This can share the same
+	// activity params as above, but this should be stuff local to the host, so
+	// it shouldn't really have transient failures.
+	if err := workflow.ExecuteActivity(ctx, a.SetWorkerMetrics, doReqActRes).Get(ctx, &metricsResponse); err != nil {
 		return err
 	}
 	return nil

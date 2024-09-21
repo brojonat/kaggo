@@ -1,6 +1,7 @@
 package temporal
 
 import (
+	"net/http"
 	"time"
 
 	"go.temporal.io/sdk/client"
@@ -27,31 +28,15 @@ type YouTubeChannelSubActRequest struct {
 	ChannelIDs []string `json:"channel_ids"`
 }
 
-type RedditSubActRequest struct {
-	Subreddits []string `json:"subreddits"`
-	Users      []string `json:"users"`
-}
-
 type DoRequestActRequest struct {
 	RequestKind string `json:"request_kind"`
 	Serial      []byte `json:"serial"`
 }
 type DoRequestActResult struct {
-	RequestKind string `json:"request_kind"`
-	StatusCode  int    `json:"status_code"`
-	Body        []byte `json:"body"`
-}
-
-type UploadMetadataActRequest struct {
-	RequestKind string `json:"request_kind"`
-	StatusCode  int    `json:"status_code"`
-	Body        []byte `json:"body"`
-}
-
-type UploadMetricsActRequest struct {
-	RequestKind string `json:"request_kind"`
-	StatusCode  int    `json:"status_code"`
-	Body        []byte `json:"body"`
+	RequestKind        string      `json:"request_kind"`
+	ResponseStatusCode int         `json:"response_status_code"`
+	ResponseBody       []byte      `json:"response_body"`
+	ResponseHeader     http.Header `json:"response_header"`
 }
 
 func GetDefaultScheduleSpec(rk, id string) client.ScheduleSpec {

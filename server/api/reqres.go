@@ -34,7 +34,6 @@ type GenericScheduleRequestPayload struct {
 	RequestKind string              `json:"request_kind"`
 	ID          string              `json:"id"`
 	Schedule    client.ScheduleSpec `json:"schedule_spec,omitempty"`
-	Monitor     bool                `json:"monitor,omitempty"`
 }
 
 type AddListenerSubPayload struct {

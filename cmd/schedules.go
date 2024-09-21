@@ -187,7 +187,6 @@ func create_schedule(ctx *cli.Context) error {
 		RequestKind: rk,
 		ID:          id,
 		Schedule:    sched,
-		Monitor:     ctx.Bool("monitor"),
 	}
 	b, err := json.Marshal(payload)
 	if err != nil {
