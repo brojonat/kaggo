@@ -12,10 +12,12 @@ import (
 	"time"
 
 	"github.com/brojonat/kaggo/server/api"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.temporal.io/sdk/activity"
 )
 
 const (
+	// request kinds
 	RequestKindInternalRandom         = "internal.random"
 	RequestKindKaggleNotebook         = "kaggle.notebook"
 	RequestKindKaggleDataset          = "kaggle.dataset"
@@ -31,6 +33,11 @@ const (
 	RequestKindTwitchVideo            = "twitch.video"
 	RequestKindTwitchStream           = "twitch.stream"
 	RequestKindTwitchUserPastDec      = "twitch.user-past-dec"
+	// worker prom metrics
+	PromMetricXRatelimitLimit     = "pm-x-ratelimit-limit"
+	PromMetricXRatelimitUsed      = "pm-x-ratelimit-used"
+	PromMetricXRatelimitRemaining = "pm-x-ratelimit-remaining"
+	PromMetricXRatelimitReset     = "pm-x-ratelimit-reset"
 )
 
 func GetSupportedRequestKinds() []string {
@@ -63,6 +70,42 @@ type ActivityRequester struct {
 	RedditListenerAuthTokenExp time.Time
 	TwitchAuthToken            string
 	TwitchAuthTokenExp         time.Time
+	Metrics                    map[string]prometheus.Collector
+}
+
+func NewActivityRequester() *ActivityRequester {
+	pms := map[string]prometheus.Collector{
+		PromMetricXRatelimitLimit: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "x_ratelimit_limit",
+				Help: "The X-Ratelimit-Limit header from an external server.",
+			},
+			[]string{"client"},
+		),
+		PromMetricXRatelimitUsed: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "x_ratelimit_used",
+				Help: "The X-Ratelimit-Used header from an external server.",
+			},
+			[]string{"client"},
+		),
+		PromMetricXRatelimitRemaining: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "x_ratelimit_remaining",
+				Help: "The X-Ratelimit-Remaining header from an external server.",
+			},
+			[]string{"client"},
+		),
+		PromMetricXRatelimitReset: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "x_ratelimit_reset",
+				Help: "The X-Ratelimit-Reset header from an external server.",
+			},
+			[]string{"client"},
+		),
+	}
+	a := &ActivityRequester{Metrics: pms}
+	return a
 }
 
 // This is a hook to update requests without updating the originally scheduled
@@ -148,6 +191,7 @@ func (a *ActivityRequester) prepareRequest(drp DoRequestActRequest) (*http.Reque
 }
 
 func (a *ActivityRequester) DoRequest(ctx context.Context, drp DoRequestActRequest) (*DoRequestActResult, error) {
+	l := activity.GetLogger(ctx)
 	r, err := a.prepareRequest(drp)
 	if err != nil {
 		return nil, err
@@ -162,20 +206,39 @@ func (a *ActivityRequester) DoRequest(ctx context.Context, drp DoRequestActReque
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
+
+	// set prometheus metrics; ideally avoid sending the response off to some
+	// other caller that may tamper with it
+	switch drp.RequestKind {
+	case
+		RequestKindRedditSubreddit,
+		RequestKindRedditUser,
+		RequestKindRedditPost,
+		RequestKindRedditComment:
+		// set X-Ratelimit-Foo headers
+		labels := prometheus.Labels{"client": "reddit-poller"}
+		a.setRedditPromMetrics(l, labels, resp.Header)
+	case
+		RequestKindRedditSubredditMonitor,
+		RequestKindRedditUserMonitor:
+		// set X-Ratelimit-Foo headers
+		labels := prometheus.Labels{"client": "reddit-monitor"}
+		a.setRedditPromMetrics(l, labels, resp.Header)
+	case
+		RequestKindTwitchClip,
+		RequestKindTwitchVideo,
+		RequestKindTwitchStream,
+		RequestKindTwitchUserPastDec:
+		// set Ratelimit-Foo headers
+		labels := prometheus.Labels{"client": "twitch"}
+		a.setTwitchPromMetrics(l, labels, resp.Header)
+	}
+
+	// return the activity result
 	res := DoRequestActResult{
 		RequestKind: drp.RequestKind,
 		StatusCode:  resp.StatusCode,
 		Body:        b,
-		InternalData: api.MetricQueryInternalData{
-			// reddit rate limits
-			XRatelimitUsed:      resp.Header.Get("X-Ratelimit-Used"),
-			XRatelimitRemaining: resp.Header.Get("X-Ratelimit-Remaining"),
-			XRatelimitReset:     resp.Header.Get("X-Ratelimit-Reset"),
-			// twitch rate limits
-			RatelimitLimit:     resp.Header.Get("Ratelimit-Limit"),
-			RatelimitRemaining: resp.Header.Get("Ratelimit-Remaining"),
-			RatelimitReset:     resp.Header.Get("Ratelimit-Reset"),
-		},
 	}
 	return &res, nil
 }
@@ -185,35 +248,35 @@ func (a *ActivityRequester) UploadMetadata(ctx context.Context, drr UploadMetada
 	l := activity.GetLogger(ctx)
 	switch drr.RequestKind {
 	case RequestKindInternalRandom:
-		return a.handleInternalRandomMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleInternalRandomMetadata(l, drr.StatusCode, drr.Body)
 	case RequestKindYouTubeVideo:
-		return a.handleYouTubeVideoMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleYouTubeVideoMetadata(l, drr.StatusCode, drr.Body)
 	case RequestKindYouTubeChannel:
-		return a.handleYouTubeChannelMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleYouTubeChannelMetadata(l, drr.StatusCode, drr.Body)
 	case RequestKindKaggleNotebook:
-		return a.handleKaggleNotebookMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleKaggleNotebookMetadata(l, drr.StatusCode, drr.Body)
 	case RequestKindKaggleDataset:
-		return a.handleKaggleDatasetMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleKaggleDatasetMetadata(l, drr.StatusCode, drr.Body)
 	case RequestKindRedditPost:
-		return a.handleRedditPostMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleRedditPostMetadata(l, drr.StatusCode, drr.Body)
 	case RequestKindRedditComment:
-		return a.handleRedditCommentMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleRedditCommentMetadata(l, drr.StatusCode, drr.Body)
 	case RequestKindRedditSubreddit:
-		return a.handleRedditSubredditMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleRedditSubredditMetadata(l, drr.StatusCode, drr.Body)
 	case RequestKindRedditSubredditMonitor:
-		return a.handleRedditSubredditMonitorMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleRedditSubredditMonitorMetadata(l, drr.StatusCode, drr.Body)
 	case RequestKindRedditUser:
-		return a.handleRedditUserMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleRedditUserMetadata(l, drr.StatusCode, drr.Body)
 	case RequestKindRedditUserMonitor:
-		return a.handleRedditUserMonitorMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleRedditUserMonitorMetadata(l, drr.StatusCode, drr.Body)
 	case RequestKindTwitchClip:
-		return a.handleTwitchClipMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleTwitchClipMetadata(l, drr.StatusCode, drr.Body)
 	case RequestKindTwitchVideo:
-		return a.handleTwitchVideoMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleTwitchVideoMetadata(l, drr.StatusCode, drr.Body)
 	case RequestKindTwitchStream:
-		return a.handleTwitchStreamMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleTwitchStreamMetadata(l, drr.StatusCode, drr.Body)
 	case RequestKindTwitchUserPastDec:
-		return a.handleTwitchUserPastDecMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleTwitchUserPastDecMetadata(l, drr.StatusCode, drr.Body)
 	default:
 		return nil, fmt.Errorf("unrecognized RequestKind: %s", drr.RequestKind)
 	}
@@ -224,35 +287,35 @@ func (a *ActivityRequester) UploadMetrics(ctx context.Context, drr UploadMetrics
 	l := activity.GetLogger(ctx)
 	switch drr.RequestKind {
 	case RequestKindInternalRandom:
-		return a.handleInternalRandomMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleInternalRandomMetrics(l, drr.StatusCode, drr.Body)
 	case RequestKindYouTubeVideo:
-		return a.handleYouTubeVideoMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleYouTubeVideoMetrics(l, drr.StatusCode, drr.Body)
 	case RequestKindYouTubeChannel:
-		return a.handleYouTubeChannelMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleYouTubeChannelMetrics(l, drr.StatusCode, drr.Body)
 	case RequestKindKaggleNotebook:
-		return a.handleKaggleNotebookMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleKaggleNotebookMetrics(l, drr.StatusCode, drr.Body)
 	case RequestKindKaggleDataset:
-		return a.handleKaggleDatasetMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleKaggleDatasetMetrics(l, drr.StatusCode, drr.Body)
 	case RequestKindRedditPost:
-		return a.handleRedditPostMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleRedditPostMetrics(l, drr.StatusCode, drr.Body)
 	case RequestKindRedditComment:
-		return a.handleRedditCommentMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleRedditCommentMetrics(l, drr.StatusCode, drr.Body)
 	case RequestKindRedditSubreddit:
-		return a.handleRedditSubredditMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleRedditSubredditMetrics(l, drr.StatusCode, drr.Body)
 	case RequestKindRedditSubredditMonitor:
-		return a.handleRedditSubredditMonitorMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleRedditSubredditMonitorMetrics(l, drr.StatusCode, drr.Body)
 	case RequestKindRedditUser:
-		return a.handleRedditUserMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleRedditUserMetrics(l, drr.StatusCode, drr.Body)
 	case RequestKindRedditUserMonitor:
-		return a.handleRedditUserMonitorMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleRedditUserMonitorMetrics(l, drr.StatusCode, drr.Body)
 	case RequestKindTwitchClip:
-		return a.handleTwitchClipMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleTwitchClipMetrics(l, drr.StatusCode, drr.Body)
 	case RequestKindTwitchVideo:
-		return a.handleTwitchVideoMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleTwitchVideoMetrics(l, drr.StatusCode, drr.Body)
 	case RequestKindTwitchStream:
-		return a.handleTwitchStreamMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleTwitchStreamMetrics(l, drr.StatusCode, drr.Body)
 	case RequestKindTwitchUserPastDec:
-		return a.handleTwitchUserPastDecMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleTwitchUserPastDecMetrics(l, drr.StatusCode, drr.Body)
 	default:
 		return nil, fmt.Errorf("unrecognized RequestKind: %s", drr.RequestKind)
 	}

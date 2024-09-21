@@ -31,10 +31,6 @@ var static embed.FS
 // the following keys are specified.
 const (
 	PromMetricInternalRandom        = "pm-internal-random"
-	PromMetricXRatelimitLimit       = "pm-x-ratelimit-limit"
-	PromMetricXRatelimitUsed        = "pm-x-ratelimit-used"
-	PromMetricXRatelimitRemaining   = "pm-x-ratelimit-remaining"
-	PromMetricXRatelimitReset       = "pm-x-ratelimit-reset"
 	PromMetricHandlerRequestCounter = "pm-handler-counter"
 )
 
@@ -52,34 +48,6 @@ func GetDefaultPromMetrics() map[string]prometheus.Collector {
 				Help: "A pseudo random metric",
 			},
 			[]string{"id"},
-		),
-		PromMetricXRatelimitLimit: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "x_ratelimit_limit",
-				Help: "The X-Ratelimit-Limit header from an external server.",
-			},
-			[]string{"source"},
-		),
-		PromMetricXRatelimitUsed: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "x_ratelimit_used",
-				Help: "The X-Ratelimit-Used header from an external server.",
-			},
-			[]string{"source"},
-		),
-		PromMetricXRatelimitRemaining: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "x_ratelimit_remaining",
-				Help: "The X-Ratelimit-Remaining header from an external server.",
-			},
-			[]string{"source"},
-		),
-		PromMetricXRatelimitReset: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "x_ratelimit_reset",
-				Help: "The X-Ratelimit-Reset header from an external server.",
-			},
-			[]string{"source"},
 		),
 		PromMetricHandlerRequestCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{

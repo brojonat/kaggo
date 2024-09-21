@@ -3,7 +3,6 @@ package temporal
 import (
 	"time"
 
-	"github.com/brojonat/kaggo/server/api"
 	"go.temporal.io/sdk/client"
 )
 
@@ -38,24 +37,21 @@ type DoRequestActRequest struct {
 	Serial      []byte `json:"serial"`
 }
 type DoRequestActResult struct {
-	RequestKind  string                      `json:"request_kind"`
-	StatusCode   int                         `json:"status_code"`
-	Body         []byte                      `json:"body"`
-	InternalData api.MetricQueryInternalData `json:"internal_data"`
+	RequestKind string `json:"request_kind"`
+	StatusCode  int    `json:"status_code"`
+	Body        []byte `json:"body"`
 }
 
 type UploadMetadataActRequest struct {
-	RequestKind  string                      `json:"request_kind"`
-	StatusCode   int                         `json:"status_code"`
-	Body         []byte                      `json:"body"`
-	InternalData api.MetricQueryInternalData `json:"internal_data"`
+	RequestKind string `json:"request_kind"`
+	StatusCode  int    `json:"status_code"`
+	Body        []byte `json:"body"`
 }
 
 type UploadMetricsActRequest struct {
-	RequestKind  string                      `json:"request_kind"`
-	StatusCode   int                         `json:"status_code"`
-	Body         []byte                      `json:"body"`
-	InternalData api.MetricQueryInternalData `json:"internal_data"`
+	RequestKind string `json:"request_kind"`
+	StatusCode  int    `json:"status_code"`
+	Body        []byte `json:"body"`
 }
 
 func GetDefaultScheduleSpec(rk, id string) client.ScheduleSpec {

@@ -17,7 +17,7 @@ metadata:
     app: kaggo-treq-worker
   name: kaggo-treq-worker
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: kaggo-treq-worker
