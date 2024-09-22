@@ -1,7 +1,6 @@
 package api
 
 import (
-	"github.com/brojonat/graw/reddit"
 	"github.com/brojonat/kaggo/server/db/jsonb"
 	"go.temporal.io/sdk/client"
 )
@@ -162,8 +161,4 @@ type TwitchUserPastDecMetricPayload struct {
 	MedDuration     float32 `json:"med_duration"`
 	SetStdDuration  bool    `json:"set_std_duration"`
 	StdDuration     float32 `json:"std_duration"`
-}
-
-type RedditPostUpdate struct {
-	Post reddit.Post `json:"post"`
 }

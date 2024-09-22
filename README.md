@@ -41,7 +41,21 @@ Let's say you want to start tracking Twitch metrics. Here's how you'd go about i
 
 ### Visibility, Telemetry, Metrics
 
-Internal metrics are surfaced in a couple different ways. First, there is a `/metrics` endpoint that serves Prometheus metrics. Pretty self explanatory. This is protected by basic authentication.
+You'll want to print the schedules and/workflows to extract useful info on a case by case basis. In that case, you can open a backup `schedule-dump.json` and inspect the schema, and then construct the `jq` command to parse the output of `./cli admin schedule-dump`. Here's some commands to do that (operating on a `schedule-dump` backup file):
 
-There's also a `/plots` endpoint that serves a HTML document. Depending on the `id` query parameter,
-different plots will be served. This is also protected by basic authentication. Additionally, the data for the plots is loaded asynchronously; it is fetched from the backend by passing the `kaggo-auth-token` local storage variable as the bearer token (note that the name of this localStorage key is configurable via the `LOCAL_STORAGE_AUTH_TOKEN_KEY` env).
+```bash
+# get all IDs
+jq '.[] | .ID' schedule-dump.json
+# or better yet
+jq 'map(.ID)' schedule-dump.json
+# because it lets us naturally use select to conditionally filter
+jq 'map(select(.ID | split(" ") | .[0] == "reddit.post").ID)' schedule-dump.json
+# and create flatter and richer objects
+jq 'map(select(.ID | split(" ") | .[0] == "reddit.post") | {ID: .ID, EndAt: .Spec.EndAt, NextAt: .NextActionTimes[0]})})' schedule-dump.json
+```
+
+Internal metrics are surfaced in a couple different ways. First, the HTTP server provides a `/metrics` endpoint that serves Prometheus metrics. Pretty self explanatory. This is protected by basic authentication.
+
+There's also a `/plots` endpoint that serves a HTML document. Depending on the `id` query parameter, different plots will be served. This is also protected by basic authentication. Additionally, the data for the plots is loaded asynchronously; it is fetched from the backend by passing the `kaggo-auth-token` local storage variable as the bearer token (note that the name of this localStorage key is configurable via the `LOCAL_STORAGE_AUTH_TOKEN_KEY` env).
+
+Finally, the Kaggo worker instances also export Prometheus metrics on port `9090`. The implementation is slightly more complicated because it is wrapped with `"github.com/uber-go/tally/v4"`, which is a metrics handler implementation that "provides a common interface for emitting metrics, while letting you not worry about the velocity of metrics emission", so if that's of interest, this is a decent example.

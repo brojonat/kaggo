@@ -34,10 +34,15 @@ func dump_schedules(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile(ctx.String("file"), b, 0644)
-	if err != nil {
-		return err
+
+	// if a files was specified, write to it, otherwise write to STDOUT.
+	if ctx.String("file") != "" {
+		if err = os.WriteFile(ctx.String("file"), b, 0644); err != nil {
+			return err
+		}
+		return nil
 	}
+	fmt.Fprintf(os.Stdout, "%s", b)
 	return nil
 }
 
