@@ -52,7 +52,7 @@ func handlePing(l *slog.Logger, p *pgxpool.Pool) http.HandlerFunc {
 	}
 }
 
-// handleGetToken returns a token
+// handleIssueToken returns a token
 func handleIssueToken(l *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		email, ok := r.Context().Value(ctxKeyEmail).(string)

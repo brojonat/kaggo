@@ -87,7 +87,7 @@ func RunHTTPServer(
 
 	tc, err := client.Dial(client.Options{
 		Logger:   l,
-		HostPort: os.Getenv("TEMPORAL_HOST"),
+		HostPort: tcHost,
 	})
 	if err != nil {
 		return fmt.Errorf("could not initialize Temporal client: %w", err)

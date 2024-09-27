@@ -51,7 +51,7 @@ jq 'map(.ID)' schedule-dump.json
 # because it lets us naturally use select to conditionally filter
 jq 'map(select(.ID | split(" ") | .[0] == "reddit.post").ID)' schedule-dump.json
 # and create flatter and richer objects
-jq 'map(select(.ID | split(" ") | .[0] == "reddit.post") | {ID: .ID, EndAt: .Spec.EndAt, NextAt: .NextActionTimes[0]})})' schedule-dump.json
+jq 'map(select(.ID | split(" ") | .[0] == "reddit.post") | {ID: .ID, EndAt: .Spec.EndAt, NextAt: .NextActionTimes[0]})' schedule-dump.json
 ```
 
 Internal metrics are surfaced in a couple different ways. First, the HTTP server provides a `/metrics` endpoint that serves Prometheus metrics. Pretty self explanatory. This is protected by basic authentication.

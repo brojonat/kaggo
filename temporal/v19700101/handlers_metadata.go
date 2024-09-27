@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/jsonb"
@@ -169,6 +170,15 @@ func (a *ActivityRequester) handleYouTubeVideoMetadata(l log.Logger, status int,
 	title := iface.(string)
 
 	// channel
+	iface, err = jmespath.Search("items[0].snippet.channelId", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting channelId: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting channelId; channelId is nil")
+	}
+	channelID := iface.(string)
+
 	iface, err = jmespath.Search("items[0].snippet.channelTitle", data)
 	if err != nil {
 		return nil, fmt.Errorf("error extracting channelTitle: %w", err)
@@ -182,11 +192,12 @@ func (a *ActivityRequester) handleYouTubeVideoMetadata(l log.Logger, status int,
 		ID:          id,
 		RequestKind: RequestKindYouTubeVideo,
 		Data: jsonb.MetadataJSON{
-			ID:         id,
-			HumanLabel: title,
-			Link:       fmt.Sprintf("https://www.youtube.com/watch?v=%s", id),
-			Title:      title,
-			Owner:      channelTitle,
+			ID:                 id,
+			HumanLabel:         title,
+			Link:               fmt.Sprintf("https://www.youtube.com/watch?v=%s", id),
+			Title:              title,
+			ParentChannelID:    channelID,
+			ParentChannelTitle: channelTitle,
 		},
 	}
 	b, err = json.Marshal(payload)
@@ -277,7 +288,7 @@ func (a *ActivityRequester) handleRedditPostMetadata(l log.Logger, status int, b
 	}
 	permalink := iface.(string)
 
-	// owner
+	// author name
 	iface, err = jmespath.Search("data.children[0].data.author", data)
 	if err != nil {
 		return nil, fmt.Errorf("error extracting author: %w", err)
@@ -285,7 +296,29 @@ func (a *ActivityRequester) handleRedditPostMetadata(l log.Logger, status int, b
 	if iface == nil {
 		return nil, fmt.Errorf("error extracting author; author is nil")
 	}
-	author := iface.(string)
+	author_name := iface.(string)
+
+	// author_id may not be available in many cases (e.g., if post deleted or crossposted),
+	// so just set it if we can (don't worry about returning an error here)
+	author_id := ""
+	iface, err = jmespath.Search("data.children[0].data.author_fullname", data)
+	if err != nil {
+		l.Info(fmt.Sprintf("error extracting author_fullname: %s", err.Error()))
+	} else if iface == nil {
+		l.Info("error extracting author_fullname; author_fullname is nil")
+	} else {
+		author_id = iface.(string)
+	}
+
+	// subreddit
+	iface, err = jmespath.Search("data.children[0].data.subreddit", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting subreddit: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting subreddit; subreddit is nil")
+	}
+	subreddit := iface.(string)
 
 	// nsfw
 	iface, err = jmespath.Search("data.children[0].data.over_18", data)
@@ -309,12 +342,14 @@ func (a *ActivityRequester) handleRedditPostMetadata(l log.Logger, status int, b
 		ID:          id,
 		RequestKind: RequestKindRedditPost,
 		Data: jsonb.MetadataJSON{
-			ID:         id,
-			HumanLabel: title,
-			Link:       "https://www.reddit.com" + permalink,
-			Title:      title,
-			Owner:      author,
-			Tags:       tags,
+			ID:              id,
+			HumanLabel:      title,
+			Link:            "https://www.reddit.com" + permalink,
+			Title:           title,
+			ParentUserID:    author_id,
+			ParentUserName:  author_name,
+			ParentSubreddit: subreddit,
+			Tags:            tags,
 		},
 	}
 	b, err = json.Marshal(payload)
@@ -351,6 +386,20 @@ func (a *ActivityRequester) handleRedditCommentMetadata(l log.Logger, status int
 	}
 	permalink := iface.(string)
 
+	// link to parent post
+	iface, err = jmespath.Search("data.children[0].data.link_id", data)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting link_id: %w", err)
+	}
+	if iface == nil {
+		return nil, fmt.Errorf("error extracting link_id; link_id is nil")
+	}
+	post_id := iface.(string)
+
+	// name of the parent post from permalink
+	// e.g. "/r/{subreddit}/comments/{post-fullname}/{post-title}/{comment-fullname}/",
+	post_title := strings.Split(permalink, "/")[4]
+
 	// author
 	iface, err = jmespath.Search("data.children[0].data.author", data)
 	if err != nil {
@@ -359,7 +408,20 @@ func (a *ActivityRequester) handleRedditCommentMetadata(l log.Logger, status int
 	if iface == nil {
 		return nil, fmt.Errorf("error extracting author; author is nil")
 	}
-	author := iface.(string)
+	author_name := iface.(string)
+
+	// author_id
+	// author_id may not be available in many cases (e.g., if post deleted or crossposted),
+	// so just set it if we can (don't worry about returning an error here)
+	author_id := ""
+	iface, err = jmespath.Search("data.children[0].data.author_fullname", data)
+	if err != nil {
+		l.Info(fmt.Sprintf("error extracting author_fullname: %s", err.Error()))
+	} else if iface == nil {
+		l.Info("error extracting author_fullname; author_fullname is nil")
+	} else {
+		author_id = iface.(string)
+	}
 
 	// text
 	iface, err = jmespath.Search("data.children[0].data.body", data)
@@ -386,12 +448,15 @@ func (a *ActivityRequester) handleRedditCommentMetadata(l log.Logger, status int
 		ID:          id,
 		RequestKind: RequestKindRedditComment,
 		Data: jsonb.MetadataJSON{
-			ID:         id,
-			HumanLabel: fmt.Sprintf("Comment %s by /u/%s", id, author),
-			Owner:      author,
-			Comment:    text,
-			Link:       "https://www.reddit.com" + permalink,
-			Subreddit:  subreddit,
+			ID:              id,
+			HumanLabel:      fmt.Sprintf("Comment %s by /u/%s", id, author_name),
+			ParentUserID:    author_id,
+			ParentUserName:  author_name,
+			ParentPostID:    post_id,
+			ParentPostTitle: post_title,
+			ParentSubreddit: subreddit,
+			Comment:         text,
+			Link:            "https://www.reddit.com" + permalink,
 		},
 	}
 	b, err = json.Marshal(payload)
