@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/dbgen"
@@ -47,7 +48,7 @@ func handleRunMetadataWF(l *slog.Logger, q *dbgen.Queries, tc client.Client) htt
 		// entity that we can query before the "scheduled" workflow starts running.
 		workflowOptions := client.StartWorkflowOptions{
 			ID:          id,
-			TaskQueue:   "kaggo",
+			TaskQueue:   os.Getenv("TEMPORAL_TASK_QUEUE"),
 			RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 3},
 		}
 
@@ -120,12 +121,9 @@ func handleAddListenerSub(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 		switch data.RequestKind {
 		case kt.RequestKindYouTubeChannel:
 			err = q.InsertYouTubeChannelSubscription(r.Context(), data.ID)
-		case kt.RequestKindRedditUser:
-			err = q.InsertRedditUserSubscription(r.Context(), data.ID)
 		default:
 			writeBadRequestError(w, fmt.Errorf("unsupported request_kind %s", data.RequestKind))
 			return
-
 		}
 		if err != nil {
 			writeInternalError(l, w, err)

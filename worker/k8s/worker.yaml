@@ -7,6 +7,10 @@ spec:
   ports:
   - port: 80
     targetPort: 8080
+    name: worker
+  - port: 9090
+    targetPort: 9090
+    name: metrics
   selector:
     app: kaggo-treq-worker
 ---
@@ -17,7 +21,7 @@ metadata:
     app: kaggo-treq-worker
   name: kaggo-treq-worker
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: kaggo-treq-worker

@@ -16,19 +16,27 @@ import (
 )
 
 const (
-	RequestKindInternalRandom    = "internal.random"
-	RequestKindKaggleNotebook    = "kaggle.notebook"
-	RequestKindKaggleDataset     = "kaggle.dataset"
-	RequestKindYouTubeVideo      = "youtube.video"
-	RequestKindYouTubeChannel    = "youtube.channel"
-	RequestKindRedditPost        = "reddit.post"
-	RequestKindRedditComment     = "reddit.comment"
-	RequestKindRedditSubreddit   = "reddit.subreddit"
-	RequestKindRedditUser        = "reddit.user"
-	RequestKindTwitchClip        = "twitch.clip"
-	RequestKindTwitchVideo       = "twitch.video"
-	RequestKindTwitchStream      = "twitch.stream"
-	RequestKindTwitchUserPastDec = "twitch.user-past-dec"
+	// request kinds
+	RequestKindInternalRandom         = "internal.random"
+	RequestKindKaggleNotebook         = "kaggle.notebook"
+	RequestKindKaggleDataset          = "kaggle.dataset"
+	RequestKindYouTubeVideo           = "youtube.video"
+	RequestKindYouTubeChannel         = "youtube.channel"
+	RequestKindRedditPost             = "reddit.post"
+	RequestKindRedditComment          = "reddit.comment"
+	RequestKindRedditSubreddit        = "reddit.subreddit"
+	RequestKindRedditSubredditMonitor = "reddit.subreddit-monitor"
+	RequestKindRedditUser             = "reddit.user"
+	RequestKindRedditUserMonitor      = "reddit.user-monitor"
+	RequestKindTwitchClip             = "twitch.clip"
+	RequestKindTwitchVideo            = "twitch.video"
+	RequestKindTwitchStream           = "twitch.stream"
+	RequestKindTwitchUserPastDec      = "twitch.user-past-dec"
+	// worker prom metrics
+	MetricXRatelimitLimit     = "x-ratelimit-limit"
+	MetricXRatelimitUsed      = "x-ratelimit-used"
+	MetricXRatelimitRemaining = "x-ratelimit-remaining"
+	MetricXRatelimitReset     = "x-ratelimit-reset"
 )
 
 func GetSupportedRequestKinds() []string {
@@ -41,7 +49,9 @@ func GetSupportedRequestKinds() []string {
 		RequestKindRedditPost,
 		RequestKindRedditComment,
 		RequestKindRedditSubreddit,
+		RequestKindRedditSubredditMonitor,
 		RequestKindRedditUser,
+		RequestKindRedditUserMonitor,
 		RequestKindTwitchClip,
 		RequestKindTwitchVideo,
 		RequestKindTwitchStream,
@@ -53,10 +63,12 @@ type ActivityRedditListener struct{}
 type ActivityYouTubeListener struct{}
 
 type ActivityRequester struct {
-	RedditAuthToken    string
-	RedditAuthTokenExp time.Time
-	TwitchAuthToken    string
-	TwitchAuthTokenExp time.Time
+	RedditAuthToken            string
+	RedditAuthTokenExp         time.Time
+	RedditListenerAuthToken    string
+	RedditListenerAuthTokenExp time.Time
+	TwitchAuthToken            string
+	TwitchAuthTokenExp         time.Time
 }
 
 // This is a hook to update requests without updating the originally scheduled
@@ -89,17 +101,25 @@ func (a *ActivityRequester) prepareRequest(drp DoRequestActRequest) (*http.Reque
 	case RequestKindInternalRandom:
 		// for internal requests, just set the authorization token
 		r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("AUTH_TOKEN")))
-	case RequestKindKaggleNotebook, RequestKindKaggleDataset:
+	case
+		RequestKindKaggleNotebook,
+		RequestKindKaggleDataset:
 		// basic auth
 		r.SetBasicAuth(os.Getenv("KAGGLE_USERNAME"), os.Getenv("KAGGLE_API_KEY"))
-	case RequestKindYouTubeVideo, RequestKindYouTubeChannel:
+	case
+		RequestKindYouTubeVideo,
+		RequestKindYouTubeChannel:
 		// for youtube requests, set the non-identifier query params
 		q := r.URL.Query()
 		q.Set("part", "snippet,contentDetails,statistics")
 		q.Set("key", os.Getenv("YOUTUBE_API_KEY"))
 		r.URL.RawQuery = q.Encode()
 
-	case RequestKindRedditPost, RequestKindRedditComment, RequestKindRedditSubreddit, RequestKindRedditUser:
+	case
+		RequestKindRedditPost,
+		RequestKindRedditComment,
+		RequestKindRedditSubreddit,
+		RequestKindRedditUser:
 		// refresh key and set bearer
 		err = a.ensureValidRedditToken(time.Duration(60 * time.Second))
 		if err != nil {
@@ -107,6 +127,19 @@ func (a *ActivityRequester) prepareRequest(drp DoRequestActRequest) (*http.Reque
 		}
 		r.Header.Set("User-Agent", os.Getenv("REDDIT_USER_AGENT"))
 		r.Header.Set("Authorization", "bearer "+a.RedditAuthToken)
+	case
+		RequestKindRedditSubredditMonitor,
+		RequestKindRedditUserMonitor:
+		// refresh key and set bearer
+		err = a.ensureValidRedditListenerToken(time.Duration(60 * time.Second))
+		if err != nil {
+			return nil, err
+		}
+		r.Header.Set("User-Agent", os.Getenv("REDDIT_LISTENER_USER_AGENT"))
+		r.Header.Set("Authorization", "bearer "+a.RedditListenerAuthToken)
+		// FIXME: we should set the `after` param here, but we'd need to stick
+		// a db cursor onto this struct and start tracking the last monitored
+		// post for users and subreddits. Not worth it at the moment.
 	case RequestKindTwitchClip, RequestKindTwitchVideo, RequestKindTwitchStream, RequestKindTwitchUserPastDec:
 		err = a.ensureValidTwitchToken(time.Duration(60 * time.Second))
 		if err != nil {
@@ -135,90 +168,126 @@ func (a *ActivityRequester) DoRequest(ctx context.Context, drp DoRequestActReque
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
+
+	// return the activity result
 	res := DoRequestActResult{
-		RequestKind: drp.RequestKind,
-		StatusCode:  resp.StatusCode,
-		Body:        b,
-		InternalData: api.MetricQueryInternalData{
-			// reddit rate limits
-			XRatelimitUsed:      resp.Header.Get("X-Ratelimit-Used"),
-			XRatelimitRemaining: resp.Header.Get("X-Ratelimit-Remaining"),
-			XRatelimitReset:     resp.Header.Get("X-Ratelimit-Reset"),
-			// twitch rate limits
-			RatelimitLimit:     resp.Header.Get("Ratelimit-Limit"),
-			RatelimitRemaining: resp.Header.Get("Ratelimit-Remaining"),
-			RatelimitReset:     resp.Header.Get("Ratelimit-Reset"),
-		},
+		RequestKind:        drp.RequestKind,
+		ResponseStatusCode: resp.StatusCode,
+		ResponseBody:       b,
+		ResponseHeader:     resp.Header,
 	}
 	return &res, nil
 }
 
-// UploadMetadata will handle the response from a get metrics
-func (a *ActivityRequester) UploadMetadata(ctx context.Context, drr UploadMetadataActRequest) (*api.DefaultJSONResponse, error) {
+// UploadResponseMetadata handles the result of a DoRequest activity when that
+// request is a metadata request.
+func (a *ActivityRequester) UploadResponseMetadata(ctx context.Context, drr DoRequestActResult) (*api.DefaultJSONResponse, error) {
 	l := activity.GetLogger(ctx)
 	switch drr.RequestKind {
 	case RequestKindInternalRandom:
-		return a.handleInternalRandomMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleInternalRandomMetadata(l, drr.ResponseStatusCode, drr.ResponseBody)
 	case RequestKindYouTubeVideo:
-		return a.handleYouTubeVideoMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleYouTubeVideoMetadata(l, drr.ResponseStatusCode, drr.ResponseBody)
 	case RequestKindYouTubeChannel:
-		return a.handleYouTubeChannelMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleYouTubeChannelMetadata(l, drr.ResponseStatusCode, drr.ResponseBody)
 	case RequestKindKaggleNotebook:
-		return a.handleKaggleNotebookMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleKaggleNotebookMetadata(l, drr.ResponseStatusCode, drr.ResponseBody)
 	case RequestKindKaggleDataset:
-		return a.handleKaggleDatasetMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleKaggleDatasetMetadata(l, drr.ResponseStatusCode, drr.ResponseBody)
 	case RequestKindRedditPost:
-		return a.handleRedditPostMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleRedditPostMetadata(l, drr.ResponseStatusCode, drr.ResponseBody)
 	case RequestKindRedditComment:
-		return a.handleRedditCommentMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleRedditCommentMetadata(l, drr.ResponseStatusCode, drr.ResponseBody)
 	case RequestKindRedditSubreddit:
-		return a.handleRedditSubredditMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleRedditSubredditMetadata(l, drr.ResponseStatusCode, drr.ResponseBody)
+	case RequestKindRedditSubredditMonitor:
+		return a.handleRedditSubredditMonitorMetadata(l, drr.ResponseStatusCode, drr.ResponseBody)
 	case RequestKindRedditUser:
-		return a.handleRedditUserMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleRedditUserMetadata(l, drr.ResponseStatusCode, drr.ResponseBody)
+	case RequestKindRedditUserMonitor:
+		return a.handleRedditUserMonitorMetadata(l, drr.ResponseStatusCode, drr.ResponseBody)
 	case RequestKindTwitchClip:
-		return a.handleTwitchClipMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleTwitchClipMetadata(l, drr.ResponseStatusCode, drr.ResponseBody)
 	case RequestKindTwitchVideo:
-		return a.handleTwitchVideoMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleTwitchVideoMetadata(l, drr.ResponseStatusCode, drr.ResponseBody)
 	case RequestKindTwitchStream:
-		return a.handleTwitchStreamMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleTwitchStreamMetadata(l, drr.ResponseStatusCode, drr.ResponseBody)
 	case RequestKindTwitchUserPastDec:
-		return a.handleTwitchUserPastDecMetadata(l, drr.StatusCode, drr.Body, drr.InternalData)
+		return a.handleTwitchUserPastDecMetadata(l, drr.ResponseStatusCode, drr.ResponseBody)
+	default:
+		return nil, fmt.Errorf("unrecognized RequestKind: %s", drr.RequestKind)
+	}
+}
+
+// UploadResponseData handles the result of a DoRequest activity
+func (a *ActivityRequester) UploadResponseData(ctx context.Context, drr DoRequestActResult) (*api.DefaultJSONResponse, error) {
+	l := activity.GetLogger(ctx)
+	switch drr.RequestKind {
+	case RequestKindInternalRandom:
+		return a.handleInternalRandomMetrics(l, drr.ResponseStatusCode, drr.ResponseBody)
+	case RequestKindYouTubeVideo:
+		return a.handleYouTubeVideoMetrics(l, drr.ResponseStatusCode, drr.ResponseBody)
+	case RequestKindYouTubeChannel:
+		return a.handleYouTubeChannelMetrics(l, drr.ResponseStatusCode, drr.ResponseBody)
+	case RequestKindKaggleNotebook:
+		return a.handleKaggleNotebookMetrics(l, drr.ResponseStatusCode, drr.ResponseBody)
+	case RequestKindKaggleDataset:
+		return a.handleKaggleDatasetMetrics(l, drr.ResponseStatusCode, drr.ResponseBody)
+	case RequestKindRedditPost:
+		return a.handleRedditPostMetrics(l, drr.ResponseStatusCode, drr.ResponseBody)
+	case RequestKindRedditComment:
+		return a.handleRedditCommentMetrics(l, drr.ResponseStatusCode, drr.ResponseBody)
+	case RequestKindRedditSubreddit:
+		return a.handleRedditSubredditMetrics(l, drr.ResponseStatusCode, drr.ResponseBody)
+	case RequestKindRedditSubredditMonitor:
+		return a.handleRedditSubredditMonitorMetrics(l, drr.ResponseStatusCode, drr.ResponseBody)
+	case RequestKindRedditUser:
+		return a.handleRedditUserMetrics(l, drr.ResponseStatusCode, drr.ResponseBody)
+	case RequestKindRedditUserMonitor:
+		return a.handleRedditUserMonitorMetrics(l, drr.ResponseStatusCode, drr.ResponseBody)
+	case RequestKindTwitchClip:
+		return a.handleTwitchClipMetrics(l, drr.ResponseStatusCode, drr.ResponseBody)
+	case RequestKindTwitchVideo:
+		return a.handleTwitchVideoMetrics(l, drr.ResponseStatusCode, drr.ResponseBody)
+	case RequestKindTwitchStream:
+		return a.handleTwitchStreamMetrics(l, drr.ResponseStatusCode, drr.ResponseBody)
+	case RequestKindTwitchUserPastDec:
+		return a.handleTwitchUserPastDecMetrics(l, drr.ResponseStatusCode, drr.ResponseBody)
 	default:
 		return nil, fmt.Errorf("unrecognized RequestKind: %s", drr.RequestKind)
 	}
 }
 
 // UploadMetrics will handle the response from a get metrics request
-func (a *ActivityRequester) UploadMetrics(ctx context.Context, drr UploadMetricsActRequest) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) SetWorkerMetrics(ctx context.Context, drr DoRequestActResult) (*api.DefaultJSONResponse, error) {
 	l := activity.GetLogger(ctx)
+	mh := activity.GetMetricsHandler(ctx)
+	// Main entry point to set metrics on every response. Ideally avoid sending
+	// the response off to some other caller that may tamper with it, since
+	// we make no guarantees here.
 	switch drr.RequestKind {
-	case RequestKindInternalRandom:
-		return a.handleInternalRandomMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
-	case RequestKindYouTubeVideo:
-		return a.handleYouTubeVideoMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
-	case RequestKindYouTubeChannel:
-		return a.handleYouTubeChannelMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
-	case RequestKindKaggleNotebook:
-		return a.handleKaggleNotebookMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
-	case RequestKindKaggleDataset:
-		return a.handleKaggleDatasetMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
-	case RequestKindRedditPost:
-		return a.handleRedditPostMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
-	case RequestKindRedditComment:
-		return a.handleRedditCommentMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
-	case RequestKindRedditSubreddit:
-		return a.handleRedditSubredditMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
-	case RequestKindRedditUser:
-		return a.handleRedditUserMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
-	case RequestKindTwitchClip:
-		return a.handleTwitchClipMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
-	case RequestKindTwitchVideo:
-		return a.handleTwitchVideoMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
-	case RequestKindTwitchStream:
-		return a.handleTwitchStreamMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
-	case RequestKindTwitchUserPastDec:
-		return a.handleTwitchUserPastDecMetrics(l, drr.StatusCode, drr.Body, drr.InternalData)
-	default:
-		return nil, fmt.Errorf("unrecognized RequestKind: %s", drr.RequestKind)
+	case
+		RequestKindRedditSubreddit,
+		RequestKindRedditUser,
+		RequestKindRedditPost,
+		RequestKindRedditComment:
+		// set X-Ratelimit-Foo headers
+		labels := map[string]string{"polling_client": "reddit_poller"}
+		a.setRedditPromMetrics(l, mh.WithTags(labels), drr.ResponseHeader)
+	case
+		RequestKindRedditSubredditMonitor,
+		RequestKindRedditUserMonitor:
+		// set X-Ratelimit-Foo headers
+		labels := map[string]string{"polling_client": "reddit_monitor"}
+		a.setRedditPromMetrics(l, mh.WithTags(labels), drr.ResponseHeader)
+	case
+		RequestKindTwitchClip,
+		RequestKindTwitchVideo,
+		RequestKindTwitchStream,
+		RequestKindTwitchUserPastDec:
+		// set Ratelimit-Foo headers
+		labels := map[string]string{"polling_client": "twitch"}
+		a.setTwitchPromMetrics(l, mh.WithTags(labels), drr.ResponseHeader)
 	}
+	return &api.DefaultJSONResponse{Message: "ok"}, nil
 }

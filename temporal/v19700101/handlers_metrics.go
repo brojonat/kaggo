@@ -15,6 +15,7 @@ import (
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/jmespath/go-jmespath"
 	"go.temporal.io/sdk/log"
+	"golang.org/x/sync/errgroup"
 	"gonum.org/v1/gonum/stat"
 )
 
@@ -48,8 +49,113 @@ func uploadMetrics(l log.Logger, path string, b []byte) (*api.DefaultJSONRespons
 	return &body, nil
 }
 
+func uploadMonitorPosts(l log.Logger, b []byte) error {
+	var data interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		return fmt.Errorf("error deserializing response: %w", err)
+	}
+	// get the number of posts, then iterate over them, extracting each one and
+	// creating a corresponding schedule
+	iface, err := jmespath.Search("data.children | length(@)", data)
+	if err != nil {
+		return fmt.Errorf("error extracting post count: %w", err)
+	}
+	if iface == nil {
+		return fmt.Errorf("error extracting post count: nil length")
+	}
+	count := int(math.Round(iface.(float64)))
+
+	// iterate over the posts and create a schedule for each post. We expect the
+	// server to return 409 for most posts, but that's fine it simply means
+	// we're already following that post, so just continue on. These run
+	// concurrently; as it stands these are taking a sufficiently long time to
+	// run serially that it's causing the activity to fail due to start to close
+	// timeout errors.
+	var errg errgroup.Group
+	for i := range count {
+		errg.Go(func() error {
+			// Skip posts that are stickied but not pinned. We want to track
+			// pinned posts, because users will often pin (and sticky) new posts
+			// to the top of their profiles. We want to track these. Subreddits
+			// will sticky posts as a welcome message, and we don't want to
+			// track these.
+			iface, err = jmespath.Search(fmt.Sprintf("data.children[%d].data.stickied", i), data)
+			if err != nil {
+				return fmt.Errorf("error extracting stickied for post %d: %w", i, err)
+			}
+			if iface == nil {
+				return fmt.Errorf("error extracting stickied for post %d: nil stickied", i)
+			}
+			stickied, ok := iface.(bool)
+			if !ok {
+				l.Error("sticked assertion error", "stickied", iface)
+				stickied = false
+			}
+			iface, err = jmespath.Search(fmt.Sprintf("data.children[%d].data.pinned", i), data)
+			if err != nil {
+				return fmt.Errorf("error extracting pinned for post %d: %w", i, err)
+			}
+			if iface == nil {
+				return fmt.Errorf("error extracting pinned for post %d: nil pinned", i)
+			}
+			pinned, ok := iface.(bool)
+			if !ok {
+				l.Error("pinned assertion error", "pinned", iface)
+				pinned = false
+			}
+			if stickied && !pinned {
+				return nil
+			}
+
+			// post id
+			iface, err = jmespath.Search(fmt.Sprintf("data.children[%d].data.id", i), data)
+			if err != nil {
+				return fmt.Errorf("error extracting id for post %d: %w", i, err)
+			}
+			if iface == nil {
+				return fmt.Errorf("error extracting id for post %d: nil id", i)
+			}
+			id := iface.(string)
+			sched := GetDefaultScheduleSpec(RequestKindRedditPost, id)
+			payload := api.GenericScheduleRequestPayload{
+				RequestKind: RequestKindRedditPost,
+				ID:          id,
+				Schedule:    sched,
+			}
+			b, err := json.Marshal(payload)
+			if err != nil {
+				return fmt.Errorf("error serializing body for post %s: %w", id, err)
+			}
+			r, err := http.NewRequest(
+				http.MethodPost,
+				os.Getenv("KAGGO_ENDPOINT")+"/schedule",
+				bytes.NewReader(b),
+			)
+			if err != nil {
+				return fmt.Errorf("error creating create schedule request: %w", err)
+			}
+			r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("AUTH_TOKEN")))
+			res, err := http.DefaultClient.Do(r)
+			if err != nil {
+				return fmt.Errorf("error doing create schedule request: %w", err)
+			}
+			defer res.Body.Close()
+			// either 200 or 409 means we're good to proceed, short circuit and return early
+			if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusConflict {
+				return nil
+			}
+			b, err = io.ReadAll(res.Body)
+			if err != nil {
+				return fmt.Errorf("error reading response body for post %s: %w", id, err)
+			}
+			return fmt.Errorf("bad response (%d) uploading post: %s", res.StatusCode, b)
+		})
+	}
+	return errg.Wait()
+}
+
 // Handle RequestKindInternalRandom requests
-func (a *ActivityRequester) handleInternalRandomMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleInternalRandomMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
 		return nil, fmt.Errorf("error deserializing internal response: %w", err)
@@ -76,9 +182,8 @@ func (a *ActivityRequester) handleInternalRandomMetrics(l log.Logger, status int
 	value := iface.(float64)
 
 	payload := api.InternalMetricPayload{
-		ID:           id,
-		Value:        int(math.Round(value)),
-		InternalData: internalData,
+		ID:    id,
+		Value: int(math.Round(value)),
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
@@ -88,7 +193,7 @@ func (a *ActivityRequester) handleInternalRandomMetrics(l log.Logger, status int
 }
 
 // Handle RequestKindYouTubeVideo requests
-func (a *ActivityRequester) handleYouTubeVideoMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleYouTubeVideoMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
 		return nil, fmt.Errorf("error deserializing response: %w", err)
@@ -147,14 +252,13 @@ func (a *ActivityRequester) handleYouTubeVideoMetrics(l log.Logger, status int, 
 	}
 
 	payload := api.YouTubeVideoMetricPayload{
-		ID:           id,
-		SetViews:     true,
-		Views:        views,
-		SetComments:  true,
-		Comments:     comments,
-		SetLikes:     true,
-		Likes:        likes,
-		InternalData: internalData,
+		ID:          id,
+		SetViews:    true,
+		Views:       views,
+		SetComments: true,
+		Comments:    comments,
+		SetLikes:    true,
+		Likes:       likes,
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
@@ -164,7 +268,7 @@ func (a *ActivityRequester) handleYouTubeVideoMetrics(l log.Logger, status int, 
 }
 
 // Handle RequestKindYouTubeChannel requests
-func (a *ActivityRequester) handleYouTubeChannelMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleYouTubeChannelMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
 		return nil, fmt.Errorf("error deserializing internal response: %w", err)
@@ -230,7 +334,6 @@ func (a *ActivityRequester) handleYouTubeChannelMetrics(l log.Logger, status int
 		Subscribers:    subscribers,
 		SetVideos:      true,
 		Videos:         videos,
-		InternalData:   internalData,
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
@@ -240,7 +343,7 @@ func (a *ActivityRequester) handleYouTubeChannelMetrics(l log.Logger, status int
 }
 
 // Handle RequestKindKaggleNotebook requests
-func (a *ActivityRequester) handleKaggleNotebookMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleKaggleNotebookMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
 		return nil, fmt.Errorf("error deserializing response: %w", err)
@@ -268,10 +371,9 @@ func (a *ActivityRequester) handleKaggleNotebookMetrics(l log.Logger, status int
 
 	// upload the metrics to the server
 	payload := api.KaggleNotebookMetricPayload{
-		ID:           id,
-		SetVotes:     true,
-		Votes:        int(math.Round(votes)),
-		InternalData: internalData,
+		ID:       id,
+		SetVotes: true,
+		Votes:    int(math.Round(votes)),
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
@@ -281,7 +383,7 @@ func (a *ActivityRequester) handleKaggleNotebookMetrics(l log.Logger, status int
 }
 
 // Handle RequestKindKaggleDataset requests
-func (a *ActivityRequester) handleKaggleDatasetMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleKaggleDatasetMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
@@ -337,7 +439,6 @@ func (a *ActivityRequester) handleKaggleDatasetMetrics(l log.Logger, status int,
 		Votes:        int(math.Round(votes)),
 		SetDownloads: true,
 		Downloads:    int(math.Round(downloads)),
-		InternalData: internalData,
 	}
 
 	b, err = json.Marshal(payload)
@@ -348,7 +449,7 @@ func (a *ActivityRequester) handleKaggleDatasetMetrics(l log.Logger, status int,
 }
 
 // Handle RequestKindRedditPost requests
-func (a *ActivityRequester) handleRedditPostMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleRedditPostMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
@@ -387,12 +488,11 @@ func (a *ActivityRequester) handleRedditPostMetrics(l log.Logger, status int, b 
 
 	// upload the metrics to the server
 	payload := api.RedditPostMetricPayload{
-		ID:           id,
-		SetScore:     true,
-		Score:        int(math.Round(score)),
-		SetRatio:     true,
-		Ratio:        float32(ratio),
-		InternalData: internalData,
+		ID:       id,
+		SetScore: true,
+		Score:    int(math.Round(score)),
+		SetRatio: true,
+		Ratio:    float32(ratio),
 	}
 
 	b, err = json.Marshal(payload)
@@ -403,7 +503,7 @@ func (a *ActivityRequester) handleRedditPostMetrics(l log.Logger, status int, b 
 }
 
 // Handle RequestKindRedditComment requests
-func (a *ActivityRequester) handleRedditCommentMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleRedditCommentMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
@@ -447,7 +547,6 @@ func (a *ActivityRequester) handleRedditCommentMetrics(l log.Logger, status int,
 		Score:               int(math.Round(score)),
 		SetControversiality: true,
 		Controversiality:    float32(cont),
-		InternalData:        internalData,
 	}
 
 	b, err = json.Marshal(payload)
@@ -458,7 +557,7 @@ func (a *ActivityRequester) handleRedditCommentMetrics(l log.Logger, status int,
 }
 
 // Handle RequestKindRedditSubreddit requests
-func (a *ActivityRequester) handleRedditSubredditMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleRedditSubredditMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
 		return nil, fmt.Errorf("error deserializing response: %w", err)
@@ -500,7 +599,6 @@ func (a *ActivityRequester) handleRedditSubredditMetrics(l log.Logger, status in
 		Subscribers:        int(math.Round(subscribers)),
 		SetActiveUserCount: true,
 		ActiveUserCount:    int(math.Round(active_user_count)),
-		InternalData:       internalData,
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
@@ -509,8 +607,16 @@ func (a *ActivityRequester) handleRedditSubredditMetrics(l log.Logger, status in
 	return uploadMetrics(l, "/reddit/subreddit", b)
 }
 
+func (a *ActivityRequester) handleRedditSubredditMonitorMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
+	err := uploadMonitorPosts(l, b)
+	if err != nil {
+		return nil, fmt.Errorf("error doing subreddit monitor upload: %w", err)
+	}
+	return &api.DefaultJSONResponse{Message: "ok"}, nil
+}
+
 // Handle RequestKindRedditUser requests
-func (a *ActivityRequester) handleRedditUserMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleRedditUserMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
 		return nil, fmt.Errorf("error deserializing response: %w", err)
@@ -588,7 +694,6 @@ func (a *ActivityRequester) handleRedditUserMetrics(l log.Logger, status int, b 
 		LinkKarma:       int(link_karma),
 		SetTotalKarma:   true,
 		TotalKarma:      int(total_karma),
-		InternalData:    internalData,
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
@@ -597,8 +702,16 @@ func (a *ActivityRequester) handleRedditUserMetrics(l log.Logger, status int, b 
 	return uploadMetrics(l, "/reddit/user", b)
 }
 
+func (a *ActivityRequester) handleRedditUserMonitorMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
+	err := uploadMonitorPosts(l, b)
+	if err != nil {
+		return nil, fmt.Errorf("error doing user monitor upload: %w", err)
+	}
+	return &api.DefaultJSONResponse{Message: "ok"}, nil
+}
+
 // Handle RequestKindTwitchClip requests
-func (a *ActivityRequester) handleTwitchClipMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleTwitchClipMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
 		return nil, fmt.Errorf("error deserializing response: %w", err)
@@ -628,7 +741,6 @@ func (a *ActivityRequester) handleTwitchClipMetrics(l log.Logger, status int, b 
 		ID:           id,
 		SetViewCount: true,
 		ViewCount:    int(math.Round(vc)),
-		InternalData: internalData,
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
@@ -638,7 +750,7 @@ func (a *ActivityRequester) handleTwitchClipMetrics(l log.Logger, status int, b 
 }
 
 // Handle RequestKindTwitchVideo requests
-func (a *ActivityRequester) handleTwitchVideoMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleTwitchVideoMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
 		return nil, fmt.Errorf("error deserializing response: %w", err)
@@ -668,7 +780,6 @@ func (a *ActivityRequester) handleTwitchVideoMetrics(l log.Logger, status int, b
 		ID:           id,
 		SetViewCount: true,
 		ViewCount:    int(math.Round(vc)),
-		InternalData: internalData,
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
@@ -678,7 +789,7 @@ func (a *ActivityRequester) handleTwitchVideoMetrics(l log.Logger, status int, b
 }
 
 // Handle RequestKindTwitchStream requests
-func (a *ActivityRequester) handleTwitchStreamMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleTwitchStreamMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
 		return nil, fmt.Errorf("error deserializing response: %w", err)
@@ -722,7 +833,6 @@ func (a *ActivityRequester) handleTwitchStreamMetrics(l log.Logger, status int, 
 		ID:           user_login,
 		SetViewCount: true,
 		ViewCount:    int(math.Round(vc)),
-		InternalData: internalData,
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
@@ -732,7 +842,7 @@ func (a *ActivityRequester) handleTwitchStreamMetrics(l log.Logger, status int, 
 }
 
 // Handle RequestKindTwitchUserLastDec requests
-func (a *ActivityRequester) handleTwitchUserPastDecMetrics(l log.Logger, status int, b []byte, internalData api.MetricQueryInternalData) (*api.DefaultJSONResponse, error) {
+func (a *ActivityRequester) handleTwitchUserPastDecMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 	var body struct {
 		Data []struct {
 			UserID    string `json:"user_login"`
@@ -785,7 +895,6 @@ func (a *ActivityRequester) handleTwitchUserPastDecMetrics(l log.Logger, status 
 		MedDuration:     float32(md),
 		SetStdDuration:  true,
 		StdDuration:     float32(sd),
-		InternalData:    internalData,
 	}
 	b, err := json.Marshal(payload)
 	if err != nil {

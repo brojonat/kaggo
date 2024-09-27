@@ -23,22 +23,7 @@ func tinker_wf(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad response from server: %s", res.Status)
-	}
-	return nil
-}
-
-func initiate_reddit_listener(ctx *cli.Context) error {
-	r, err := http.NewRequest(http.MethodPost, ctx.String("endpoint")+"/run-reddit-listener-wf", nil)
-	if err != nil {
-		return err
-	}
-	r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("AUTH_TOKEN")))
-	res, err := http.DefaultClient.Do(r)
-	if err != nil {
-		return err
-	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("bad response from server: %s", res.Status)
 	}
@@ -55,6 +40,7 @@ func initiate_youtube_listener(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("bad response from server: %s", res.Status)
 	}
@@ -85,10 +71,10 @@ func run_metadata_wf(ctx *cli.Context) error {
 		if err != nil {
 			return err
 		}
+		defer res.Body.Close()
 		if res.StatusCode != http.StatusOK {
 			return fmt.Errorf("bad response from server: %s", res.Status)
 		}
-		defer res.Body.Close()
 		b, err := io.ReadAll(res.Body)
 		if err != nil {
 			return err
@@ -136,6 +122,7 @@ func run_metadata_wf(ctx *cli.Context) error {
 			fmt.Fprintf(os.Stderr, "error doing request for schedule %s: %s", id, err)
 			continue
 		}
+		defer res.Body.Close()
 		if res.StatusCode != http.StatusOK {
 			fmt.Fprintf(os.Stderr, "bad response from server for schedule %s: %s", id, res.Status)
 			continue

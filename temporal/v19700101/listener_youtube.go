@@ -26,10 +26,10 @@ func (a *ActivityYouTubeListener) GetYouTubeChannelTargets(ctx context.Context) 
 	if err != nil {
 		return YouTubeChannelSubActRequest{}, err
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		return YouTubeChannelSubActRequest{}, fmt.Errorf("bad response: %s", res.Status)
 	}
-	defer res.Body.Close()
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
 		return YouTubeChannelSubActRequest{}, err

@@ -10,8 +10,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/brojonat/kaggo/server"
 	"github.com/brojonat/kaggo/server/api"
+	kt "github.com/brojonat/kaggo/temporal/v19700101"
 	"github.com/urfave/cli/v2"
 	"go.temporal.io/sdk/client"
 )
@@ -26,18 +26,23 @@ func dump_schedules(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("bad response from server: %s", res.Status)
 	}
-	defer res.Body.Close()
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile(ctx.String("file"), b, 0644)
-	if err != nil {
-		return err
+
+	// if a files was specified, write to it, otherwise write to STDOUT.
+	if ctx.String("file") != "" {
+		if err = os.WriteFile(ctx.String("file"), b, 0644); err != nil {
+			return err
+		}
+		return nil
 	}
+	fmt.Fprintf(os.Stdout, "%s", b)
 	return nil
 }
 
@@ -55,10 +60,10 @@ func delete_all_schedules(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("bad response from server: %s", res.Status)
 	}
-	defer res.Body.Close()
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
 		return err
@@ -182,12 +187,11 @@ func load_schedules(ctx *cli.Context) error {
 func create_schedule(ctx *cli.Context) error {
 	rk := ctx.String("request-kind")
 	id := ctx.String("id")
-	sched := server.GetDefaultScheduleSpec(rk, id)
+	sched := kt.GetDefaultScheduleSpec(rk, id)
 	payload := api.GenericScheduleRequestPayload{
 		RequestKind: rk,
 		ID:          id,
 		Schedule:    sched,
-		Monitor:     ctx.Bool("monitor"),
 	}
 	b, err := json.Marshal(payload)
 	if err != nil {
@@ -294,7 +298,7 @@ func reupload_schedules(ctx *cli.Context) error {
 		payload := api.GenericScheduleRequestPayload{
 			RequestKind: rk,
 			ID:          id,
-			Schedule:    server.GetDefaultScheduleSpec(rk, id),
+			Schedule:    kt.GetDefaultScheduleSpec(rk, id),
 		}
 		b, err = json.Marshal(payload)
 		if err != nil {

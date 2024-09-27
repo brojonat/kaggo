@@ -5,66 +5,12 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/dbgen"
 	"github.com/prometheus/client_golang/prometheus"
 )
-
-func setRedditPromMetrics(l *slog.Logger, data api.MetricQueryInternalData, labels prometheus.Labels, pms map[string]prometheus.Collector) {
-
-	// Set Prometheus metrics. The ones we're interested in for Reddit are
-	// the X-Requestlimit-* header values. Range over metrics and set them.
-	mnames := []string{
-		PromMetricXRatelimitUsed,
-		PromMetricXRatelimitRemaining,
-		PromMetricXRatelimitReset,
-	}
-	for _, mk := range mnames {
-		gv, ok := pms[mk].(*prometheus.GaugeVec)
-		if !ok {
-			l.Error(fmt.Sprintf("failed to locate prom metric %s, skipping", mk))
-			continue
-		}
-
-		c, err := gv.GetMetricWith(labels)
-		if err != nil {
-			// GetMetricWith is a get-or-create operation, this should never happen
-			l.Error(fmt.Sprintf("failed to get prom metric %s with labels: %s", mk, labels))
-			continue
-		}
-
-		var val float64
-
-		switch mk {
-		case PromMetricXRatelimitUsed:
-			val, err = strconv.ParseFloat(data.XRatelimitUsed, 64)
-			if err != nil {
-				// debug only, not all requests will include rate limit headers
-				l.Debug(fmt.Sprintf("failed to parse %s float from %s", mk, data.XRatelimitUsed))
-				continue
-			}
-		case PromMetricXRatelimitRemaining:
-			val, err = strconv.ParseFloat(data.XRatelimitRemaining, 64)
-			if err != nil {
-				// debug only, not all requests will include rate limit headers
-				l.Debug(fmt.Sprintf("failed to parse %s float from %s", mk, data.XRatelimitRemaining))
-				continue
-			}
-		case PromMetricXRatelimitReset:
-			val, err = strconv.ParseFloat(data.XRatelimitReset, 64)
-			if err != nil {
-				// debug only, not all requests will include rate limit headers
-				l.Debug(fmt.Sprintf("failed to parse %s float from %s", mk, data.XRatelimitReset))
-				continue
-			}
-		}
-
-		c.Set(val)
-	}
-}
 
 func handleRedditPostMetricsGet(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -97,10 +43,6 @@ func handleRedditPostMetricsPost(l *slog.Logger, q *dbgen.Queries, pms map[strin
 			writeBadRequestError(w, err)
 			return
 		}
-
-		// prometheus
-		labels := prometheus.Labels{"source": "reddit"}
-		setRedditPromMetrics(l, p.InternalData, labels, pms)
 
 		// upload metrics
 		if p.SetScore {
@@ -160,10 +102,6 @@ func handleRedditCommentMetricsPost(l *slog.Logger, q *dbgen.Queries, pms map[st
 			return
 		}
 
-		// prometheus
-		labels := prometheus.Labels{"source": "reddit"}
-		setRedditPromMetrics(l, p.InternalData, labels, pms)
-
 		// upload metrics
 		if p.SetScore {
 			err = q.InsertRedditCommentScore(
@@ -222,10 +160,6 @@ func handleRedditSubredditMetricsPost(l *slog.Logger, q *dbgen.Queries, pms map[
 			return
 		}
 
-		// prometheus
-		labels := prometheus.Labels{"source": "reddit"}
-		setRedditPromMetrics(l, p.InternalData, labels, pms)
-
 		// upload metrics
 		if p.SetSubscribers {
 			err = q.InsertRedditSubredditSubscribers(
@@ -283,10 +217,6 @@ func handleRedditUserMetricsPost(l *slog.Logger, q *dbgen.Queries, pms map[strin
 			writeBadRequestError(w, err)
 			return
 		}
-
-		// prometheus
-		labels := prometheus.Labels{"source": "reddit"}
-		setRedditPromMetrics(l, p.InternalData, labels, pms)
 
 		// upload metrics
 		if p.SetAwardeeKarma {

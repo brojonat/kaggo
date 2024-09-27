@@ -17,7 +17,7 @@ var errUnsupportedRequestKind = errors.New("unsupported request kind")
 // Helper function that creates a request, serializes it, and computes the id
 // from the hash of the bytes. This is handy for passing to various workflows
 // called in this package.
-func makeExternalRequest(q *dbgen.Queries, rk, id string, meta bool) (*http.Request, []byte, string, error) {
+func makeExternalRequest(q *dbgen.Queries, rk, id string, isMeta bool) (*http.Request, []byte, string, error) {
 	// construct request by switching over RequestKind
 	var err error
 	var rwf *http.Request
@@ -63,8 +63,26 @@ func makeExternalRequest(q *dbgen.Queries, rk, id string, meta bool) (*http.Requ
 		if err != nil {
 			return nil, nil, "", err
 		}
+	case kt.RequestKindRedditSubredditMonitor:
+		if isMeta {
+			rwf, err = makeExternalRequestRedditSubredditMonitorMeta(id)
+		} else {
+			rwf, err = makeExternalRequestRedditSubredditMonitor(id)
+		}
+		if err != nil {
+			return nil, nil, "", err
+		}
 	case kt.RequestKindRedditUser:
 		rwf, err = makeExternalRequestRedditUser(id)
+		if err != nil {
+			return nil, nil, "", err
+		}
+	case kt.RequestKindRedditUserMonitor:
+		if isMeta {
+			rwf, err = makeExternalRequestRedditUserMonitorMeta(id)
+		} else {
+			rwf, err = makeExternalRequestRedditUserMonitor(id)
+		}
 		if err != nil {
 			return nil, nil, "", err
 		}
@@ -79,7 +97,7 @@ func makeExternalRequest(q *dbgen.Queries, rk, id string, meta bool) (*http.Requ
 			return nil, nil, "", err
 		}
 	case kt.RequestKindTwitchStream:
-		if meta {
+		if isMeta {
 			rwf, err = makeExternalRequestTwitchStreamMeta(id)
 		} else {
 			rwf, err = makeExternalRequestTwitchStream(id)
@@ -88,7 +106,7 @@ func makeExternalRequest(q *dbgen.Queries, rk, id string, meta bool) (*http.Requ
 			return nil, nil, "", err
 		}
 	case kt.RequestKindTwitchUserPastDec:
-		if meta {
+		if isMeta {
 			rwf, err = makeExternalRequestTwitchUserPastDecMeta(id)
 		} else {
 			rwf, err = makeExternalRequestTwitchUserPastDec(q, id)
@@ -118,7 +136,7 @@ func makeExternalRequest(q *dbgen.Queries, rk, id string, meta bool) (*http.Requ
 	// hash of the request. For metadata requests, the hash is omitted in favor
 	// of a string that simply indicates "metadata".
 	var rid string
-	if meta {
+	if isMeta {
 		rid = fmt.Sprintf("%s %s metadata", rk, id)
 	} else {
 		rid = fmt.Sprintf("%s %s %x", rk, id, h.Sum(nil))
@@ -222,8 +240,40 @@ func makeExternalRequestRedditSubreddit(id string) (*http.Request, error) {
 	return r, nil
 }
 
+func makeExternalRequestRedditSubredditMonitorMeta(id string) (*http.Request, error) {
+	r, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://oauth.reddit.com/r/%s/about.json", id), nil)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func makeExternalRequestRedditSubredditMonitor(id string) (*http.Request, error) {
+	r, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://oauth.reddit.com/r/%s.json", id), nil)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
 func makeExternalRequestRedditUser(id string) (*http.Request, error) {
 	r, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://oauth.reddit.com/user/%s/about.json", id), nil)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func makeExternalRequestRedditUserMonitorMeta(id string) (*http.Request, error) {
+	r, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://oauth.reddit.com/user/%s/about.json", id), nil)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func makeExternalRequestRedditUserMonitor(id string) (*http.Request, error) {
+	r, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://oauth.reddit.com/user/%s/submitted.json", id), nil)
 	if err != nil {
 		return nil, err
 	}

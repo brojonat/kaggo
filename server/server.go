@@ -31,10 +31,6 @@ var static embed.FS
 // the following keys are specified.
 const (
 	PromMetricInternalRandom        = "pm-internal-random"
-	PromMetricXRatelimitLimit       = "pm-x-ratelimit-limit"
-	PromMetricXRatelimitUsed        = "pm-x-ratelimit-used"
-	PromMetricXRatelimitRemaining   = "pm-x-ratelimit-remaining"
-	PromMetricXRatelimitReset       = "pm-x-ratelimit-reset"
 	PromMetricHandlerRequestCounter = "pm-handler-counter"
 )
 
@@ -52,34 +48,6 @@ func GetDefaultPromMetrics() map[string]prometheus.Collector {
 				Help: "A pseudo random metric",
 			},
 			[]string{"id"},
-		),
-		PromMetricXRatelimitLimit: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "x_ratelimit_limit",
-				Help: "The X-Ratelimit-Limit header from an external server.",
-			},
-			[]string{"source"},
-		),
-		PromMetricXRatelimitUsed: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "x_ratelimit_used",
-				Help: "The X-Ratelimit-Used header from an external server.",
-			},
-			[]string{"source"},
-		),
-		PromMetricXRatelimitRemaining: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "x_ratelimit_remaining",
-				Help: "The X-Ratelimit-Remaining header from an external server.",
-			},
-			[]string{"source"},
-		),
-		PromMetricXRatelimitReset: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "x_ratelimit_reset",
-				Help: "The X-Ratelimit-Reset header from an external server.",
-			},
-			[]string{"source"},
 		),
 		PromMetricHandlerRequestCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -119,7 +87,7 @@ func RunHTTPServer(
 
 	tc, err := client.Dial(client.Options{
 		Logger:   l,
-		HostPort: os.Getenv("TEMPORAL_HOST"),
+		HostPort: tcHost,
 	})
 	if err != nil {
 		return fmt.Errorf("could not initialize Temporal client: %w", err)
@@ -487,29 +455,9 @@ func getRouter(
 		withPromCounter(prcounter),
 	))
 
-	// reddit notifications
-	mux.HandleFunc("GET /notification/reddit/targets", stools.AdaptHandler(
-		handleGetRedditListenTargets(l, q),
-		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
-		withPromCounter(prcounter),
-	))
-	mux.HandleFunc("POST /notification/reddit/post", stools.AdaptHandler(
-		handleRedditPostNotification(l, q, tc),
-		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
-		withPromCounter(prcounter),
-	))
-	mux.HandleFunc("POST /run-reddit-listener-wf", stools.AdaptHandler(
-		handleRunRedditListener(l, q, tc),
-		apiMode(l, maxBytes, headers, methods, origins),
-		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
-		withPromCounter(prcounter),
-	))
-
 	// youtube notifications
 	mux.HandleFunc("GET /notification/youtube/targets", stools.AdaptHandler(
-		handleGetYouTubeListenTargets(l, q),
+		handleGetYouTubeWebSubTargets(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),
 		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),

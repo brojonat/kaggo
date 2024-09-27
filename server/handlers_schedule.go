@@ -7,113 +7,19 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
-	"time"
+	"sync"
 
 	"github.com/brojonat/kaggo/server/api"
 	"github.com/brojonat/kaggo/server/db/dbgen"
 	kt "github.com/brojonat/kaggo/temporal/v19700101"
+	"github.com/brojonat/server-tools/stools"
 	"go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
 )
-
-func GetDefaultScheduleSpec(rk, id string) client.ScheduleSpec {
-	var s client.ScheduleSpec
-
-	// first switch over request kinds to get the base schedule
-	switch rk {
-	case kt.RequestKindInternalRandom:
-		// internal queries are frequent since they're cheap
-		s = client.ScheduleSpec{
-			Calendars: []client.ScheduleCalendarSpec{
-				{
-					Second:  []client.ScheduleRange{{Start: 0, End: 59, Step: 30}},
-					Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 1}},
-					Hour:    []client.ScheduleRange{{Start: 0, End: 23, Step: 1}},
-					Comment: "every 30 seconds, no jitter",
-				},
-			},
-		}
-	case kt.RequestKindYouTubeChannel, kt.RequestKindYouTubeVideo:
-		// do youtube queries every 10 minutes; high res isn't super necessary,
-		// we have a lot of IDs to query, and the rate limit is pretty much fixed.
-		s = client.ScheduleSpec{
-			Calendars: []client.ScheduleCalendarSpec{
-				{
-					Second:  []client.ScheduleRange{{Start: 0}},
-					Minute:  []client.ScheduleRange{{Start: 0}},
-					Hour:    []client.ScheduleRange{{Start: 0, End: 23, Step: 1}},
-					Comment: "every hour, with an hour of jitter",
-				},
-			},
-			Jitter: 60 * 60 * 1e9,
-		}
-	case kt.RequestKindTwitchStream:
-		// do twitch stream queries every minute
-		s = client.ScheduleSpec{
-			Calendars: []client.ScheduleCalendarSpec{
-				{
-					Second:  []client.ScheduleRange{{Start: 0}},
-					Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 1}},
-					Hour:    []client.ScheduleRange{{Start: 0, End: 23, Step: 1}},
-					Comment: "every minute, with a minute of jitter",
-				},
-			},
-			Jitter: 60 * 1e9,
-		}
-	default:
-		// default to every 15 minutes
-		s = client.ScheduleSpec{
-			Calendars: []client.ScheduleCalendarSpec{
-				{
-					Second:  []client.ScheduleRange{{Start: 0}},
-					Minute:  []client.ScheduleRange{{Start: 0, End: 59, Step: 15}},
-					Hour:    []client.ScheduleRange{{Start: 0, End: 23}},
-					Comment: "every 15 minutes with 15 minutes of jitter",
-				},
-			},
-			Jitter: 15 * 60 * 1e9,
-		}
-	}
-
-	// now apply the EndAt depending on the RequestKind
-	switch rk {
-	case
-		// these schedules should run indefinitely; this is the default behavior
-		kt.RequestKindInternalRandom,
-		kt.RequestKindKaggleNotebook,
-		kt.RequestKindKaggleDataset,
-		kt.RequestKindRedditSubreddit,
-		kt.RequestKindRedditUser,
-		kt.RequestKindYouTubeChannel,
-		kt.RequestKindTwitchStream,
-		kt.RequestKindTwitchUserPastDec:
-		// this is a no-op
-
-	case
-		// these schedules should run for an intermediate amount of time
-		kt.RequestKindRedditPost,
-		kt.RequestKindYouTubeVideo,
-		kt.RequestKindTwitchVideo:
-		// run for 4 weeks
-		s.EndAt = time.Now().Add(4 * 7 * 24 * time.Hour)
-
-	case
-		// these schedules are relatively short lived and should terminate after
-		// a relatively short time
-		kt.RequestKindRedditComment,
-		kt.RequestKindTwitchClip:
-		// run for 1 week
-		s.EndAt = time.Now().Add(7 * 24 * time.Hour)
-
-	default:
-		// this is a no-op
-	}
-
-	return s
-}
 
 func handleGetSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -143,6 +49,7 @@ func handleGetSchedule(l *slog.Logger, tc client.Client) http.HandlerFunc {
 
 // create a schedule to query an external api based on the user submitted data
 func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) http.HandlerFunc {
+	seen := sync.Map{}
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		claims, ok := r.Context().Value(ctxKeyJWT).(*authJWTClaims)
@@ -165,7 +72,45 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 			return
 		}
 
-		// prepare the request to pass to the metadata workflow
+		// We have a local cache to deal with duplicate schedule creation requests. This
+		// doesn't have to be perfect, but it'll get us 90% of the way there.
+		// The service will get restarted frequently enough that this shouldn't
+		// grow _too_ large, and we can impose limits in the future if needed.
+		_, _, id, err := makeExternalRequest(q, body.RequestKind, body.ID, false)
+		if err != nil {
+			if errors.Is(err, errUnsupportedRequestKind) {
+				writeBadRequestError(w, fmt.Errorf("%w: %s", err, body.RequestKind))
+				return
+			}
+			writeInternalError(l, w, err)
+			return
+		}
+		// First check the cache to see if we've already debounced this schedule
+		// creation request.
+		_, ok = seen.Load(id)
+		if ok {
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(api.DefaultJSONResponse{Error: "schedule already running"})
+			return
+		}
+		// Now see if the schedule exists in the temporal server. Non-running
+		// schedules should return an error. If it does exist, err will be nil,
+		// so add it to the cache and return a StatusConflict.
+		_, err = tc.ScheduleClient().GetHandle(r.Context(), id).Describe(r.Context())
+		if err == nil {
+			seen.Store(id, struct{}{})
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(api.DefaultJSONResponse{Error: "schedule already running"})
+			return
+		}
+
+		// FIXME: in the future we can check the metadata table to see if this
+		// is a metric that was already tracked, and if so, we can return early
+		// UNLESS the user passes the appropriate flag in the body.
+
+		// Execute a workflow that will fetch the metadata and post it back to the server.
+		// this will be a good litmus test for whether or not the client submitted a "good"
+		// entity that we can query before the long polling workflow starts running.
 		_, serialReq, id, err := makeExternalRequest(q, body.RequestKind, body.ID, true)
 		if err != nil {
 			if errors.Is(err, errUnsupportedRequestKind) {
@@ -175,13 +120,9 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 			writeInternalError(l, w, err)
 			return
 		}
-
-		// Execute a workflow that will fetch the metadata and post it back to the server.
-		// this will be a good litmus test for whether or not the client submitted a "good"
-		// entity that we can query before the "scheduled" workflow starts running.
 		workflowOptions := client.StartWorkflowOptions{
 			ID:          id,
-			TaskQueue:   "kaggo",
+			TaskQueue:   os.Getenv("TEMPORAL_TASK_QUEUE"),
 			RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 3},
 		}
 
@@ -238,7 +179,7 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 				Spec: sched,
 				Action: &client.ScheduleWorkflowAction{
 					ID:        id,
-					TaskQueue: "kaggo",
+					TaskQueue: os.Getenv("TEMPORAL_TASK_QUEUE"),
 					Workflow:  kt.DoPollingRequestWF,
 					Args: []interface{}{kt.DoPollingRequestWFRequest{
 						RequestKind: body.RequestKind, Serial: serialReq}},
@@ -255,39 +196,37 @@ func handleCreateSchedule(l *slog.Logger, q *dbgen.Queries, tc client.Client) ht
 			return
 		}
 
-		// add the metric to the user
-		p := dbgen.GrantMetricToUserParams{
-			Email:       claims.Email,
-			RequestKind: body.RequestKind,
-			ID:          body.ID,
-		}
-		if err = q.GrantMetricToUser(r.Context(), p); err != nil {
+		// the IDs are case sensitive; we need to fetch the "true" ID that was
+		// inserted, because the user could have provided a casing that the
+		// external service gracefully handled
+		m, err := q.GetMetadatum(
+			r.Context(),
+			dbgen.GetMetadatumParams{RequestKind: body.RequestKind, ID: body.ID},
+		)
+		if err != nil {
 			l.Error(
-				"unable to grant metric to user",
+				"unable to fetch metadata needed to grant metric",
+				"error", err.Error(),
 				"email", claims.Email,
 				"request_kind", body.RequestKind,
 				"id", body.ID,
 			)
-		}
-
-		// finally, for certain request types, we can opt to monitor the id for
-		// new submissions (reddit.users can be monitored for posts and youtube.channels
-		// can be monitored for videos).
-		if body.Monitor {
-			switch body.RequestKind {
-			case kt.RequestKindYouTubeChannel:
-				err = q.InsertYouTubeChannelSubscription(r.Context(), body.ID)
-			case kt.RequestKindRedditUser:
-				err = q.InsertYouTubeChannelSubscription(r.Context(), body.ID)
-			default:
-				err = fmt.Errorf("RequestKind %s doesn't have monitoring support", body.RequestKind)
+		} else {
+			// add the metric to the user; it's possible the user already has this
+			// metric granted, so check for that error
+			p := dbgen.GrantMetricToUserParams{
+				Email:       claims.Email,
+				RequestKind: body.RequestKind,
+				ID:          m.ID, // uses the "true" ID
 			}
-			if err != nil {
+			err = q.GrantMetricToUser(r.Context(), p)
+			if err != nil && !stools.IsPGError(err, stools.PGErrorUniqueViolation) {
 				l.Error(
-					"error setting up monitoring",
+					"unable to grant metric to user",
+					"error", err.Error(),
+					"email", claims.Email,
 					"request_kind", body.RequestKind,
 					"id", body.ID,
-					"error", err.Error(),
 				)
 			}
 		}

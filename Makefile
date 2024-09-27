@@ -5,11 +5,11 @@ define setup_env
 endef
 
 build-cli:
-	go build -o ./cli cmd/*.go
+	go build -o ./cli cmd/kaggo/*.go
 
 build-push-cli:
 	$(call setup_env, server/.env)
-	CGO_ENABLED=0 GOOS=linux go build -o ./cli cmd/*.go
+	CGO_ENABLED=0 GOOS=linux go build -o ./cli cmd/kaggo/*.go
 	docker build -f Dockerfile -t ${CLI_IMG_TAG} .
 	docker push ${CLI_IMG_TAG}
 
@@ -66,7 +66,6 @@ deploy-worker:
 initialize-listeners:
 	$(call setup_env, server/.env)
 	@$(MAKE) build-cli
-	./cli admin listener initiate-reddit-listener --endpoint https://api.kaggo.brojonat.com
 	./cli admin listener initiate-youtube-listener --endpoint https://api.kaggo.brojonat.com
 
 deploy-all:

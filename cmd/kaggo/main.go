@@ -55,10 +55,10 @@ func main() {
 								Usage: "Add user",
 								Flags: []cli.Flag{
 									&cli.StringFlag{
-										Name:     "endpoint",
-										Aliases:  []string{"end", "e"},
-										Required: true,
-										Usage:    "Kaggo server endpoint",
+										Name:    "endpoint",
+										Aliases: []string{"end", "e"},
+										Value:   "https://api.kaggo.brojonat.com",
+										Usage:   "Kaggo server endpoint",
 									},
 									&cli.StringFlag{
 										Name:     "email",
@@ -75,10 +75,10 @@ func main() {
 								Usage: "Delete user",
 								Flags: []cli.Flag{
 									&cli.StringFlag{
-										Name:     "endpoint",
-										Aliases:  []string{"end", "e"},
-										Required: true,
-										Usage:    "Kaggo server endpoint",
+										Name:    "endpoint",
+										Aliases: []string{"end", "e"},
+										Value:   "https://api.kaggo.brojonat.com",
+										Usage:   "Kaggo server endpoint",
 									},
 									&cli.StringFlag{
 										Name:     "email",
@@ -95,10 +95,10 @@ func main() {
 								Usage: "Grant a metric to a user",
 								Flags: []cli.Flag{
 									&cli.StringFlag{
-										Name:     "endpoint",
-										Aliases:  []string{"end", "e"},
-										Required: true,
-										Usage:    "Kaggo server endpoint",
+										Name:    "endpoint",
+										Aliases: []string{"end", "e"},
+										Value:   "https://api.kaggo.brojonat.com",
+										Usage:   "Kaggo server endpoint",
 									},
 									&cli.StringFlag{
 										Name:     "email",
@@ -132,10 +132,10 @@ func main() {
 								Usage: "Remove a metric from a user",
 								Flags: []cli.Flag{
 									&cli.StringFlag{
-										Name:     "endpoint",
-										Aliases:  []string{"end", "e"},
-										Required: true,
-										Usage:    "Kaggo server endpoint",
+										Name:    "endpoint",
+										Aliases: []string{"end", "e"},
+										Value:   "https://api.kaggo.brojonat.com",
+										Usage:   "Kaggo server endpoint",
 									},
 									&cli.StringFlag{
 										Name:     "email",
@@ -175,10 +175,10 @@ func main() {
 								Usage: "Send a POST request to initiate a workflow that listens to Reddit",
 								Flags: []cli.Flag{
 									&cli.StringFlag{
-										Name:     "endpoint",
-										Aliases:  []string{"end", "e"},
-										Required: true,
-										Usage:    "Kaggo server endpoint",
+										Name:    "endpoint",
+										Aliases: []string{"end", "e"},
+										Value:   "https://api.kaggo.brojonat.com",
+										Usage:   "Kaggo server endpoint",
 									},
 									&cli.StringFlag{
 										Name:     "request-kind",
@@ -198,29 +198,14 @@ func main() {
 								},
 							},
 							{
-								Name:  "initiate-reddit-listener",
-								Usage: "Send a POST request to initiate a workflow that listens to Reddit",
-								Flags: []cli.Flag{
-									&cli.StringFlag{
-										Name:     "endpoint",
-										Aliases:  []string{"end", "e"},
-										Required: true,
-										Usage:    "Kaggo server endpoint",
-									},
-								},
-								Action: func(ctx *cli.Context) error {
-									return initiate_reddit_listener(ctx)
-								},
-							},
-							{
 								Name:  "initiate-youtube-listener",
 								Usage: "Send a POST request to initiate a workflow that listens to YouTube",
 								Flags: []cli.Flag{
 									&cli.StringFlag{
-										Name:     "endpoint",
-										Aliases:  []string{"end", "e"},
-										Required: true,
-										Usage:    "Kaggo server endpoint",
+										Name:    "endpoint",
+										Aliases: []string{"end", "e"},
+										Value:   "https://api.kaggo.brojonat.com",
+										Usage:   "Kaggo server endpoint",
 									},
 								},
 								Action: func(ctx *cli.Context) error {
@@ -238,10 +223,10 @@ func main() {
 								Usage: "Create a schedule",
 								Flags: []cli.Flag{
 									&cli.StringFlag{
-										Name:     "endpoint",
-										Aliases:  []string{"end", "e"},
-										Required: true,
-										Usage:    "Kaggo server endpoint",
+										Name:    "endpoint",
+										Aliases: []string{"end", "e"},
+										Value:   "https://api.kaggo.brojonat.com",
+										Usage:   "Kaggo server endpoint",
 									},
 									&cli.StringFlag{
 										Name:     "request-kind",
@@ -255,11 +240,6 @@ func main() {
 										Required: true,
 										Usage:    "Identifier for the schedule",
 									},
-									&cli.BoolFlag{
-										Name:    "monitor",
-										Aliases: []string{"m"},
-										Usage:   "Monitor this id for new submissions (only applies to youtube.channel and reddit.user)",
-									},
 								},
 								Action: func(ctx *cli.Context) error {
 									return create_schedule(ctx)
@@ -270,10 +250,10 @@ func main() {
 								Usage: "Delete a schedule",
 								Flags: []cli.Flag{
 									&cli.StringFlag{
-										Name:     "endpoint",
-										Aliases:  []string{"end", "e"},
-										Required: true,
-										Usage:    "Kaggo server endpoint",
+										Name:    "endpoint",
+										Aliases: []string{"end", "e"},
+										Value:   "https://api.kaggo.brojonat.com",
+										Usage:   "Kaggo server endpoint",
 									},
 									&cli.StringFlag{
 										Name:     "schedule-id",
@@ -291,16 +271,15 @@ func main() {
 								Usage: "Dump schedules to file",
 								Flags: []cli.Flag{
 									&cli.StringFlag{
-										Name:     "endpoint",
-										Aliases:  []string{"end", "e"},
-										Required: true,
-										Usage:    "Kaggo server endpoint",
+										Name:    "endpoint",
+										Aliases: []string{"end", "e"},
+										Value:   "https://api.kaggo.brojonat.com",
+										Usage:   "Kaggo server endpoint",
 									},
 									&cli.StringFlag{
-										Name:     "file",
-										Aliases:  []string{"f"},
-										Required: true,
-										Usage:    "Output file location",
+										Name:    "file",
+										Aliases: []string{"f"},
+										Usage:   "Output file location",
 									},
 								},
 								Action: func(ctx *cli.Context) error {
@@ -312,10 +291,10 @@ func main() {
 								Usage: "Load schedules from file",
 								Flags: []cli.Flag{
 									&cli.StringFlag{
-										Name:     "endpoint",
-										Aliases:  []string{"end", "e"},
-										Required: true,
-										Usage:    "Kaggo server endpoint",
+										Name:    "endpoint",
+										Aliases: []string{"end", "e"},
+										Value:   "https://api.kaggo.brojonat.com",
+										Usage:   "Kaggo server endpoint",
 									},
 									&cli.StringFlag{
 										Name:     "file",
@@ -333,10 +312,10 @@ func main() {
 								Usage: "Delete and reupload schedules of the supplied type.",
 								Flags: []cli.Flag{
 									&cli.StringFlag{
-										Name:     "endpoint",
-										Aliases:  []string{"end", "e"},
-										Required: true,
-										Usage:    "Kaggo server endpoint",
+										Name:    "endpoint",
+										Aliases: []string{"end", "e"},
+										Value:   "https://api.kaggo.brojonat.com",
+										Usage:   "Kaggo server endpoint",
 									},
 									&cli.StringFlag{
 										Name:     "file",
@@ -360,10 +339,10 @@ func main() {
 								Usage: "Delete all schedules. Be sure to dump a backup first!",
 								Flags: []cli.Flag{
 									&cli.StringFlag{
-										Name:     "endpoint",
-										Aliases:  []string{"end", "e"},
-										Required: true,
-										Usage:    "Kaggo server endpoint",
+										Name:    "endpoint",
+										Aliases: []string{"end", "e"},
+										Value:   "https://api.kaggo.brojonat.com",
+										Usage:   "Kaggo server endpoint",
 									},
 								},
 								Action: func(ctx *cli.Context) error {
@@ -381,10 +360,10 @@ func main() {
 								Usage: "Send a POST request to initiate a metadata workflow",
 								Flags: []cli.Flag{
 									&cli.StringFlag{
-										Name:     "endpoint",
-										Aliases:  []string{"end", "e"},
-										Required: true,
-										Usage:    "Kaggo server endpoint",
+										Name:    "endpoint",
+										Aliases: []string{"end", "e"},
+										Value:   "https://api.kaggo.brojonat.com",
+										Usage:   "Kaggo server endpoint",
 									},
 									&cli.StringFlag{
 										Name:     "request-kind",
@@ -412,10 +391,10 @@ func main() {
 								Usage: "Send a POST request to initiate a tinkering workflow",
 								Flags: []cli.Flag{
 									&cli.StringFlag{
-										Name:     "endpoint",
-										Aliases:  []string{"end", "e"},
-										Required: true,
-										Usage:    "Kaggo server endpoint",
+										Name:    "endpoint",
+										Aliases: []string{"end", "e"},
+										Value:   "https://api.kaggo.brojonat.com",
+										Usage:   "Kaggo server endpoint",
 									},
 								},
 								Action: func(ctx *cli.Context) error {
