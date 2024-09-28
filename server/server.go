@@ -224,6 +224,12 @@ func getRouter(
 		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
 		withPromCounter(prcounter),
 	))
+	mux.HandleFunc("GET /metadata/children", stools.AdaptHandler(
+		handleGetChildrenMetadata(l, q),
+		apiMode(l, maxBytes, headers, methods, origins),
+		atLeastOneAuth(bearerAuthorizerCtxSetToken(getSecretKey)),
+		withPromCounter(prcounter),
+	))
 	mux.HandleFunc("POST /metadata", stools.AdaptHandler(
 		handlePostMetricMetadata(l, q),
 		apiMode(l, maxBytes, headers, methods, origins),

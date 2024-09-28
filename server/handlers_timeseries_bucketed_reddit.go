@@ -254,10 +254,12 @@ func handleGetRedditSubredditTimeSeriesByIDsBucketed(l *slog.Logger, q *dbgen.Qu
 
 func handleGetRedditUserTimeSeriesByIDsBucketed(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// parse bucket_size, default to 1 hour
 		bs := r.URL.Query().Get("bucket_size")
 		if bs == "" {
 			bs = "60m"
 		}
+		// support both id=1&id=2 as well as ids=1,2
 		ids := r.URL.Query()["id"]
 		if len(ids) == 0 {
 			idstr := r.URL.Query().Get("ids")

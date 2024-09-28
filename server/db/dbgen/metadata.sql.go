@@ -11,6 +11,66 @@ import (
 	jsonb "github.com/brojonat/kaggo/server/db/jsonb"
 )
 
+const getChildrenMetadataByID = `-- name: GetChildrenMetadataByID :many
+SELECT
+    m.id AS username,
+    m.request_kind AS "parent_request_kind",
+    children.id AS child_id,
+    children.request_kind AS "child_request_kind",
+    children."data" AS data
+FROM metadata m
+LEFT JOIN (
+	SELECT
+		id AS id,
+        m2.request_kind AS request_kind,
+		m2."data" AS "data",
+		m2."data" ->> 'parent_user_name' AS parent_id
+	FROM metadata m2
+	WHERE m2.request_kind = $1
+) children ON m.id = children.parent_id
+WHERE m.id = $2 AND m.request_kind = $3
+`
+
+type GetChildrenMetadataByIDParams struct {
+	ChildRequestKind  string `json:"child_request_kind"`
+	ID                string `json:"id"`
+	ParentRequestKind string `json:"parent_request_kind"`
+}
+
+type GetChildrenMetadataByIDRow struct {
+	Username          string             `json:"username"`
+	ParentRequestKind string             `json:"parent_request_kind"`
+	ChildID           string             `json:"child_id"`
+	ChildRequestKind  string             `json:"child_request_kind"`
+	Data              jsonb.MetadataJSON `json:"data"`
+}
+
+func (q *Queries) GetChildrenMetadataByID(ctx context.Context, arg GetChildrenMetadataByIDParams) ([]GetChildrenMetadataByIDRow, error) {
+	rows, err := q.db.Query(ctx, getChildrenMetadataByID, arg.ChildRequestKind, arg.ID, arg.ParentRequestKind)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetChildrenMetadataByIDRow
+	for rows.Next() {
+		var i GetChildrenMetadataByIDRow
+		if err := rows.Scan(
+			&i.Username,
+			&i.ParentRequestKind,
+			&i.ChildID,
+			&i.ChildRequestKind,
+			&i.Data,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getMetadataByIDs = `-- name: GetMetadataByIDs :many
 SELECT id, request_kind, data
 FROM metadata

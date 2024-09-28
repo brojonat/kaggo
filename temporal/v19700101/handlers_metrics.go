@@ -158,26 +158,26 @@ func uploadMonitorPosts(l log.Logger, b []byte) error {
 func (a *ActivityRequester) handleInternalRandomMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
-		return nil, fmt.Errorf("error deserializing internal response: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error deserializing internal response: %w", err)}
 	}
 
 	// id
 	iface, err := jmespath.Search("id", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting id: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting id: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting id; id is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting id; id is nil")}
 	}
 	id := iface.(string)
 
 	// value
 	iface, err = jmespath.Search("value", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting value: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting value: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting value; value is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting value; value is nil")}
 	}
 	value := iface.(float64)
 
@@ -187,7 +187,7 @@ func (a *ActivityRequester) handleInternalRandomMetrics(l log.Logger, status int
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("error serializing upload data: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error serializing upload data: %w", err)}
 	}
 	return uploadMetrics(l, "/internal/metrics", b)
 }
@@ -196,59 +196,59 @@ func (a *ActivityRequester) handleInternalRandomMetrics(l log.Logger, status int
 func (a *ActivityRequester) handleYouTubeVideoMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
-		return nil, fmt.Errorf("error deserializing response: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error deserializing response: %w", err)}
 	}
 
 	// id
 	iface, err := jmespath.Search("items[0].id", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting id: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting id: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting id; id is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting id; id is nil")}
 	}
 	id := iface.(string)
 
 	// views
 	iface, err = jmespath.Search("items[0].statistics.viewCount", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting views: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting views: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting views; views is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting views; views is nil")}
 	}
 	viewsStr := iface.(string)
 	views, err := strconv.Atoi(viewsStr)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing views")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error parsing views")}
 	}
 
 	// comments
 	iface, err = jmespath.Search("items[0].statistics.commentCount", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting commentCount: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting commentCount: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting commentCount; commentCount is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting commentCount; commentCount is nil")}
 	}
 	commentsStr := iface.(string)
 	comments, err := strconv.Atoi(commentsStr)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing comments")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error parsing comments")}
 	}
 
 	// likes
 	iface, err = jmespath.Search("items[0].statistics.likeCount", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting likeCount: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting likeCount: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting likeCount; likeCount is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting likeCount; likeCount is nil")}
 	}
 	likesStr := iface.(string)
 	likes, err := strconv.Atoi(likesStr)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing likes")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error parsing likes")}
 	}
 
 	payload := api.YouTubeVideoMetricPayload{
@@ -262,7 +262,7 @@ func (a *ActivityRequester) handleYouTubeVideoMetrics(l log.Logger, status int, 
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("error serializing upload data: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error serializing upload data: %w", err)}
 	}
 	return uploadMetrics(l, "/youtube/video", b)
 }
@@ -271,59 +271,59 @@ func (a *ActivityRequester) handleYouTubeVideoMetrics(l log.Logger, status int, 
 func (a *ActivityRequester) handleYouTubeChannelMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
-		return nil, fmt.Errorf("error deserializing internal response: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error deserializing internal response: %w", err)}
 	}
 
 	// id
 	iface, err := jmespath.Search("items[0].id", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting id: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting id: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting id; id is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting id; id is nil")}
 	}
 	id := iface.(string)
 
 	// views
 	iface, err = jmespath.Search("items[0].statistics.viewCount", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting views: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting views: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting views; views is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting views; views is nil")}
 	}
 	viewsStr := iface.(string)
 	views, err := strconv.Atoi(viewsStr)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing views")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error parsing views")}
 	}
 
 	// subscribers
 	iface, err = jmespath.Search("items[0].statistics.subscriberCount", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting subscriberCount: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting subscriberCount: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting subscriberCount; subscriberCount is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting subscriberCount; subscriberCount is nil")}
 	}
 	subStr := iface.(string)
 	subscribers, err := strconv.Atoi(subStr)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing subscribers")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error parsing subscribers")}
 	}
 
 	// videos
 	iface, err = jmespath.Search("items[0].statistics.videoCount", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting videoCount: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting videoCount: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting videoCount; videoCount is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting videoCount; videoCount is nil")}
 	}
 	videosStr := iface.(string)
 	videos, err := strconv.Atoi(videosStr)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing videos")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error parsing videos")}
 	}
 
 	payload := api.YouTubeChannelMetricPayload{
@@ -337,7 +337,7 @@ func (a *ActivityRequester) handleYouTubeChannelMetrics(l log.Logger, status int
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("error serializing upload data: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error serializing upload data: %w", err)}
 	}
 	return uploadMetrics(l, "/youtube/channel", b)
 }
@@ -346,26 +346,26 @@ func (a *ActivityRequester) handleYouTubeChannelMetrics(l log.Logger, status int
 func (a *ActivityRequester) handleKaggleNotebookMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
-		return nil, fmt.Errorf("error deserializing response: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error deserializing response: %w", err)}
 	}
 
 	// id
 	iface, err := jmespath.Search("[0].ref", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting ref: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting ref: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting ref; ref is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting ref; ref is nil")}
 	}
 	id := iface.(string)
 
 	// votes
 	iface, err = jmespath.Search("[0].totalVotes", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting votes: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting votes: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting totalVotes; totalVotes is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting totalVotes; totalVotes is nil")}
 	}
 	votes := iface.(float64)
 
@@ -377,7 +377,7 @@ func (a *ActivityRequester) handleKaggleNotebookMetrics(l log.Logger, status int
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("error serializing upload data: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error serializing upload data: %w", err)}
 	}
 	return uploadMetrics(l, "/kaggle/notebook", b)
 }
@@ -387,46 +387,46 @@ func (a *ActivityRequester) handleKaggleDatasetMetrics(l log.Logger, status int,
 
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
-		return nil, fmt.Errorf("error deserializing response: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error deserializing response: %w", err)}
 	}
 
 	// id
 	iface, err := jmespath.Search("[0].ref", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting ref: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting ref: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting ref; ref is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting ref; ref is nil")}
 	}
 	id := iface.(string)
 
 	// views
 	iface, err = jmespath.Search("[0].viewCount", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting viewCount: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting viewCount: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting viewCount; viewCount is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting viewCount; viewCount is nil")}
 	}
 	views := iface.(float64)
 
 	// votes
 	iface, err = jmespath.Search("[0].voteCount", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting votes: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting votes: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting voteCount; voteCount is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting voteCount; voteCount is nil")}
 	}
 	votes := iface.(float64)
 
 	// downloads
 	iface, err = jmespath.Search("[0].downloadCount", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting downloadCount: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting downloadCount: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting downloadCount; downloadCount is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting downloadCount; downloadCount is nil")}
 	}
 	downloads := iface.(float64)
 
@@ -443,7 +443,7 @@ func (a *ActivityRequester) handleKaggleDatasetMetrics(l log.Logger, status int,
 
 	b, err = json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("error serializing upload data: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error serializing upload data: %w", err)}
 	}
 	return uploadMetrics(l, "/kaggle/dataset", b)
 }
@@ -453,36 +453,36 @@ func (a *ActivityRequester) handleRedditPostMetrics(l log.Logger, status int, b 
 
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
-		return nil, fmt.Errorf("error deserializing response: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error deserializing response: %w", err)}
 	}
 
 	// id
 	iface, err := jmespath.Search("data.children[0].data.id", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting id: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting id: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting id; id is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting id; id is nil")}
 	}
 	id := iface.(string)
 
 	// score
 	iface, err = jmespath.Search("data.children[0].data.score", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting score: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting score: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting score; score is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting score; score is nil")}
 	}
 	score := iface.(float64)
 
 	// ratio
 	iface, err = jmespath.Search("data.children[0].data.upvote_ratio", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting upvote_ratio: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting upvote_ratio: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting upvote_ratio; upvote_ratio is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting upvote_ratio; upvote_ratio is nil")}
 	}
 	ratio := iface.(float64)
 
@@ -497,7 +497,7 @@ func (a *ActivityRequester) handleRedditPostMetrics(l log.Logger, status int, b 
 
 	b, err = json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("error serializing upload data: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error serializing upload data: %w", err)}
 	}
 	return uploadMetrics(l, "/reddit/post", b)
 }
@@ -507,36 +507,36 @@ func (a *ActivityRequester) handleRedditCommentMetrics(l log.Logger, status int,
 
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
-		return nil, fmt.Errorf("error deserializing response: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error deserializing response: %w", err)}
 	}
 
 	// id
 	iface, err := jmespath.Search("data.children[0].data.id", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting id: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting id: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting id; id is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting id; id is nil")}
 	}
 	id := iface.(string)
 
 	// score
 	iface, err = jmespath.Search("data.children[0].data.score", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting score: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting score: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting score; score is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting score; score is nil")}
 	}
 	score := iface.(float64)
 
 	// controversiality
 	iface, err = jmespath.Search("data.children[0].data.controversiality", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting id: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting id: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting controversiality; controversiality is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting controversiality; controversiality is nil")}
 	}
 	cont := iface.(float64)
 
@@ -551,7 +551,7 @@ func (a *ActivityRequester) handleRedditCommentMetrics(l log.Logger, status int,
 
 	b, err = json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("error serializing upload data: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error serializing upload data: %w", err)}
 	}
 	return uploadMetrics(l, "/reddit/comment", b)
 }
@@ -560,35 +560,35 @@ func (a *ActivityRequester) handleRedditCommentMetrics(l log.Logger, status int,
 func (a *ActivityRequester) handleRedditSubredditMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
-		return nil, fmt.Errorf("error deserializing response: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error deserializing response: %w", err)}
 	}
 	// id
 	iface, err := jmespath.Search("data.display_name", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting id: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting id: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting id; id is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting id; id is nil")}
 	}
 	id := iface.(string)
 
 	// subscribers
 	iface, err = jmespath.Search("data.subscribers", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting subscribers: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting subscribers: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting subscribers; subscribers is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting subscribers; subscribers is nil")}
 	}
 	subscribers := iface.(float64)
 
 	// active user count
 	iface, err = jmespath.Search("data.active_user_count", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting active_user_count: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting active_user_count: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting active_user_count; active_user_count is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting active_user_count; active_user_count is nil")}
 	}
 	active_user_count := iface.(float64)
 
@@ -602,7 +602,7 @@ func (a *ActivityRequester) handleRedditSubredditMetrics(l log.Logger, status in
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error serializing upload metadata: %w", err)}
 	}
 	return uploadMetrics(l, "/reddit/subreddit", b)
 }
@@ -619,65 +619,65 @@ func (a *ActivityRequester) handleRedditSubredditMonitorMetrics(l log.Logger, st
 func (a *ActivityRequester) handleRedditUserMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
-		return nil, fmt.Errorf("error deserializing response: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error deserializing response: %w", err)}
 	}
 	// name
 	iface, err := jmespath.Search("data.name", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting name: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting name: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting name; name is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting name; name is nil")}
 	}
 	name := iface.(string)
 
 	// awardee karma
 	iface, err = jmespath.Search("data.awardee_karma", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting awardee_karma: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting awardee_karma: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting awardee_karma; awardee_karma is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting awardee_karma; awardee_karma is nil")}
 	}
 	awardee_karma := iface.(float64)
 
 	// awarder karma
 	iface, err = jmespath.Search("data.awarder_karma", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting awarder_karma: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting awarder_karma: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting awarder_karma; awarder_karma is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting awarder_karma; awarder_karma is nil")}
 	}
 	awarder_karma := iface.(float64)
 
 	// comment karma
 	iface, err = jmespath.Search("data.comment_karma", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting comment_karma: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting comment_karma: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting comment_karma; comment_karma is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting comment_karma; comment_karma is nil")}
 	}
 	comment_karma := iface.(float64)
 
 	// link karma
 	iface, err = jmespath.Search("data.link_karma", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting link_karma: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting link_karma: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting link_karma; link_karma is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting link_karma; link_karma is nil")}
 	}
 	link_karma := iface.(float64)
 
 	// total karma
 	iface, err = jmespath.Search("data.total_karma", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting total_karma: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting total_karma: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting total_karma; name is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting total_karma; name is nil")}
 	}
 	total_karma := iface.(float64)
 
@@ -697,7 +697,7 @@ func (a *ActivityRequester) handleRedditUserMetrics(l log.Logger, status int, b 
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error serializing upload metadata: %w", err)}
 	}
 	return uploadMetrics(l, "/reddit/user", b)
 }
@@ -714,25 +714,25 @@ func (a *ActivityRequester) handleRedditUserMonitorMetrics(l log.Logger, status 
 func (a *ActivityRequester) handleTwitchClipMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
-		return nil, fmt.Errorf("error deserializing response: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error deserializing response: %w", err)}
 	}
 	// id
 	iface, err := jmespath.Search("data[0].id", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting id: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting id: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting id; id is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting id; id is nil")}
 	}
 	id := iface.(string)
 
 	// view_count
 	iface, err = jmespath.Search("data[0].view_count", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting view_count: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting view_count: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting view_count; view_count is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting view_count; view_count is nil")}
 	}
 	vc := iface.(float64)
 
@@ -744,7 +744,7 @@ func (a *ActivityRequester) handleTwitchClipMetrics(l log.Logger, status int, b 
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error serializing upload metadata: %w", err)}
 	}
 	return uploadMetrics(l, "/twitch/clip", b)
 }
@@ -753,25 +753,25 @@ func (a *ActivityRequester) handleTwitchClipMetrics(l log.Logger, status int, b 
 func (a *ActivityRequester) handleTwitchVideoMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
-		return nil, fmt.Errorf("error deserializing response: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error deserializing response: %w", err)}
 	}
 	// id
 	iface, err := jmespath.Search("data[0].id", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting id: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting id: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting id; id is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting id; id is nil")}
 	}
 	id := iface.(string)
 
 	// view_count
 	iface, err = jmespath.Search("data[0].view_count", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting view_count: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting view_count: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting view_count; view_count is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting view_count; view_count is nil")}
 	}
 	vc := iface.(float64)
 
@@ -783,7 +783,7 @@ func (a *ActivityRequester) handleTwitchVideoMetrics(l log.Logger, status int, b
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error serializing upload metadata: %w", err)}
 	}
 	return uploadMetrics(l, "/twitch/video", b)
 }
@@ -792,16 +792,16 @@ func (a *ActivityRequester) handleTwitchVideoMetrics(l log.Logger, status int, b
 func (a *ActivityRequester) handleTwitchStreamMetrics(l log.Logger, status int, b []byte) (*api.DefaultJSONResponse, error) {
 	var data interface{}
 	if err := json.Unmarshal(b, &data); err != nil {
-		return nil, fmt.Errorf("error deserializing response: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error deserializing response: %w", err)}
 	}
 
 	// short circuit if nothing is returned; streamer is probably just offline
 	iface, err := jmespath.Search("data | length(@)", data)
 	if err != nil {
-		return nil, fmt.Errorf("error counting stream results: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error counting stream results: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error counting stream results; count is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error counting stream results; count is nil")}
 	}
 	count := iface.(float64)
 	if count < 1 {
@@ -811,20 +811,20 @@ func (a *ActivityRequester) handleTwitchStreamMetrics(l log.Logger, status int, 
 	// id
 	iface, err = jmespath.Search("data[0].user_login", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting user_login: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting user_login: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting user_login; user_login is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting user_login; user_login is nil")}
 	}
 	user_login := iface.(string)
 
 	// view_count
 	iface, err = jmespath.Search("data[0].viewer_count", data)
 	if err != nil {
-		return nil, fmt.Errorf("error extracting viewer_count: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting viewer_count: %w", err)}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("error extracting viewer_count; viewer_count is nil")
+		return nil, ErrNoRetry{Err: fmt.Errorf("error extracting viewer_count; viewer_count is nil")}
 	}
 	vc := iface.(float64)
 
@@ -836,7 +836,7 @@ func (a *ActivityRequester) handleTwitchStreamMetrics(l log.Logger, status int, 
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error serializing upload metadata: %w", err)}
 	}
 	return uploadMetrics(l, "/twitch/stream", b)
 }
@@ -852,7 +852,7 @@ func (a *ActivityRequester) handleTwitchUserPastDecMetrics(l log.Logger, status 
 	}
 
 	if err := json.Unmarshal(b, &body); err != nil {
-		return nil, fmt.Errorf("error deserializing response: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error deserializing response: %w", err)}
 	}
 
 	views := []float64{}
@@ -862,7 +862,7 @@ func (a *ActivityRequester) handleTwitchUserPastDecMetrics(l log.Logger, status 
 		views = append(views, float64(v.ViewCount))
 		d, err := time.ParseDuration(v.Duration)
 		if err != nil {
-			return nil, fmt.Errorf("error parsing video duration %s: %w", v.Duration, err)
+			return nil, ErrNoRetry{Err: fmt.Errorf("error parsing video duration %s: %w", v.Duration, err)}
 		}
 		durs = append(durs, float64(d/time.Second))
 	}
@@ -898,7 +898,7 @@ func (a *ActivityRequester) handleTwitchUserPastDecMetrics(l log.Logger, status 
 	}
 	b, err := json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("error serializing upload metadata: %w", err)
+		return nil, ErrNoRetry{Err: fmt.Errorf("error serializing upload metadata: %w", err)}
 	}
 	return uploadMetrics(l, "/twitch/user-past-dec", b)
 }

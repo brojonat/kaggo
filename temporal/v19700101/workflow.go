@@ -65,10 +65,16 @@ func DoMetadataRequestWF(ctx workflow.Context, r DoMetadataRequestWFRequest) err
 
 	// Upload the response to our server. This should also have a bunch of
 	// retries associated with it, since we're only doing this once and our
-	// server could be down for any number of reasons.
+	// server could be down for any number of reasons. However, certain
+	// errors, like failure to parse the data, should not be retried because
+	// they're not transient; these should fail immediately.
 	activityOptions = workflow.ActivityOptions{
 		StartToCloseTimeout: 1. * time.Minute,
-		RetryPolicy:         &temporal.RetryPolicy{MaximumAttempts: 10, BackoffCoefficient: 5},
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts:        10,
+			BackoffCoefficient:     5,
+			NonRetryableErrorTypes: []string{"ErrNoRetry"},
+		},
 	}
 
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)

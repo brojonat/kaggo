@@ -71,6 +71,14 @@ type ActivityRequester struct {
 	TwitchAuthTokenExp         time.Time
 }
 
+type ErrNoRetry struct {
+	Err error
+}
+
+func (e ErrNoRetry) Error() string {
+	return e.Err.Error()
+}
+
 // This is a hook to update requests without updating the originally scheduled
 // http.Request. This parses the supplied request and perform any finishing
 // touches like setting auth tokens and whatnot. For example, requests to Reddit

@@ -87,6 +87,53 @@ func handleGetMetricMetadata(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc 
 	}
 }
 
+func handleGetChildrenMetadata(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		rk := r.URL.Query().Get("request_kind")
+		id := r.URL.Query().Get("id")
+		if rk == "" || id == "" {
+			writeBadRequestError(w, fmt.Errorf("must supply request_kind and id"))
+			return
+		}
+
+		var childRK, ownerField string
+		switch rk {
+		case kt.RequestKindRedditUser:
+			childRK = kt.RequestKindRedditPost
+			ownerField = "parent_user_name"
+		case kt.RequestKindRedditSubreddit:
+			childRK = kt.RequestKindRedditPost
+			ownerField = "parent_subreddit"
+		case kt.RequestKindYouTubeChannel:
+			childRK = kt.RequestKindYouTubeVideo
+			ownerField = "parent_channel_id"
+		default:
+			writeBadRequestError(w, fmt.Errorf("unsupported request_kind %s", rk))
+			return
+		}
+		// FIXME: ownerField must be injected somehow
+		l.Info("need to inject", "ownerField", ownerField)
+
+		res, err := q.GetChildrenMetadataByID(
+			r.Context(),
+			dbgen.GetChildrenMetadataByIDParams{
+				ID:                id,
+				ParentRequestKind: rk,
+				ChildRequestKind:  childRK,
+			})
+		if err != nil {
+			writeInternalError(l, w, err)
+			return
+		}
+		if res == nil {
+			writeEmptyResultError(w)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(res)
+	}
+}
+
 func handlePostMetricMetadata(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var data api.MetricMetadataPayload
