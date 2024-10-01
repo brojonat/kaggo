@@ -22,7 +22,7 @@ SELECT
     'kaggle.notebook.votes' AS "metric"
 FROM kaggle_notebook_votes k
 WHERE
-    k.id = ANY(@ids::VARCHAR[]) AND
+    k.id ILIKE ANY(@ids::VARCHAR[]) AND
     k.ts >= @ts_start AND
     k.ts <= @ts_end;
 
@@ -34,7 +34,7 @@ SELECT
     'kaggle.dataset.votes' AS "metric"
 FROM kaggle_dataset_votes AS k
 WHERE
-    k.id = ANY(@ids::VARCHAR[]) AND
+    k.id ILIKE ANY(@ids::VARCHAR[]) AND
     k.ts >= @ts_start AND
     k.ts <= @ts_end
 UNION ALL
@@ -45,7 +45,7 @@ SELECT
     'kaggle.dataset.views' AS "metric"
 FROM kaggle_dataset_views AS k
 WHERE
-    k.id = ANY(@ids::VARCHAR[]) AND
+    k.id ILIKE ANY(@ids::VARCHAR[]) AND
     k.ts >= @ts_start AND
     k.ts <= @ts_end
 UNION ALL
@@ -56,7 +56,7 @@ SELECT
     'kaggle.dataset.downloads' AS "metric"
 FROM kaggle_dataset_downloads AS k
 WHERE
-    k.id = ANY(@ids::VARCHAR[]) AND
+    k.id ILIKE ANY(@ids::VARCHAR[]) AND
     k.ts >= @ts_start AND
     k.ts <= @ts_end;
 

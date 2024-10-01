@@ -47,7 +47,7 @@ func (q *Queries) InsertYouTubeChannelSubscription(ctx context.Context, id strin
 const youTubeChannelSubscriptionExists = `-- name: YouTubeChannelSubscriptionExists :one
 SELECT 1 AS "exists"
 FROM youtube_channel_subscriptions
-WHERE id = $1
+WHERE LOWER(id) = $1
 `
 
 func (q *Queries) YouTubeChannelSubscriptionExists(ctx context.Context, id string) (int32, error) {

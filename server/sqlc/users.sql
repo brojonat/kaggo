@@ -22,7 +22,7 @@ WHERE email = @email AND request_kind = @request_kind;
 
 -- name: RemoveMetricFromUser :exec
 DELETE FROM users_metadata_through
-WHERE email = @email AND id = @id AND request_kind = @request_kind;
+WHERE email = @email AND LOWER(id) = LOWER(@id) AND request_kind = @request_kind;
 
 -- name: GetUsers :many
 SELECT *

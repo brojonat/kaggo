@@ -87,6 +87,8 @@ func handleGetMetricMetadata(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc 
 	}
 }
 
+// Returns the children for the supplied request_kind and user id. For example,
+// returns the child posts for (reddit.user, username).
 func handleGetChildrenMetadata(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		rk := r.URL.Query().Get("request_kind")

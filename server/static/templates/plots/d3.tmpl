@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<!-- Load d3 and jquery -->
+<script src="https://d3js.org/d3.v6.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.slim.min.js" integrity="sha256-kmHvs0B+OpCW5GVHUNjv9rOmY0IvSIRcf7zGUDTDQM8=" crossorigin="anonymous"></script>
+
+<!-- Load template vars -->
+<script>
+const ENDPOINT = {{ .Endpoint }};
+const DATA_PATH = {{ .DataPath }};
+const LSATK = {{ .LocalStorageAuthTokenKey }};
+const ID = {{ .ID }}
+</script>
+
+<!-- Create a div where the graph will take place -->
+<div id="loading">Loading...</div>
+<div id="plot"></div>
+<script src={{ .Endpoint }}/static/js/d3.js type="module"></script>

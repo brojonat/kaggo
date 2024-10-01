@@ -18,7 +18,7 @@ SELECT
     'youtube.channel.views' AS "metric"
 FROM youtube_channel_views AS y
 WHERE
-    y.id = ANY(@ids::VARCHAR[]) AND
+    y.id ILIKE ANY(@ids::VARCHAR[]) AND
     y.ts >= @ts_start AND
     y.ts <= @ts_end
 UNION ALL
@@ -29,7 +29,7 @@ SELECT
     'youtube.channel.subscribers' AS "metric"
 FROM youtube_channel_subscribers AS y
 WHERE
-    y.id = ANY(@ids::VARCHAR[]) AND
+    y.id ILIKE ANY(@ids::VARCHAR[]) AND
     y.ts >= @ts_start AND
     y.ts <= @ts_end
 UNION ALL
@@ -40,7 +40,7 @@ SELECT
     'youtube.channel.videos' AS "metric"
 FROM youtube_channel_videos AS y
 WHERE
-    y.id = ANY(@ids::VARCHAR[]) AND
+    y.id ILIKE ANY(@ids::VARCHAR[]) AND
     y.ts >= @ts_start AND
     y.ts <= @ts_end;
 
@@ -54,7 +54,7 @@ SELECT
 FROM youtube_channel_views AS y
 GROUP BY y.id, y.ts
 HAVING
-    y.id = ANY(@ids::VARCHAR[]) AND
+    y.id ILIKE ANY(@ids::VARCHAR[]) AND
     y.ts >= @ts_start AND
     y.ts <= @ts_end;
 
@@ -70,7 +70,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -85,7 +85,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -100,7 +100,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
@@ -115,7 +115,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -129,7 +129,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -143,7 +143,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
@@ -158,7 +158,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -173,7 +173,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -188,7 +188,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
@@ -203,7 +203,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -217,7 +217,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -231,6 +231,6 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;

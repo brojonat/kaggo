@@ -5,15 +5,16 @@ meta {
 }
 
 get {
-  url: {{ENDPOINT}}/timeseries/bucketed?id=OdxSbc0ap-s
+  url: {{ENDPOINT}}/timeseries/bucketed?id=Smartastic&request_kind=reddit.user
   body: none
   auth: none
 }
 
 query {
-  id: OdxSbc0ap-s
+  id: Smartastic
+  request_kind: reddit.user
 }
 
 headers {
-  Authorization: {{AUTH_TOKEN}}
+  Authorization: Bearer {{AUTH_TOKEN}}
 }

@@ -19,7 +19,7 @@ SELECT
     'internal.random' AS "metric"
 FROM internal_random AS i
 WHERE
-    i.id = ANY($1::VARCHAR[]) AND
+    i.id ILIKE ANY($1::VARCHAR[]) AND
     i.ts >= $2 AND
     i.ts <= $3
 `

@@ -7,7 +7,7 @@ SET data = EXCLUDED.data;
 -- name: GetMetadataByIDs :many
 SELECT id, request_kind, data
 FROM metadata
-WHERE id = ANY(@ids::VARCHAR[]);
+WHERE id ILIKE ANY(@ids::VARCHAR[]);
 
 -- name: GetMetadatum :one
 SELECT id, request_kind, data
@@ -32,4 +32,4 @@ LEFT JOIN (
 	FROM metadata m2
 	WHERE m2.request_kind = @child_request_kind
 ) children ON m.id = children.parent_id
-WHERE m.id = @id AND m.request_kind = @parent_request_kind;
+WHERE LOWER(m.id) = LOWER(@id) AND m.request_kind = @parent_request_kind;

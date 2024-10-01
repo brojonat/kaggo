@@ -9,4 +9,4 @@ FROM youtube_channel_subscriptions;
 -- name: YouTubeChannelSubscriptionExists :one
 SELECT 1 AS "exists"
 FROM youtube_channel_subscriptions
-WHERE id = @id;
+WHERE LOWER(id) = @id;

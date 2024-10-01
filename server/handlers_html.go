@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -14,26 +15,32 @@ import (
 	"github.com/MetalBlueberry/go-plotly/pkg/types"
 	"github.com/brojonat/kaggo/server/db/dbgen"
 	kt "github.com/brojonat/kaggo/temporal/v19700101"
+	"github.com/jackc/pgx/v5/pgtype"
 	"go.temporal.io/sdk/client"
 )
 
 const (
 	PlotKindScheduleCount    string = "schedule-count"
 	PlotKindScheduleTimeline string = "schedule-timeline"
+	PlotKindUserPulse        string = "user-pulse"
 )
 
 var plotTmpl *template.Template
+var d3Tmpl *template.Template
 
 type templateData struct {
 	Endpoint                 string
 	PlotKind                 string
 	CDN                      string
 	LocalStorageAuthTokenKey string
+	DataPath                 string
+	ID                       string
 }
 
 func handleGetPlotData(l *slog.Logger, q *dbgen.Queries, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Query().Get("id") {
+		pk := r.URL.Query().Get("plot_kind")
+		switch pk {
 		case PlotKindScheduleCount:
 
 			ss, err := tc.ScheduleClient().List(r.Context(), client.ScheduleListOptions{})
@@ -233,22 +240,46 @@ func handleGetPlotData(l *slog.Logger, q *dbgen.Queries, tc client.Client) http.
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(fig)
 
+		case PlotKindUserPulse:
+			id := r.URL.Query().Get("id")
+			user_metrics, err := q.GetRedditUserMetricsByIDsBucket15Min(
+				r.Context(), dbgen.GetRedditUserMetricsByIDsBucket15MinParams{
+					Ids:     []string{id},
+					TsStart: pgtype.Timestamptz{Time: time.Time{}, Valid: true},
+					TsEnd:   pgtype.Timestamptz{Time: time.Now(), Valid: true},
+				},
+			)
+
+			if err != nil {
+				writeInternalError(l, w, err)
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(user_metrics)
+			return
+
 		default:
-			writeBadRequestError(w, fmt.Errorf("must supply id"))
+			writeBadRequestError(w, fmt.Errorf("unsupported plot_kind %s", pk))
 			return
 		}
 	}
 }
 
-func handlePlot(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
+func handleGetPlots(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		pk := r.URL.Query().Get("id")
+		pk := r.URL.Query().Get("plot_kind")
+		id := r.URL.Query().Get("id")
+		q := url.Values{}
+
 		switch pk {
-		// pretty much all plots should be served by this same template
 		case PlotKindScheduleCount, PlotKindScheduleTimeline:
+			// Plots schedule related information. These plots use an internal
+			// handler specifically designed to interface with the Temporal
+			// client and contruct the relevant data.
+			q.Add("plot_kind", pk)
 			data := templateData{
 				Endpoint:                 os.Getenv("KAGGO_ENDPOINT"),
-				PlotKind:                 pk,
+				DataPath:                 "/plot-data?" + q.Encode(),
 				CDN:                      os.Getenv("PLOTLY_CDN"),
 				LocalStorageAuthTokenKey: os.Getenv("LOCAL_STORAGE_AUTH_TOKEN_KEY"),
 			}
@@ -257,19 +288,41 @@ func handlePlot(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 			if err != nil {
 				l.Error("Error rendering template", "error", err)
 			}
+		case PlotKindUserPulse:
+			// Plot shows the user pulse metrics. This plot fetches the data
+			// from the backend timeseries handlers directly.
+			if id == "" {
+				writeBadRequestError(w, fmt.Errorf("must supply request_kind and id"))
+				return
+			}
+			q.Add("plot_kind", pk)
+			q.Add("id", id)
+			data := templateData{
+				Endpoint:                 os.Getenv("KAGGO_ENDPOINT"),
+				PlotKind:                 pk,
+				CDN:                      os.Getenv("PLOTLY_CDN"),
+				LocalStorageAuthTokenKey: os.Getenv("LOCAL_STORAGE_AUTH_TOKEN_KEY"),
+				ID:                       id,
+			}
+			w.WriteHeader(http.StatusOK)
+			err := d3Tmpl.Execute(w, data)
+			if err != nil {
+				l.Error("Error rendering template", "error", err)
+			}
+
 		default:
-			writeBadRequestError(w, fmt.Errorf("must supply id"))
+			writeBadRequestError(w, fmt.Errorf("unsupported plot_kind %s", pk))
 			return
 		}
 
 	}
 }
 
-// This is a broken but useful helper function. This assumes there's one
-// calendar with one schedule range, no skips, and that every day has the same
-// schedule. This is sufficient for now but ultimately will need to be improved
-// to handle more complicated schedules. Ideally temporal would expose this
-// functionality but alas.
+// This is a broken but useful helper function. This assumes that the supplied
+// ScheduleSpec has one calendar with one schedule range, no skips, and that
+// every day has the same schedule. This is sufficient for now but ultimately
+// will need to be improved to handle more complicated schedules. Ideally
+// temporal would expose this functionality but alas.
 func getNextActionTimesNoJitter(s *client.ScheduleSpec, ndays int) []time.Time {
 
 	seconds := []int{}

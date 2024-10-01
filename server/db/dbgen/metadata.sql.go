@@ -28,7 +28,7 @@ LEFT JOIN (
 	FROM metadata m2
 	WHERE m2.request_kind = $1
 ) children ON m.id = children.parent_id
-WHERE m.id = $2 AND m.request_kind = $3
+WHERE LOWER(m.id) = LOWER($2) AND m.request_kind = $3
 `
 
 type GetChildrenMetadataByIDParams struct {
@@ -74,7 +74,7 @@ func (q *Queries) GetChildrenMetadataByID(ctx context.Context, arg GetChildrenMe
 const getMetadataByIDs = `-- name: GetMetadataByIDs :many
 SELECT id, request_kind, data
 FROM metadata
-WHERE id = ANY($1::VARCHAR[])
+WHERE id ILIKE ANY($1::VARCHAR[])
 `
 
 func (q *Queries) GetMetadataByIDs(ctx context.Context, ids []string) ([]Metadatum, error) {

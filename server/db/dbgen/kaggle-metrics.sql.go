@@ -19,7 +19,7 @@ SELECT
     'kaggle.dataset.votes' AS "metric"
 FROM kaggle_dataset_votes AS k
 WHERE
-    k.id = ANY($1::VARCHAR[]) AND
+    k.id ILIKE ANY($1::VARCHAR[]) AND
     k.ts >= $2 AND
     k.ts <= $3
 UNION ALL
@@ -30,7 +30,7 @@ SELECT
     'kaggle.dataset.views' AS "metric"
 FROM kaggle_dataset_views AS k
 WHERE
-    k.id = ANY($1::VARCHAR[]) AND
+    k.id ILIKE ANY($1::VARCHAR[]) AND
     k.ts >= $2 AND
     k.ts <= $3
 UNION ALL
@@ -41,7 +41,7 @@ SELECT
     'kaggle.dataset.downloads' AS "metric"
 FROM kaggle_dataset_downloads AS k
 WHERE
-    k.id = ANY($1::VARCHAR[]) AND
+    k.id ILIKE ANY($1::VARCHAR[]) AND
     k.ts >= $2 AND
     k.ts <= $3
 `
@@ -427,7 +427,7 @@ SELECT
     'kaggle.notebook.votes' AS "metric"
 FROM kaggle_notebook_votes k
 WHERE
-    k.id = ANY($1::VARCHAR[]) AND
+    k.id ILIKE ANY($1::VARCHAR[]) AND
     k.ts >= $2 AND
     k.ts <= $3
 `

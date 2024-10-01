@@ -10,6 +10,6 @@ SELECT
     'internal.random' AS "metric"
 FROM internal_random AS i
 WHERE
-    i.id = ANY(@ids::VARCHAR[]) AND
+    i.id ILIKE ANY(@ids::VARCHAR[]) AND
     i.ts >= @ts_start AND
     i.ts <= @ts_end;

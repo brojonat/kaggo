@@ -19,7 +19,7 @@ SELECT
     'reddit.comment.score' AS "metric"
 FROM reddit_comment_score AS r
 WHERE
-    r.id = ANY($1::VARCHAR[]) AND
+    r.id ILIKE ANY($1::VARCHAR[]) AND
     r.ts >= $2 AND
     r.ts <= $3
 UNION ALL
@@ -30,7 +30,7 @@ SELECT
     'reddit.comment.controversiality' AS "metric"
 FROM reddit_comment_controversiality AS r
 WHERE
-    r.id = ANY($1::VARCHAR[]) AND
+    r.id ILIKE ANY($1::VARCHAR[]) AND
     r.ts >= $2 AND
     r.ts <= $3
 `
@@ -87,7 +87,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -102,7 +102,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 `
@@ -157,7 +157,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -171,7 +171,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 `
@@ -225,7 +225,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -239,7 +239,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 `
@@ -293,7 +293,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -308,7 +308,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 `
@@ -359,7 +359,7 @@ SELECT
     'reddit.post.score' AS "metric"
 FROM reddit_post_score AS r
 WHERE
-    r.id = ANY($1::VARCHAR[]) AND
+    r.id ILIKE ANY($1::VARCHAR[]) AND
     r.ts >= $2 AND
     r.ts <= $3
 UNION ALL
@@ -370,7 +370,7 @@ SELECT
     'reddit.post.ratio' AS "metric"
 FROM reddit_post_ratio AS r
 WHERE
-    r.id = ANY($1::VARCHAR[]) AND
+    r.id ILIKE ANY($1::VARCHAR[]) AND
     r.ts >= $2 AND
     r.ts <= $3
 `
@@ -426,7 +426,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -441,7 +441,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 `
@@ -496,7 +496,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -510,7 +510,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 `
@@ -564,7 +564,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -578,7 +578,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 `
@@ -632,7 +632,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -647,7 +647,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 `
@@ -698,7 +698,7 @@ SELECT
     'reddit.subreddit.subscribers' AS "metric"
 FROM reddit_subreddit_subscribers AS r
 WHERE
-    r.id = ANY($1::VARCHAR[]) AND
+    r.id ILIKE ANY($1::VARCHAR[]) AND
     r.ts >= $2 AND
     r.ts <= $3
 UNION ALL
@@ -709,7 +709,7 @@ SELECT
     'reddit.subreddit.active-user-count' AS "metric"
 FROM reddit_subreddit_active_user_count AS r
 WHERE
-    r.id = ANY($1::VARCHAR[]) AND
+    r.id ILIKE ANY($1::VARCHAR[]) AND
     r.ts >= $2 AND
     r.ts <= $3
 `
@@ -766,7 +766,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -781,7 +781,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 `
@@ -836,7 +836,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -850,7 +850,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 `
@@ -904,7 +904,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -918,7 +918,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 `
@@ -972,7 +972,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -987,7 +987,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 `
@@ -1038,7 +1038,7 @@ SELECT
     'reddit.user.awardee-karma' AS "metric"
 FROM reddit_user_awardee_karma AS r
 WHERE
-    r.id = ANY($1::VARCHAR[]) AND
+    r.id ILIKE ANY($1::VARCHAR[]) AND
     r.ts >= $2 AND
     r.ts <= $3
 UNION ALL
@@ -1049,7 +1049,7 @@ SELECT
     'reddit.user.awarder-karma' AS "metric"
 FROM reddit_user_awarder_karma AS r
 WHERE
-    r.id = ANY($1::VARCHAR[]) AND
+    r.id ILIKE ANY($1::VARCHAR[]) AND
     r.ts >= $2 AND
     r.ts <= $3
 UNION ALL
@@ -1060,7 +1060,7 @@ SELECT
     'reddit.user.comment-karma' AS "metric"
 FROM reddit_user_comment_karma AS r
 WHERE
-    r.id = ANY($1::VARCHAR[]) AND
+    r.id ILIKE ANY($1::VARCHAR[]) AND
     r.ts >= $2 AND
     r.ts <= $3
 UNION ALL
@@ -1071,7 +1071,7 @@ SELECT
     'reddit.user.link-karma' AS "metric"
 FROM reddit_user_link_karma AS r
 WHERE
-    r.id = ANY($1::VARCHAR[]) AND
+    r.id ILIKE ANY($1::VARCHAR[]) AND
     r.ts >= $2 AND
     r.ts <= $3
 UNION ALL
@@ -1082,7 +1082,7 @@ SELECT
     'reddit.user.total-karma' AS "metric"
 FROM reddit_user_total_karma AS r
 WHERE
-    r.id = ANY($1::VARCHAR[]) AND
+    r.id ILIKE ANY($1::VARCHAR[]) AND
     r.ts >= $2 AND
     r.ts <= $3
 `
@@ -1139,7 +1139,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -1154,7 +1154,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -1169,7 +1169,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -1184,7 +1184,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -1199,7 +1199,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 `
@@ -1254,7 +1254,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -1268,7 +1268,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 	UNION ALL
@@ -1283,7 +1283,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -1298,7 +1298,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -1313,7 +1313,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 `
@@ -1367,7 +1367,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -1381,7 +1381,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -1396,7 +1396,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -1411,7 +1411,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -1426,7 +1426,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 `
@@ -1480,7 +1480,7 @@ FROM (
 	GROUP BY id, bucket
 	ORDER BY id, bucket
 ) AS tab WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -1495,7 +1495,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -1510,7 +1510,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -1525,7 +1525,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 UNION ALL
@@ -1540,7 +1540,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY($1::VARCHAR[]) AND
+    tab.id ILIKE ANY($1::VARCHAR[]) AND
     tab.bucket >= $2::TIMESTAMPTZ AND
     tab.bucket <= $3::TIMESTAMPTZ
 `

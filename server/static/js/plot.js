@@ -1,6 +1,6 @@
 async function fetchAPI() {
   try {
-    const res = await fetch(`${ENDPOINT}/plot-data?id=${PLOT_KIND}`, {
+    const res = await fetch(`${ENDPOINT}/${DATA_PATH}`, {
       headers: new Headers({
         Authorization: localStorage.getItem(LSATK),
       }),

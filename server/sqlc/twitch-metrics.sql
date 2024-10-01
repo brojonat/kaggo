@@ -47,7 +47,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
@@ -63,7 +63,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
@@ -79,7 +79,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
@@ -95,7 +95,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
@@ -111,7 +111,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
@@ -127,7 +127,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
@@ -143,7 +143,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
@@ -159,7 +159,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
@@ -175,7 +175,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
@@ -191,7 +191,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
@@ -207,7 +207,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
@@ -223,7 +223,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
@@ -239,7 +239,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -254,7 +254,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -269,7 +269,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -284,7 +284,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -299,7 +299,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -314,7 +314,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
@@ -331,7 +331,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -346,7 +346,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -361,7 +361,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -376,7 +376,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -391,7 +391,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -406,7 +406,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
@@ -423,7 +423,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -438,7 +438,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -453,7 +453,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -468,7 +468,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -483,7 +483,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -498,7 +498,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;
 
@@ -514,7 +514,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -529,7 +529,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -544,7 +544,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -559,7 +559,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -574,7 +574,7 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ
 UNION ALL
@@ -589,6 +589,6 @@ FROM (
 	ORDER BY id, bucket
 ) AS tab
 WHERE
-    tab.id = ANY(@ids::VARCHAR[]) AND
+    tab.id ILIKE ANY(@ids::VARCHAR[]) AND
     tab.bucket >= @ts_start::TIMESTAMPTZ AND
     tab.bucket <= @ts_end::TIMESTAMPTZ;

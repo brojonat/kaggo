@@ -5,7 +5,6 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
-	"io/fs"
 	"log/slog"
 	"maps"
 	"net/http"
@@ -141,11 +140,15 @@ func getRouter(
 
 	// static files and template parsing
 	plotTmpl = template.Must(template.ParseFS(static, "static/templates/plots/plot.tmpl"))
-	jsFS, err := fs.Sub(static, "static")
-	if err != nil {
-		return nil, fmt.Errorf("startup: failed to setup js static file server: %w", err)
-	}
-	fsJS := http.FileServer(http.FS(jsFS))
+	// d3Tmpl = template.Must(template.ParseFS(static, "static/templates/plots/d3.tmpl"))
+	// FIXME: get this working so we can iterate
+	d3Tmpl = template.Must(template.ParseFiles("server/static/templates/plots/d3.tmpl"))
+	// jsFS, err := fs.Sub(static, "static")
+	// if err != nil {
+	// 	return nil, fmt.Errorf("startup: failed to setup js static file server: %w", err)
+	// }
+	// fsJS := http.FileServer(http.FS(jsFS))
+	fsJS := http.FileServer(http.Dir("server/static"))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fsJS))
 
 	// All route definitions follow; this defines the API surface
@@ -168,7 +171,7 @@ func getRouter(
 	// serves the static file that will asynchronously fetch the plot data;
 	// basic auth protected
 	mux.Handle("GET /plots", stools.AdaptHandler(
-		handlePlot(l, q),
+		handleGetPlots(l, q),
 		atLeastOneAuth(basicAuthorizerCtxSetEmail(getSecretKey)),
 	))
 	// serves the data to the plot static file; Bearer token protected

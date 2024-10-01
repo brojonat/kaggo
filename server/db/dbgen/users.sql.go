@@ -144,7 +144,7 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
 
 const removeMetricFromUser = `-- name: RemoveMetricFromUser :exec
 DELETE FROM users_metadata_through
-WHERE email = $1 AND id = $2 AND request_kind = $3
+WHERE email = $1 AND LOWER(id) = LOWER($2) AND request_kind = $3
 `
 
 type RemoveMetricFromUserParams struct {
