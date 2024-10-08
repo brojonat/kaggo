@@ -89,6 +89,9 @@ func basicAuthorizerCtxSetEmail(gsk func() string) func(http.ResponseWriter, *ht
 		if !ok {
 			return false
 		}
+		if email == "" {
+			return false
+		}
 		if pwd != gsk() {
 			return false
 		}

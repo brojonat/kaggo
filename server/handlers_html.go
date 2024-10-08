@@ -287,6 +287,7 @@ func handleGetPlots(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 			err := plotTmpl.Execute(w, data)
 			if err != nil {
 				l.Error("Error rendering template", "error", err)
+				writeInternalError(l, w, err)
 			}
 		case PlotKindUserPulse:
 			// Plot shows the user pulse metrics. This plot fetches the data
@@ -308,6 +309,7 @@ func handleGetPlots(l *slog.Logger, q *dbgen.Queries) http.HandlerFunc {
 			err := d3Tmpl.Execute(w, data)
 			if err != nil {
 				l.Error("Error rendering template", "error", err)
+				writeInternalError(l, w, err)
 			}
 
 		default:
